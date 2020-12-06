@@ -1,6 +1,7 @@
 # JetBrains
 .idea/
 target/
+*.iml
 *.iws
 
 # VS Code

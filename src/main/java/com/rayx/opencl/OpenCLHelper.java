@@ -18,6 +18,7 @@ import static org.lwjgl.opencl.CL22.*;
 import static org.lwjgl.opencl.KHRGLSharing.*;
 
 public class OpenCLHelper {
+    /*
     public static long createProgramFromString(long context, String kernelSource) {
         IntBuffer error = BufferUtils.createIntBuffer(1);
 
@@ -98,106 +99,6 @@ public class OpenCLHelper {
         }
     }
 
-    public static void check(int[] error) {
-        check(error[0]);
-    }
-
-    public static void check(int error) {
-        if (error != CL22.CL_SUCCESS) {
-            throw new RuntimeException("OpenCL error: " + error);
-        }
-    }
-
-    public static void check(IntBuffer error) {
-        if (error.get(0) != CL22.CL_SUCCESS) {
-            throw new RuntimeException("OpenCL error: " + error.get(0));
-        }
-    }
-
-    public static String queryDeviceInfoString(long device, int info) {
-        ByteBuffer value = queryDeviceInfoRaw(device, info);
-
-        StringBuilder builder = new StringBuilder(value.capacity());
-        for (int i = 0; i < builder.capacity(); i++) {
-            builder.append((char) value.get());
-        }
-
-        return builder.toString();
-    }
-
-    public static Object queryDeviceInfo(long device, int info) {
-        return switch (info) {
-            case CL22.CL_DEVICE_BUILT_IN_KERNELS, CL22.CL_DEVICE_VERSION, CL22.CL_DEVICE_NAME, CL22.CL_DEVICE_EXTENSIONS -> queryDeviceInfoString(device, info);
-            case CL22.CL_DEVICE_GLOBAL_MEM_CACHE_SIZE -> queryDeviceInfoULong(device, info);
-            case CL22.CL_DEVICE_MAX_COMPUTE_UNITS, CL22.CL_DEVICE_MAX_CLOCK_FREQUENCY -> queryDeviceInfoUInt(device, info);
-            case CL22.CL_DEVICE_TYPE -> queryDeviceType(device);
-            default -> queryDeviceInfoRaw(device, info);
-        };
-    }
-
-    public static String queryDeviceType(long device) {
-        ArrayList<String> t = new ArrayList<>();
-        long i = queryDeviceInfoRaw(device, CL22.CL_DEVICE_TYPE).get();
-        if ((i & CL22.CL_DEVICE_TYPE_CPU) != 0) {
-            t.add("CPU");
-        }
-        if ((i & CL22.CL_DEVICE_TYPE_ACCELERATOR) != 0) {
-            t.add("ACCELERATOR");
-        }
-        if ((i & CL22.CL_DEVICE_TYPE_CUSTOM) != 0) {
-            t.add("CUSTOM");
-        }
-        if ((i & CL22.CL_DEVICE_TYPE_GPU) != 0) {
-            t.add("GPU");
-        }
-        if ((i & CL22.CL_DEVICE_TYPE_DEFAULT) != 0) {
-            t.add("DEFAULT");
-        }
-
-        return t.toString();
-    }
-
-    public static String queryDeviceInfoUInt(long device, int info) {
-        return Integer.toUnsignedString(queryDeviceInfoRawReversed(device, info).asIntBuffer().get());
-    }
-
-    public static String queryDeviceInfoULong(long device, int info) {
-        return Long.toUnsignedString(queryDeviceInfoRawReversed(device, info).asLongBuffer().get());
-    }
-
-    public static ByteBuffer queryDeviceInfoRawReversed(long device, int info) {
-        ByteBuffer o = queryDeviceInfoRaw(device, info);
-        ByteBuffer n = ByteBuffer.allocate(o.limit());
-        for (int i = 0; i < o.limit(); i++) {
-            n.put(o.get(o.limit() - i - 1));
-        }
-        n.rewind();
-        return n;
-    }
-
-    public static ByteBuffer queryDeviceInfoRaw(long device, int info) {
-        int error;
-        PointerBuffer length = PointerBuffer.allocateDirect(1);
-        error = CL22.clGetDeviceInfo(device, info, (long[]) null, length);
-        check(error);
-
-        ByteBuffer value = ByteBuffer.allocateDirect((int) length.get());
-        CL22.clGetDeviceInfo(device, info, value, null);
-        check(error);
-
-        return value;
-    }
-
-    public static long getDevicePlatform(long device) {
-        int error;
-        LongBuffer l = BufferUtils.createLongBuffer(1);
-
-        error = CL22.clGetDeviceInfo(device, CL22.CL_DEVICE_PLATFORM, l, null);
-        check(error);
-
-        return l.get();
-    }
-
     public static void createCLGLContext(CLDevice device) {
         String extensions = (String) queryDeviceInfo(device.getDevice(), CL_DEVICE_EXTENSIONS);
         if (!extensions.contains("cl_khr_gl_sharing")) {
@@ -244,4 +145,6 @@ public class OpenCLHelper {
         device.setContext(CL22.clCreateContext(PointerBuffer.create(propertiesParam), device.getDevice(), null, 0, error));
         OpenCLHelper.check(error);
     }
+
+     */
 }

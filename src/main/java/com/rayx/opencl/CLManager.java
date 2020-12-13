@@ -1,11 +1,14 @@
 package com.rayx.opencl;
 
 import org.lwjgl.PointerBuffer;
+import org.lwjgl.glfw.GLFWNativeGLX;
+import org.lwjgl.glfw.GLFWNativeWGL;
 import org.lwjgl.opencl.CL12GL;
 import org.lwjgl.opencl.CL22;
 import org.lwjgl.opencl.KHRGLSharing;
 import org.lwjgl.opengl.CGL;
 import org.lwjgl.opengl.GLX14;
+import org.lwjgl.opengl.WGL;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.Platform;
 
@@ -17,10 +20,13 @@ import java.util.List;
 
 import static org.lwjgl.glfw.GLFW.glfwGetCurrentContext;
 import static org.lwjgl.glfw.GLFW.nglfwGetKeyName;
+import static org.lwjgl.glfw.GLFWNativeGLX.glfwGetGLXContext;
+import static org.lwjgl.glfw.GLFWNativeWGL.glfwGetWGLContext;
 import static org.lwjgl.opencl.CL22.*;
 import static org.lwjgl.opencl.KHRGLSharing.*;
 import static org.lwjgl.opencl.KHRGLSharing.CL_GLX_DISPLAY_KHR;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
+import static org.lwjgl.opengl.WGL.wglGetCurrentContext;
 import static org.lwjgl.opengl.WGL.wglGetCurrentDC;
 
 public class CLManager {
@@ -280,7 +286,7 @@ public class CLManager {
         return switch (Platform.get()) {
             case LINUX -> new long[]{
                     CL_CONTEXT_PLATFORM, platform,
-                    CL_GL_CONTEXT_KHR, GLX14.glXGetCurrentContext(),
+                    CL_GL_CONTEXT_KHR, glfwGetGLXContext(glfwWindow),
                     CL_GLX_DISPLAY_KHR, GLX14.glXGetCurrentDisplay(),
                     0
             };
@@ -291,7 +297,7 @@ public class CLManager {
             };
             case WINDOWS -> new long[]{
                     CL_CONTEXT_PLATFORM, platform,
-                    CL_GL_CONTEXT_KHR, glfwGetCurrentContext(),
+                    CL_GL_CONTEXT_KHR, glfwGetWGLContext(glfwWindow),
                     CL_WGL_HDC_KHR, wglGetCurrentDC(),
                     0
             };

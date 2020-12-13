@@ -1,14 +1,19 @@
 package com.rayx;
 
-import com.rayx.opencl.OpenCLHelper;
-
-import static org.lwjgl.opencl.CL22.*;
+import com.rayx.examples.TestOGLWindow;
+import com.rayx.glfw.WindowManager;
 
 public class RayX {
 
+
     public static void main(String[] args) {
-        long device = OpenCLHelper.getAllAvailableDevices().get(0);
-        System.out.println("CL: Name: " + OpenCLHelper.queryDeviceInfo(device, CL_DEVICE_NAME));
+        WindowManager manager = WindowManager.getInstance();
+
+        TestOGLWindow window = new TestOGLWindow(800, 600, "Test");
+        manager.addWindow(window);
+
+        manager.startManager();
     }
+
 
 }

@@ -14,6 +14,10 @@ public abstract class OpenGLWindow {
 
     public abstract void onRender();
 
+    // TODO: Keyboard Events
+
+    // TODO: Resize Event
+
     private void initWindow(int width, int height, String title) {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
@@ -22,6 +26,7 @@ public abstract class OpenGLWindow {
             throw new IllegalStateException("Failed to create window!");
         }
         glfwMakeContextCurrent(window);
+        GL.createCapabilities();
     }
 
     public void destroy() {
@@ -33,7 +38,6 @@ public abstract class OpenGLWindow {
     }
 
     public void makeContextCurrent() {
-        GL.createCapabilities();
         glfwMakeContextCurrent(window);
     }
 
@@ -57,4 +61,14 @@ public abstract class OpenGLWindow {
         glfwSetWindowTitle(window, title);
     }
 
+    public int[] getWindowSize() {
+        int[] width = new int[1];
+        int[] height = new int[1];
+        glfwGetWindowSize(window, width, height);
+        return new int[]{width[0], height[0]};
+    }
+
+    public long getWindow() {
+        return window;
+    }
 }

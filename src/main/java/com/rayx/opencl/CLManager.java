@@ -20,6 +20,7 @@ import static org.lwjgl.glfw.GLFWNativeWGL.glfwGetWGLContext;
 import static org.lwjgl.opencl.CL22.*;
 import static org.lwjgl.opencl.KHRGLSharing.*;
 import static org.lwjgl.opencl.KHRGLSharing.CL_GLX_DISPLAY_KHR;
+import static org.lwjgl.opengl.WGL.wglGetCurrentContext;
 import static org.lwjgl.opengl.WGL.wglGetCurrentDC;
 
 public class CLManager {
@@ -287,7 +288,7 @@ public class CLManager {
             };
             case WINDOWS -> new long[]{
                     CL_CONTEXT_PLATFORM, platform,
-                    CL_GL_CONTEXT_KHR, glfwGetWGLContext(glfwWindow),
+                    CL_GL_CONTEXT_KHR, wglGetCurrentContext(),
                     CL_WGL_HDC_KHR, wglGetCurrentDC(),
                     0
             };

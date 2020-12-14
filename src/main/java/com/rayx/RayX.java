@@ -13,7 +13,6 @@ public class RayX {
         System.out.println("Starting");
         //printAllDevicesAndPlatforms();
         TestGLFWWindow.init();
-
         window = TestGLFWWindow.window;
 
         loop: for(long platform: CLManager.queryPlatforms()) {
@@ -23,8 +22,7 @@ public class RayX {
             System.out.println("Profile   : " + CLManager.queryPlatformInfo(platform, CL_PLATFORM_PROFILE));
             System.out.println("Extensions: " + CLManager.queryPlatformInfo(platform, CL_PLATFORM_EXTENSIONS));
             System.out.println("Device(s) :");
-            for(long device: CLManager.queryDevicesForPlatform(platform,
-                    CLManager.createPropertiesForContext(platform, window), true)) {
+            for(long device: CLManager.queryDevicesForPlatform(platform, window, false)) {
                 printDevice(device, "\t");
                 context = treatDevice(device);
                 System.out.println("--------------");
@@ -73,8 +71,7 @@ public class RayX {
 
     static CLContext treatDevice(long device) {
         long t = System.currentTimeMillis();
-        CLContext context = CLManager.createContext(device, CLManager.createPropertiesForContext(
-                (Long) CLManager.queryDeviceInfo(device, CL_DEVICE_PLATFORM), window));
+        CLContext context = CLManager.createContext(device, window);
 
         System.out.println("Context: " + (System.currentTimeMillis() - t));
         t = System.currentTimeMillis();

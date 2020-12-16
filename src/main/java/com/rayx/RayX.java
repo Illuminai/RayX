@@ -13,7 +13,6 @@ public class RayX {
     static CLContext context;
 
     public static void main(String[] args) {
-
         WindowManager manager = WindowManager.getInstance();
 
         TestOGLWindow window = new TestOGLWindow(800, 600, "Test");
@@ -38,7 +37,7 @@ public class RayX {
 
         window.setCallback((texture) -> {
             glFinish();
-            CLContext.CLKernel kernel = context.getKernelObject("test");
+            CLContext.CLKernel kernel = context.getKernelObject("testKernel");
             CLManager.allocateMemory(context, CL_MEM_READ_ONLY, new double[]{-1.5, 0.0, .5}, "center");
             CLManager.createCLFromGLTexture(context, CL_MEM_WRITE_ONLY, GL_TEXTURE_2D, texture, "tex");
             context.getMemoryObject("tex").acquireFromGL();
@@ -55,55 +54,6 @@ public class RayX {
         freeAll();
     }
 
-    static final String KERNEL_SOURCE = """
-            float4 color(int, int);
-            int calc(double2, int);
-             
-            __kernel void testKernel(__write_only image2d_t image, __global double* center) {
-                int2 pixCo = (int2){get_global_id(0),get_global_id(1)};
-                int w = get_image_width(image);
-                int h = get_image_height(image);
-                if(pixCo.x >= w | pixCo.y >= h) {
-                    return;
-                }
-                double2 absCo = (double2)
-                    {center[2] * ((1.0 * pixCo.x / w) - .5) + center[0],
-                     center[2] * ((1.0 * (h - pixCo.y - 1) / h) - .5) + center[1]};
-                        
-                write_imagef(image, pixCo, color(calc(absCo, 100000), 100000));
-            }
-                        
-            int calc(double2 coo, int maxIter) {
-                double a = 0, b = 0, ta, tb;
-                int i = 0;
-                for(;(i < maxIter) & !(a * a + b * b > 4); i++) {
-                    ta = a*a - b*b + coo.x;
-                    tb = 2 * a * b + coo.y;
-                    a = ta;
-                    b = tb;
-                }
-                return i == maxIter ? -1 : i;
-            }
-                        
-            float4 color(int value, int maxIterations) {
-                int color;
-                if(value == -1) {
-                    color = 0x0;
-                } else if(value == 0) {
-                    color = 0x0;
-                } else {
-                    color = 0xffffff * (1.0*log((double)value)/log((double)maxIterations));
-                }
-                
-                return (float4){
-                    1.0 * ((color >> 0) & 0xFF) / 0xFF,
-                    1.0 * ((color >> 8) & 0xFF) / 0xFF,
-                    1.0 * ((color >> 16) & 0xFF) / 0xFF, 
-                    1
-                };
-            }
-            """;
-
     static CLContext treatDevice(OpenGLWindow window, long device) {
         long t = System.currentTimeMillis();
         CLContext context = CLManager.createContext(device, window.getWindow());
@@ -111,7 +61,25 @@ public class RayX {
         System.out.println("Context: " + (System.currentTimeMillis() - t));
         t = System.currentTimeMillis();
 
-        CLManager.addProgramAndKernelToContext(context, KERNEL_SOURCE, "testKernel", "test");
+        CLManager.putProgramFromFile(context, null,
+                "clcode/headers/utility/mandelbrot.h");
+        CLManager.putProgramFromFile(context, new String[]{
+                "clcode/headers/utility/mandelbrot.h"
+                },
+                "clcode/utility/mandelbrot.cl");
+        CLManager.putProgramFromFile(context, new String[]{
+                        "clcode/headers/utility/mandelbrot.h"
+                },
+                "clcode/main.cl");
+        CLManager.putExecutableProgram(context, new String[] {
+                "clcode/utility/mandelbrot.cl",
+                //Can be added, does not change anything
+                //"clcode/headers/utility/mandelbrot.h",
+                "clcode/main.cl",
+        },"testProgram");
+
+        CLManager.putKernel(context, "testKernel", "testKernel", "testProgram");
+
         System.out.println("Kernel: " + (System.currentTimeMillis() - t));
         return context;
     }
@@ -119,7 +87,7 @@ public class RayX {
     static void freeAll() {
         long t = System.currentTimeMillis();
 
-        context.destroyKernel("test");
+        context.destroyKernel("testKernel");
         context.destroy();
         System.out.println("Destroy: " + (System.currentTimeMillis() - t));
     }

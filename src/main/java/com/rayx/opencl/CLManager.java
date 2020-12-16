@@ -1,18 +1,25 @@
 package com.rayx.opencl;
 
+import com.rayx.RayX;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opencl.CL12GL;
 import org.lwjgl.opencl.CL22;
+import org.lwjgl.opencl.CLProgramCallbackI;
 import org.lwjgl.opencl.KHRGLSharing;
 import org.lwjgl.opengl.CGL;
 import org.lwjgl.opengl.GLX14;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.Platform;
+import org.lwjgl.system.Pointer;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.nio.LongBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.lwjgl.glfw.GLFWNativeGLX.glfwGetGLXContext;
@@ -31,6 +38,22 @@ public class CLManager {
 
     static {
         internalMemoryStack = MemoryStack.create();
+    }
+
+    public static String readFromFile(String file) {
+        BufferedReader r = new BufferedReader(new InputStreamReader(CLManager.class.getResourceAsStream(file)));
+        StringBuilder b = new StringBuilder();
+        String line;
+        try {
+            while((line = r.readLine()) != null) {
+                b.append(line);
+                b.append('\n');
+            }
+            r.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return b.toString();
     }
 
     private static MemoryStack nextStackFrame() {
@@ -55,23 +78,101 @@ public class CLManager {
         }
     }
 
-    public static void addProgramAndKernelToContext(CLContext context, String programSourceCode,
-                                                    String kernelFunction, String kernelId) {
+    /***/
+    public static void putProgramFromFile(CLContext context, String[] dependenciesId, String sourceFile) {
+        try (MemoryStack stack = CLManager.nextStackFrame()) {
+            IntBuffer errorBuffer = stack.mallocInt(1);
+            //Files start without slash because the source file is the id of the program
+            //Because the id is also used for header includes, it cannot start with a slash
+            //The slash is attached internally
+            assert !sourceFile.startsWith("/") : "Files have to start without slash";
+            String programSourceCode = readFromFile("/" + sourceFile);
+            long programPointer = CL22.clCreateProgramWithSource(context.getContext(), programSourceCode, errorBuffer);
+            checkForError(errorBuffer);
+            if(dependenciesId == null) {
+                dependenciesId = new String[0];
+            }
+            CLContext.CLProgram[] dependencies = new CLContext.CLProgram[dependenciesId.length];
+            for(int i = 0; i < dependencies.length; i++) {
+                dependencies[i] = context.getProgramObject(dependenciesId[i]);
+            }
+            PointerBuffer inputHeaderNames, inputHeaderPrograms;
+            if(dependencies.length != 0) {
+                inputHeaderNames = stack.pointers(Arrays.stream(dependencies).
+                        map((CLContext.CLProgram proObj) -> stack.ASCII(proObj.getProgramId())).
+                        toArray(ByteBuffer[]::new));
+                inputHeaderPrograms = stack.pointers(Arrays.stream(dependencies).
+                        map(CLContext.CLProgram::getProgram).mapToLong(Long::longValue).toArray());
+            } else {
+                inputHeaderNames = null;
+                inputHeaderPrograms = null;
+            }
+            int error= CL22.clCompileProgram(
+                    programPointer,
+                    stack.pointers(context.getDevice()), "",
+                    inputHeaderPrograms,
+                    inputHeaderNames,
+                    null,
+                    0
+            );
+            String buildInfo = createBuildInfo(context.getDevice(), programPointer);
+            System.out.println(buildInfo);
+            checkForError(error);
+            context.addProgramObject(context.new CLProgram(sourceFile, programPointer, false));
+        }
+    }
+
+    public static void putExecutableProgram(CLContext context, String[] programIds, String programName) {
+        try (MemoryStack stack = CLManager.nextStackFrame()) {
+            //stack.pointers(Arrays.stream(programIds).mapToLong(u -> context.getProgramObject(u).getProgram()).toArray()),
+            long program = CL22.clLinkProgram(context.getContext(),
+                    stack.pointers(context.getDevice()),
+                    "",
+                    stack.pointers(Arrays.stream(programIds).mapToLong(u -> context.getProgramObject(u).getProgram()).toArray()),
+                    null,
+                    0);
+            if(program == 0) {
+                throw new RuntimeException("CL: Linking failed");
+            }
+            context.addProgramObject(context.new CLProgram(programName, program, true));
+        }
+    }
+
+    public static void putKernel(CLContext context, String kernelFunction, String kernelId, String programId) {
         try (MemoryStack stack = CLManager.nextStackFrame()) {
             IntBuffer error = stack.mallocInt(1);
-            long program = CL22.clCreateProgramWithSource(context.getContext(), programSourceCode, error);
+            CLContext.CLProgram program = context.getProgramObject(programId);
+            if(!program.isLinked()) {
+                throw new RuntimeException("Program is not linked");
+            }
+            long kernel = CL22.clCreateKernel(program.getProgram(), kernelFunction, error);
             checkForError(error);
 
-            int programStatus = CL22.clBuildProgram(program, context.getDevice(), "", null, 0);
-            String buildInfo = createBuildInfo(context.getDevice(), program);
+            CLContext.CLKernel kernelObj = context.new CLKernel(kernelId, programId, kernel);
+            context.addKernelObject(kernelObj);
+        }
+    }
+
+    public static void putKernelAndProgramFromSource(CLContext context, String programSourceCode,
+                                                     String kernelFunction, String kernelId, String programId) {
+        try (MemoryStack stack = CLManager.nextStackFrame()) {
+            IntBuffer error = stack.mallocInt(1);
+            long programPointer = CL22.clCreateProgramWithSource(context.getContext(), programSourceCode, error);
+            checkForError(error);
+
+            int programStatus = CL22.clBuildProgram(programPointer, context.getDevice(), "", null, 0);
+            String buildInfo = createBuildInfo(context.getDevice(), programPointer);
             System.out.println(buildInfo);
             checkForError(programStatus);
 
-            long kernel = CL22.clCreateKernel(program, kernelFunction, error);
+            long kernel = CL22.clCreateKernel(programPointer, kernelFunction, error);
             checkForError(error);
 
-            CLContext.CLKernel kernelObj = context.new CLKernel(kernelId, program, kernel);
-            context.addKernelObject(kernelId, kernelObj);
+            CLContext.CLProgram program = context.new CLProgram(programId, programPointer, true);
+            context.addProgramObject(program);
+
+            CLContext.CLKernel kernelObj = context.new CLKernel(kernelId, programId, kernel);
+            context.addKernelObject(kernelObj);
         }
     }
 
@@ -392,11 +493,14 @@ public class CLManager {
         checkForError(CL22.clReleaseContext(context.getContext()));
     }
 
-    static void destroyCLKernelInternal(long program, long kernel) {
+    static void destroyCLProgramInternal(long program) {
         assert program != 0;
+        checkForError(CL22.clReleaseProgram(program));
+    }
+
+    static void destroyCLKernelInternal(long kernel) {
         assert kernel != 0;
         checkForError(CL22.clReleaseKernel(kernel));
-        checkForError(CL22.clReleaseProgram(program));
     }
 
     static void readMemoryInternal(long commandQueue, long pointer, ByteBuffer buffer) {

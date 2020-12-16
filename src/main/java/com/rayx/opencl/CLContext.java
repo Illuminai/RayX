@@ -6,8 +6,11 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 
 public class CLContext {
-    private long context, device, commandQueue;
+    private final long device;
+    private long context;
+    private long commandQueue;
     private HashMap<String, CLKernel> kernels;
+    private HashMap<String, CLProgram> programs;
     private HashMap<String, CLMemoryObject> memoryObjects;
 
     /** Only {@link CLManager} should create instances */
@@ -16,6 +19,7 @@ public class CLContext {
         this.device = device;
         this.commandQueue = commandQueue;
         kernels = new HashMap<>();
+        programs = new HashMap<>();
         memoryObjects = new HashMap<>();
     }
 
@@ -26,14 +30,15 @@ public class CLContext {
     }
 
     public void destroy() {
-        for(CLKernel k: kernels.values()) {
-            k.destroy();
-        }
+        kernels.values().forEach(CLKernel::destroy);
         kernels.clear();
         kernels = null;
 
-        memoryObjects.values().forEach(CLMemoryObject::delete);
+        programs.values().forEach(CLProgram::destroy);
+        programs.clear();
+        programs = null;
 
+        memoryObjects.values().forEach(CLMemoryObject::delete);
         memoryObjects.clear();
         memoryObjects = null;
 
@@ -46,6 +51,11 @@ public class CLContext {
 
     public void getMemoryObjectValue(String id, ByteBuffer destination) {
         getMemoryObject(id).getValue(destination);
+    }
+
+    public CLProgram getProgramObject(String id) {
+        assert programs.containsKey(id);
+        return programs.get(id);
     }
 
     public CLMemoryObject getMemoryObject(String id) {
@@ -70,9 +80,21 @@ public class CLContext {
         return commandQueue;
     }
 
-    public void addKernelObject(String id, CLKernel kernel) {
-        assert !kernels.containsKey(id);
-        kernels.put(id, kernel);
+    public void destroyProgram(String name) {
+        assert kernels.values().stream().
+                noneMatch(k -> name.equals(k.getProgramId())) : "Kernels depend on program \"" + name + "\"";
+        assert kernels.containsKey(name);
+        kernels.remove(name).destroy();
+    }
+
+    public void addKernelObject(CLKernel kernel) {
+        assert !kernels.containsKey(kernel.kernelId);
+        kernels.put(kernel.kernelId, kernel);
+    }
+
+    public void addProgramObject(CLProgram program) {
+        assert !programs.containsKey(program.programId);
+        programs.put(program.programId, program);
     }
 
     public CLKernel getKernelObject(String id) {
@@ -91,7 +113,7 @@ public class CLContext {
         //In bytes
         //If size is -1, it indicates that the memory object should not be read to the main memory
         //This is the case when
-        private long size;
+        private final long size;
 
         public CLMemoryObject(long pointer, long size) {
             this.pointer = pointer;
@@ -126,14 +148,46 @@ public class CLContext {
         }
     }
 
-    public class CLKernel {
-        private String name;
+    public class CLProgram {
+        private final String programId;
         private long program;
+        /** A kernel can only be created from a program if <code>linked</code> is set to <code>true</code>*/
+        private final boolean linked;
+
+        /** @param programId Name of the program.
+         *                    Should be name of the file it was generated from,
+         *                    so that it may used for include directives in OpenCL C*/
+        public CLProgram(String programId, long program, boolean linked) {
+            this.programId = programId;
+            this.program = program;
+            this.linked = linked;
+        }
+
+        public String getProgramId() {
+            return programId;
+        }
+
+        public long getProgram() {
+            return program;
+        }
+
+        private void destroy() {
+            CLManager.destroyCLProgramInternal(program);
+            program = 0;
+        }
+
+        public boolean isLinked() {
+            return linked;
+        }
+    }
+
+    public class CLKernel {
+        private final String kernelId, programId;
         private long kernel;
 
-        public CLKernel(String name, long program, long kernel) {
-            this.name = name;
-            this.program = program;
+        public CLKernel(String kernelId, String programId, long kernel) {
+            this.kernelId = kernelId;
+            this.programId = programId;
             this.kernel = kernel;
         }
 
@@ -155,22 +209,20 @@ public class CLContext {
         }
 
         private void destroy() {
-            CLManager.destroyCLKernelInternal(program, kernel);
+            CLManager.destroyCLKernelInternal(kernel);
             this.kernel = 0;
-            this.program = 0;
-            name = null;
         }
 
         public long getKernel() {
             return kernel;
         }
 
-        public long getProgram() {
-            return program;
+        public String getProgramId() {
+            return programId;
         }
 
-        public String getName() {
-            return name;
+        public String getKernelId() {
+            return kernelId;
         }
     }
 }

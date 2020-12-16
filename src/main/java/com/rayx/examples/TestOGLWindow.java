@@ -42,7 +42,6 @@ public class TestOGLWindow extends OpenGLWindow {
     }
 
     private int texture;
-    private long window;
     private int VAO, EBO, VBO;
     private long lastPrint = 0;
     private int frames;
@@ -115,7 +114,6 @@ public class TestOGLWindow extends OpenGLWindow {
         int program = glCreateProgram();
         int vs = compileShader(GL_VERTEX_SHADER, VS);
         int fs = compileShader(GL_FRAGMENT_SHADER, FS);
-
 
         glAttachShader(program, vs);
         glAttachShader(program, fs);

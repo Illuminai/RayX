@@ -1,17 +1,25 @@
 package com.rayx.opencl;
 
+import com.rayx.shape.Shape;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.opencl.CL22;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 
+import static org.lwjgl.opencl.CL10.*;
+
 public class CLContext {
+    public static final String KERNEL_GET_STRUCT_SIZE = "defaultKernelGetStructSize",
+            KERNEL_FILL_BUFFER_DATA = "defaultKernelFillDataBuffer";
+
     private final long device;
     private long context;
     private long commandQueue;
     private HashMap<String, CLKernel> kernels;
     private HashMap<String, CLProgram> programs;
     private HashMap<String, CLMemoryObject> memoryObjects;
+    private HashMap<Integer, Integer> structSizes;
 
     /** Only {@link CLManager} should create instances */
     CLContext(long device, long context, long commandQueue) {
@@ -21,11 +29,12 @@ public class CLContext {
         kernels = new HashMap<>();
         programs = new HashMap<>();
         memoryObjects = new HashMap<>();
+        structSizes = new HashMap<>();
     }
 
     public void freeMemoryObject(String id) {
-        long p = getMemoryObject(id).getPointer();
-        CLManager.freeMemoryInternal(p);
+        CLMemoryObject p = getMemoryObject(id);
+        p.delete();
         memoryObjects.remove(id);
     }
 
@@ -54,17 +63,17 @@ public class CLContext {
     }
 
     public CLProgram getProgramObject(String id) {
-        assert programs.containsKey(id);
+        assert programs.containsKey(id) : "No program object: " + id;
         return programs.get(id);
     }
 
     public CLMemoryObject getMemoryObject(String id) {
-        assert memoryObjects.containsKey(id);
+        assert memoryObjects.containsKey(id) : "No memory object: " + id;
         return memoryObjects.get(id);
     }
 
     public void addMemoryObject(String id, CLMemoryObject memoryObject) {
-        assert !memoryObjects.containsKey(id);
+        assert !memoryObjects.containsKey(id) : "Memory object already exists: " + id;
         memoryObjects.put(id, memoryObject);
     }
 
@@ -88,7 +97,7 @@ public class CLContext {
     }
 
     public void addKernelObject(CLKernel kernel) {
-        assert !kernels.containsKey(kernel.kernelId);
+        assert !kernels.containsKey(kernel.kernelId) : kernel.getKernelId();
         kernels.put(kernel.kernelId, kernel);
     }
 
@@ -108,6 +117,100 @@ public class CLContext {
         k.destroy();
     }
 
+    public int getStructSize(int name) {
+        assert structSizes.containsKey(name) : "No struct: " + name;
+        return structSizes.get(name);
+    }
+
+    public void initialize() {
+        //From least dependent to most dependent
+        //----------- H E A D E R S -----------
+        //mandelbrot.h
+        CLManager.putProgramFromFile(this, null,
+                "clcode/default/headers/mandelbrot.h", "");
+        //shapes.h
+        CLManager.putProgramFromFile(this,
+                null,
+                "clcode/default/headers/shapes.h",
+                "");
+        //java_to_cl.h
+        CLManager.putProgramFromFile(this,
+                new String[]{"clcode/default/headers/shapes.h"},
+                "clcode/default/headers/java_to_cl.h",
+                "");
+
+        //----------- C O D E -----------
+        //mandelbrot.cl
+        CLManager.putProgramFromFile(this, new String[]{
+                        "clcode/default/headers/mandelbrot.h"
+                },
+                "clcode/default/implementation/mandelbrot.cl", "");
+        //shapes.cl
+        CLManager.putProgramFromFile(this,
+                new String[]{"clcode/default/headers/shapes.h"},
+                "clcode/default/implementation/shapes.cl",
+                "");
+
+        //java_to_cl.cl
+        CLManager.putProgramFromFile(this,
+                new String[]{"clcode/default/headers/java_to_cl.h",
+                        "clcode/default/headers/shapes.h"},
+                "clcode/default/implementation/java_to_cl.cl",
+                    "-D SHAPE=" + Shape.SHAPE +
+                                " -D SPHERE=" + Shape.SPHERE +
+                                " -D TORUS=" + Shape.TORUS);
+
+        //----------- E X E C U T A B L E - P R O G R A M S -----------
+        CLManager.putExecutableProgram(this,
+                new String[]{
+                        "clcode/default/implementation/java_to_cl.cl"
+                },
+                "javaToCLProgram");
+
+        //----------- K E R N E L S -----------
+        //Query struct sizes in opencl
+        CLManager.putKernel(this, "getShapeSizes",
+                KERNEL_GET_STRUCT_SIZE, "javaToCLProgram");
+
+        getStructSizes();
+
+        //Query struct sizes in opencl
+        CLManager.putKernel(this, "putShapesInMemory",
+                KERNEL_FILL_BUFFER_DATA, "javaToCLProgram");
+
+
+    }
+
+    private void getStructSizes() {
+        int[] structs = {Shape.SHAPE, Shape.SPHERE, Shape.TORUS};
+        CLContext.CLKernel kernelStruct =
+                getKernelObject(CLContext.KERNEL_GET_STRUCT_SIZE);
+        CLManager.allocateMemory(this, CL_MEM_READ_ONLY,
+                structs,
+                "shapesInQuestion");
+        CLManager.allocateMemory(this, CL_MEM_WRITE_ONLY,
+                Integer.BYTES * structs.length,
+                "result");
+        kernelStruct.setParameterI(0, structs.length);
+        kernelStruct.setParameterPointer(
+                1, "shapesInQuestion");
+        kernelStruct.setParameterPointer(
+                2, "result");
+
+        kernelStruct.run(new long[]{1}, null);
+
+        //TODO use MemoryStack instead of BufferUtils
+        ByteBuffer buffer = BufferUtils.createByteBuffer(Integer.BYTES * structs.length);
+        getMemoryObject("result").getValue(buffer);
+
+        for (int struct : structs) {
+            this.structSizes.put(struct, buffer.getInt());
+        }
+
+        freeMemoryObject("result");
+        freeMemoryObject("shapesInQuestion");
+    }
+
     public class CLMemoryObject {
         private long pointer;
         //In bytes
@@ -121,7 +224,8 @@ public class CLContext {
         }
 
         public void getValue(ByteBuffer destination) {
-            assert this.size == destination.remaining();
+            assert this.size == destination.remaining(): size +
+                    " " + destination.remaining();
             CLManager.readMemoryInternal(commandQueue, this.pointer, destination);
         }
 
@@ -135,8 +239,9 @@ public class CLContext {
             CLManager.releaseFromGLInternal(commandQueue, pointer);
         }
 
-        public void delete() {
-            assert false: "TODO";
+        private void delete() {
+            CLManager.freeMemoryInternal(pointer);
+            pointer = 0;
         }
 
         public long getPointer() {

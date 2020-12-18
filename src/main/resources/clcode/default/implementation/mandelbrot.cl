@@ -1,4 +1,4 @@
-#include<clcode/headers/utility/mandelbrot.h>
+#include<clcode/default/headers/mandelbrot.h>
 
 int mandelbrotCalc(double2 coo, int maxIter) {
     double a = 0, b = 0, ta, tb;

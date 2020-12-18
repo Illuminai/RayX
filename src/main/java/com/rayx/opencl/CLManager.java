@@ -1,6 +1,8 @@
 package com.rayx.opencl;
 
 import com.rayx.RayX;
+import com.rayx.shape.Shape;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opencl.CL12GL;
 import org.lwjgl.opencl.CL22;
@@ -79,7 +81,7 @@ public class CLManager {
     }
 
     /***/
-    public static void putProgramFromFile(CLContext context, String[] dependenciesId, String sourceFile) {
+    public static void putProgramFromFile(CLContext context, String[] dependenciesId, String sourceFile, String compileOptions) {
         try (MemoryStack stack = CLManager.nextStackFrame()) {
             IntBuffer errorBuffer = stack.mallocInt(1);
             //Files start without slash because the source file is the id of the program
@@ -109,14 +111,20 @@ public class CLManager {
             }
             int error= CL22.clCompileProgram(
                     programPointer,
-                    stack.pointers(context.getDevice()), "",
+                    stack.pointers(context.getDevice()),
+                    compileOptions,
                     inputHeaderPrograms,
                     inputHeaderNames,
                     null,
                     0
             );
             String buildInfo = createBuildInfo(context.getDevice(), programPointer);
-            System.out.println(buildInfo);
+            if(buildInfo.equals("")) {
+                System.out.println("Compiled " + sourceFile);
+            } else {
+                System.out.println("Compiling " + sourceFile);
+                System.out.println(buildInfo);
+            }
             checkForError(error);
             context.addProgramObject(context.new CLProgram(sourceFile, programPointer, false));
         }
@@ -124,7 +132,7 @@ public class CLManager {
 
     public static void putExecutableProgram(CLContext context, String[] programIds, String programName) {
         try (MemoryStack stack = CLManager.nextStackFrame()) {
-            //stack.pointers(Arrays.stream(programIds).mapToLong(u -> context.getProgramObject(u).getProgram()).toArray()),
+            //int j; //Uncomment this to crash JVM on windows
             long program = CL22.clLinkProgram(context.getContext(),
                     stack.pointers(context.getDevice()),
                     "",
@@ -189,6 +197,7 @@ public class CLManager {
                 localWorkSize.asLongBuffer().put(localSize);
             }
 
+            //TODO check with event if kernel terminated normally
             CLManager.checkForError(CL22.clEnqueueNDRangeKernel(commandQueue, kernel, globalSize.length, null, PointerBuffer.create(globalWorkSize),
                     localSize == null ? null: PointerBuffer.create(localWorkSize),
                     null, null));
@@ -215,7 +224,7 @@ public class CLManager {
             while (message.hasRemaining()) {
                 builder.append((char) message.get());
             }
-            return builder.toString();
+            return builder.toString().trim();
         }
     }
 
@@ -453,6 +462,80 @@ public class CLManager {
                 0, texture, error);
         checkForError(error);
         context.addMemoryObject(id, context.new CLMemoryObject(pointer, -1));
+    }
+
+    public static void allocateMemory(CLContext context, long flags, ByteBuffer src, String id) {
+        try (MemoryStack stack = CLManager.nextStackFrame()) {
+            IntBuffer error = stack.mallocInt(1);
+            long memory = CL22.clCreateBuffer(
+                    context.getContext(),
+                    flags | CL_MEM_COPY_HOST_PTR,
+                    src,
+                    error);
+            checkForError(error);
+            context.addMemoryObject(id, context.new CLMemoryObject(memory, src.remaining()));
+        }
+    }
+
+    public static void transferShapesToRAM(CLContext context, String shapesIdentifier, String shapeDataIdentifier, List<Shape> shapes) {
+        try (MemoryStack stack = CLManager.nextStackFrame()) {
+            assert !shapes.isEmpty();
+            CLContext.CLKernel kernel = context.getKernelObject(CLContext.KERNEL_FILL_BUFFER_DATA);
+
+            int hostByteSize = shapes.stream().mapToInt(Shape::bytesToInBuffer).sum();
+            ByteBuffer inputData = stack.malloc(hostByteSize);
+            shapes.forEach(u -> u.writeToByteBuffer(inputData));
+            inputData.position(0);
+
+            CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
+                    inputData, "inputData");
+            CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
+                    (long) context.getStructSize(Shape.SHAPE) * shapes.size(),
+                    shapesIdentifier);
+            CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
+                    shapes.stream().mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    shapeDataIdentifier);
+
+            kernel.setParameterI(0, shapes.size());
+            kernel.setParameterPointer(1, "inputData");
+            kernel.setParameterPointer(2, shapesIdentifier);
+            kernel.setParameterPointer(3, shapeDataIdentifier);
+            kernel.run(new long[]{1}, null);
+
+            context.freeMemoryObject("inputData");
+        }
+    }
+
+    /** This function prints the shapes which are allocated on the GPU
+     * Only for debugging purposes*/
+    public static void testPrintGPUMemory(CLContext context, String shapesIdentifier,
+                                          String shapeDataIdentifier, List<Shape> testReferences) {
+        try (MemoryStack stack = CLManager.nextStackFrame()) {
+            ByteBuffer shapes = stack.malloc(
+                    context.getStructSize(Shape.SHAPE) * testReferences.size());
+            context.getMemoryObject(shapesIdentifier).getValue(shapes);
+
+            CLContext.CLMemoryObject shapesDataMem =
+                    context.getMemoryObject(shapeDataIdentifier);
+            ByteBuffer shapesData = stack.malloc((int) shapesDataMem.getSize());
+            shapesDataMem.getValue(shapesData);
+
+            int positionInData = 0;
+            for(int i = 0; i < testReferences.size(); i++) {
+                shapesData.position(positionInData);
+                long type = shapes.getLong();
+                long memoryAddress = shapes.getLong();
+                int structSize = context.getStructSize((int) type);
+                System.out.println("Type: " + type + ", mem: " + memoryAddress);
+                System.out.print("\t");
+                for(int k = 0; k < structSize / Double.BYTES; k++) {
+                    System.out.print(shapesData.getDouble() +" ");
+                }
+                System.out.println();
+
+                positionInData += structSize;
+            }
+        }
     }
 
     public static void allocateMemory(CLContext context, long flags, long bytesToAllocate, String id) {

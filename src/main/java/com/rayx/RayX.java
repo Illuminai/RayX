@@ -5,6 +5,14 @@ import com.rayx.glfw.OpenGLWindow;
 import com.rayx.glfw.WindowManager;
 import com.rayx.opencl.CLContext;
 import com.rayx.opencl.CLManager;
+import com.rayx.shape.Shape;
+import com.rayx.shape.Sphere;
+import com.rayx.shape.Torus;
+import com.rayx.shape.Vector3d;
+import org.lwjgl.BufferUtils;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 
 import static org.lwjgl.opencl.CL22.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -60,28 +68,40 @@ public class RayX {
 
         System.out.println("Context: " + (System.currentTimeMillis() - t));
         t = System.currentTimeMillis();
+        context.initialize();
 
-        CLManager.putProgramFromFile(context, null,
-                "clcode/headers/utility/mandelbrot.h");
+        test(context);
+
         CLManager.putProgramFromFile(context, new String[]{
-                "clcode/headers/utility/mandelbrot.h"
+                        "clcode/default/headers/mandelbrot.h"
                 },
-                "clcode/utility/mandelbrot.cl");
-        CLManager.putProgramFromFile(context, new String[]{
-                        "clcode/headers/utility/mandelbrot.h"
-                },
-                "clcode/main.cl");
+                "clcode/main.cl",
+                "-D ITERATIONS=200");
         CLManager.putExecutableProgram(context, new String[] {
-                "clcode/utility/mandelbrot.cl",
-                //Can be added, does not change anything
-                //"clcode/headers/utility/mandelbrot.h",
+                "clcode/default/implementation/mandelbrot.cl",
                 "clcode/main.cl",
         },"testProgram");
-
-        CLManager.putKernel(context, "testKernel", "testKernel", "testProgram");
+        CLManager.putKernel(context, "testKernel",
+                "testKernel", "testProgram");
 
         System.out.println("Kernel: " + (System.currentTimeMillis() - t));
         return context;
+    }
+
+    static void test(CLContext context) {
+        System.out.println("Shape struct: " + context.getStructSize(Shape.SHAPE));
+        System.out.println("Sphere struct: " + context.getStructSize(Shape.SPHERE));
+        System.out.println("Torus struct: " + context.getStructSize(Shape.TORUS));
+
+        ArrayList<Shape> testGroup = new ArrayList<>();
+        testGroup.add(new Sphere(100,-216,165,145-1.234));
+        testGroup.add(new Torus(new Vector3d(1,2,3),
+                new Vector3d(4,5,6),7,8));
+        testGroup.add(new Sphere(10250,-1256,516,-51.22534));
+        testGroup.add(new Torus(new Vector3d(0,0,0),new Vector3d(0,0,0),1,5));
+        CLManager.transferShapesToRAM(context, "shapes",
+                "shapesData", testGroup);
+        CLManager.testPrintGPUMemory(context, "shapes", "shapesData", testGroup);
     }
 
     static void freeAll() {

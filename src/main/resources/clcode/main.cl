@@ -1,8 +1,5 @@
-#include<clcode/headers/utility/mandelbrot.h>
-/*
-float4 color(int, int);
-int calc(double2, int);
-*/
+#include<clcode/default/headers/mandelbrot.h>
+
 __kernel void testKernel(__write_only image2d_t image, __global double* center) {
     int2 pixCo = (int2){get_global_id(0),get_global_id(1)};
     int w = get_image_width(image);
@@ -14,5 +11,5 @@ __kernel void testKernel(__write_only image2d_t image, __global double* center) 
         {center[2] * ((1.0 * pixCo.x / w) - .5) + center[0],
          center[2] * ((1.0 * (h - pixCo.y - 1) / h) - .5) + center[1]};
 
-    write_imagef(image, pixCo, mandelbrotColor(mandelbrotCalc(absCo, 100), 100));
+    write_imagef(image, pixCo, mandelbrotColor(mandelbrotCalc(absCo, ITERATIONS), ITERATIONS));
 }

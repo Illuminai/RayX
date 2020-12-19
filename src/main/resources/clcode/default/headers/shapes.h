@@ -6,7 +6,7 @@ struct shape_t {
     __global void* shape;
 };
 
-// value.z is the radius
+// value.w is the radius
 struct sphere_t {
     double4 value;
 };

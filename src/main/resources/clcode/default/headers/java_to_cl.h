@@ -9,6 +9,9 @@ __kernel void getShapeSizes(int numShapes,
 __kernel void putShapesInMemory(int numShapes,
                 __global char* inputData,
                 __global struct shape_t* rawShapes,
-                __global char* shapesData);
+                __global struct sphere_t* dataSphere,
+                __global struct torus_t* dataTorus);
+
+double getNextDouble(__global char* data);
 
 #endif

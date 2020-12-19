@@ -198,10 +198,12 @@ public class CLManager {
             }
 
             //TODO check with event if kernel terminated normally
+            PointerBuffer event = stack.mallocPointer(1);
             CLManager.checkForError(CL22.clEnqueueNDRangeKernel(commandQueue, kernel, globalSize.length, null, PointerBuffer.create(globalWorkSize),
                     localSize == null ? null: PointerBuffer.create(localWorkSize),
-                    null, null));
-
+                    null, event));
+            int executionStatus = CL22.clWaitForEvents(event.get(0));
+            checkForError(executionStatus);
             CLManager.checkForError(CL22.clFinish(commandQueue));
         }
     }
@@ -220,11 +222,12 @@ public class CLManager {
             error = CL22.clGetProgramBuildInfo(program, device, CL22.CL_PROGRAM_BUILD_LOG, message, null);
             checkForError(error);
 
-            StringBuilder builder = new StringBuilder(message.limit());
-            while (message.hasRemaining()) {
-                builder.append((char) message.get());
+            StringBuilder builder = new StringBuilder(message.limit() - 1);
+            char c;
+            while ((c = (char) message.get()) != 0) {
+                builder.append(c);
             }
-            return builder.toString().trim();
+            return builder.toString();
         }
     }
 
@@ -477,7 +480,7 @@ public class CLManager {
         }
     }
 
-    public static void transferShapesToRAM(CLContext context, String shapesIdentifier, String shapeDataIdentifier, List<Shape> shapes) {
+    public static void transferShapesToRAM(CLContext context, String shapesIdentifier, String shapeDataPrefix, List<Shape> shapes) {
         try (MemoryStack stack = CLManager.nextStackFrame()) {
             assert !shapes.isEmpty();
             CLContext.CLKernel kernel = context.getKernelObject(CLContext.KERNEL_FILL_BUFFER_DATA);
@@ -493,13 +496,17 @@ public class CLManager {
                     (long) context.getStructSize(Shape.SHAPE) * shapes.size(),
                     shapesIdentifier);
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    shapes.stream().mapToInt(u -> context.getStructSize(u.getName())).sum(),
-                    shapeDataIdentifier);
+                    shapes.stream().filter(u -> u.getName() == Shape.SPHERE).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    shapeDataPrefix + "Sphere");
+            CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
+                    shapes.stream().filter(u -> u.getName() == Shape.TORUS).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    shapeDataPrefix + "Torus");
 
             kernel.setParameterI(0, shapes.size());
             kernel.setParameterPointer(1, "inputData");
             kernel.setParameterPointer(2, shapesIdentifier);
-            kernel.setParameterPointer(3, shapeDataIdentifier);
+            kernel.setParameterPointer(3, shapeDataPrefix + "Sphere");
+            kernel.setParameterPointer(4, shapeDataPrefix + "Torus");
             kernel.run(new long[]{1}, null);
 
             context.freeMemoryObject("inputData");
@@ -509,17 +516,42 @@ public class CLManager {
     /** This function prints the shapes which are allocated on the GPU
      * Only for debugging purposes*/
     public static void testPrintGPUMemory(CLContext context, String shapesIdentifier,
-                                          String shapeDataIdentifier, List<Shape> testReferences) {
+                                          String shapeDataPrefix, List<Shape> testReferences) {
         try (MemoryStack stack = CLManager.nextStackFrame()) {
             ByteBuffer shapes = stack.malloc(
                     context.getStructSize(Shape.SHAPE) * testReferences.size());
             context.getMemoryObject(shapesIdentifier).getValue(shapes);
 
-            CLContext.CLMemoryObject shapesDataMem =
-                    context.getMemoryObject(shapeDataIdentifier);
-            ByteBuffer shapesData = stack.malloc((int) shapesDataMem.getSize());
-            shapesDataMem.getValue(shapesData);
+            {
+                System.out.println("Spheres: ");
+                CLContext.CLMemoryObject shapeDataSphere =
+                        context.getMemoryObject(shapeDataPrefix + "Sphere");
+                ByteBuffer shapesData = stack.malloc((int) shapeDataSphere.getSize());
+                shapeDataSphere.getValue(shapesData);
+                int structSize = context.getStructSize(Shape.SHAPE);
+                while(shapesData.hasRemaining()) {
+                    for(int j = 0; j < structSize / Double.BYTES; j++) {
+                        System.out.print(shapesData.getDouble() +" ");
+                    }
+                }
+                System.out.println();
+            }
+            {
+                System.out.println("Torus: ");
+                CLContext.CLMemoryObject shapeDataTorus =
+                        context.getMemoryObject(shapeDataPrefix + "Torus");
+                ByteBuffer shapesData = stack.malloc((int) shapeDataTorus.getSize());
+                shapeDataTorus.getValue(shapesData);
+                int structSize = context.getStructSize(Shape.TORUS);
+                while(shapesData.hasRemaining()) {
+                    for(int j = 0; j < structSize / Double.BYTES; j++) {
+                        System.out.print(shapesData.getDouble() + " ");
+                    }
+                }
+                System.out.println();
+            }
 
+            /*
             int positionInData = 0;
             for(int i = 0; i < testReferences.size(); i++) {
                 shapesData.position(positionInData);
@@ -535,6 +567,7 @@ public class CLManager {
 
                 positionInData += structSize;
             }
+             */
         }
     }
 

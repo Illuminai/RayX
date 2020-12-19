@@ -98,7 +98,8 @@ public class RayX {
         testGroup.add(new Torus(new Vector3d(1,2,3),
                 new Vector3d(4,5,6),7,8));
         testGroup.add(new Sphere(10250,-1256,516,-51.22534));
-        testGroup.add(new Torus(new Vector3d(0,0,0),new Vector3d(0,0,0),1,5));
+        testGroup.add(new Torus(new Vector3d(0,0,0),
+                new Vector3d(0,0,0),1,5));
         CLManager.transferShapesToRAM(context, "shapes",
                 "shapesData", testGroup);
         CLManager.testPrintGPUMemory(context, "shapes", "shapesData", testGroup);

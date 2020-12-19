@@ -1,6 +1,7 @@
 package com.rayx.examples;
 
 import com.rayx.glfw.OpenGLWindow;
+import org.lwjgl.glfw.GLFW;
 
 import java.nio.ByteBuffer;
 import java.util.function.Consumer;
@@ -42,7 +43,6 @@ public class TestOGLWindow extends OpenGLWindow {
     }
 
     private int texture;
-    private long window;
     private int VAO, EBO, VBO;
     private long lastPrint = 0;
     private int frames;
@@ -59,7 +59,7 @@ public class TestOGLWindow extends OpenGLWindow {
         float[] vertices = {
                 1.0f, 1.0f, 0.0f, 1f, 0f,// top right
                 1.0f, -1.0f, 0.0f, 1f, 1f,// bottom right
-                -1.0f, -1.0f, 0.0f, 0f,1f,// bottom left
+                -1.0f, -1.0f, 0.0f, 0f, 1f,// bottom left
                 -1.0f, 1.0f, 0.0f, 0f, 0f // top left
         };
         int[] indices = { // note that we start from 0!
@@ -104,11 +104,35 @@ public class TestOGLWindow extends OpenGLWindow {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         frames++;
-        if(System.currentTimeMillis() - lastPrint > 1000) {
-            System.out.println("FPS: "+frames);
+        if (System.currentTimeMillis() - lastPrint > 1000) {
+            System.out.println("FPS: " + frames);
             frames = 0;
             lastPrint = System.currentTimeMillis();
         }
+    }
+
+    @Override
+    public void onKeyboardEvent(int key, int scancode, int action, int mods) {
+        if (action == GLFW.GLFW_PRESS) {
+            if (key == GLFW.GLFW_KEY_A) {
+                System.out.println("Key 'A' pressed");
+            } else if (key == GLFW.GLFW_KEY_B && mods == GLFW.GLFW_MOD_SHIFT) {
+                System.out.println("Key 'SHIFT + B' pressed");
+            }
+        } else if (action == GLFW.GLFW_RELEASE) {
+            if (key == GLFW.GLFW_KEY_C) {
+                System.out.println("Key 'C' released");
+            }
+        } else if (action == GLFW.GLFW_REPEAT) {
+            if (key == GLFW.GLFW_KEY_D) {
+                System.out.println("Key 'D' repeated");
+            }
+        }
+    }
+
+    @Override
+    public void onResize(int width, int height) {
+        super.onResize(width, height);
     }
 
     private int createShader() {
@@ -134,17 +158,17 @@ public class TestOGLWindow extends OpenGLWindow {
         glCompileShader(id);
         int[] res = new int[1];
         glGetShaderiv(id, GL_COMPILE_STATUS, res);
-        if(res[0] == GL_FALSE) {
+        if (res[0] == GL_FALSE) {
             System.out.println(glGetShaderInfoLog(id));
             glDeleteShader(id);
-            assert false: "Shader";
+            assert false : "Shader";
         }
 
         return id;
     }
 
     private void makeTex() {
-        if(texture != 0) {
+        if (texture != 0) {
             glDeleteTextures(texture);
         }
         texture = glGenTextures();
@@ -159,6 +183,7 @@ public class TestOGLWindow extends OpenGLWindow {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     }
+
 
     public void setCallback(Consumer<Integer> callback) {
         this.callback = callback;

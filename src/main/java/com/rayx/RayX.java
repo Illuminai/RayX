@@ -21,14 +21,15 @@ public class RayX {
 
         manager.setSwapInterval(0);
 
-        loop: for(long platform: CLManager.queryPlatforms()) {
+        loop:
+        for (long platform : CLManager.queryPlatforms()) {
             System.out.println("-----------------------------------------------------");
             System.out.println("Name      : " + CLManager.queryPlatformInfo(platform, CL_PLATFORM_NAME));
             System.out.println("Version   : " + CLManager.queryPlatformInfo(platform, CL_PLATFORM_VERSION));
             System.out.println("Profile   : " + CLManager.queryPlatformInfo(platform, CL_PLATFORM_PROFILE));
             System.out.println("Extensions: " + CLManager.queryPlatformInfo(platform, CL_PLATFORM_EXTENSIONS));
             System.out.println("Device(s) :");
-            for(long device: CLManager.queryDevicesForPlatform(platform, window.getWindow(), false)) {
+            for (long device : CLManager.queryDevicesForPlatform(platform, window.getWindow(), false)) {
                 printDevice(device, "\t");
                 context = treatDevice(window, device);
                 System.out.println("--------------");
@@ -70,7 +71,7 @@ public class RayX {
                     {center[2] * ((1.0 * pixCo.x / w) - .5) + center[0],
                      center[2] * ((1.0 * (h - pixCo.y - 1) / h) - .5) + center[1]};
                         
-                write_imagef(image, pixCo, color(calc(absCo, 100000), 100000));
+                write_imagef(image, pixCo, color(calc(absCo, 500), 500));
             }
                         
             int calc(double2 coo, int maxIter) {
@@ -144,10 +145,10 @@ public class RayX {
 
     static void printAllDevicesAndPlatforms() {
         System.out.println("Available Platforms:");
-        for(long plat: CLManager.queryPlatforms()) {
+        for (long plat : CLManager.queryPlatforms()) {
             System.out.println("\t" + plat);
         }
-        for(long device: CLManager.getDevices()) {
+        for (long device : CLManager.getDevices()) {
             printDevice(device, "\t");
         }
     }

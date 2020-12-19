@@ -3,6 +3,7 @@ package com.rayx.glfw;
 import org.lwjgl.opengl.GL;
 
 import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.opengl.GL20.*;
 
 public abstract class OpenGLWindow {
 
@@ -11,12 +12,6 @@ public abstract class OpenGLWindow {
     public OpenGLWindow(int width, int height, String title) {
         initWindow(width, height, title);
     }
-
-    public abstract void onRender();
-
-    // TODO: Keyboard Events
-
-    // TODO: Resize Event
 
     private void initWindow(int width, int height, String title) {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -27,7 +22,29 @@ public abstract class OpenGLWindow {
         }
         glfwMakeContextCurrent(window);
         GL.createCapabilities();
+
+        glfwSetKeyCallback(window, (eventWindow, key, scancode, action, mods) -> {
+            onKeyboardEvent(key, scancode, action, mods);
+        });
+
+        glfwSetFramebufferSizeCallback(window, (eventWindow, eventWidth, eventHeight) -> {
+            onResize(eventWidth, eventHeight);
+        });
     }
+
+    public abstract void onRender();
+
+    public abstract void onKeyboardEvent(int key, int scancode, int action, int mods);
+
+    public void onResize(int width, int height) {
+        glfwPollEvents();
+
+        glViewport(0, 0, width, height);
+        onRender();
+
+        swapBuffers();
+    }
+
 
     public void destroy() {
         glfwDestroyWindow(window);

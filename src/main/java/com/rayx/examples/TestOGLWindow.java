@@ -1,9 +1,13 @@
 package com.rayx.examples;
 
 import com.rayx.glfw.OpenGLWindow;
+import com.rayx.opengl.Shader;
+import com.rayx.opengl.ShaderProgram;
+import com.rayx.opengl.ShaderType;
 import org.lwjgl.glfw.GLFW;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.function.Consumer;
 
 import static org.lwjgl.opengl.GL11.*;
@@ -52,9 +56,8 @@ public class TestOGLWindow extends OpenGLWindow {
     public TestOGLWindow(int width, int height, String title) {
         super(width, height, title);
 
-        int shader = createShader();
-        glLinkProgram(shader);
-        glUseProgram(shader);
+        ShaderProgram program = createProgram();
+        program.useProgram();
 
         float[] vertices = {
                 1.0f, 1.0f, 0.0f, 1f, 0f,// top right
@@ -135,37 +138,21 @@ public class TestOGLWindow extends OpenGLWindow {
         super.onResize(width, height);
     }
 
-    private int createShader() {
-        int program = glCreateProgram();
-        int vs = compileShader(GL_VERTEX_SHADER, VS);
-        int fs = compileShader(GL_FRAGMENT_SHADER, FS);
+    private ShaderProgram createProgram() {
+        ShaderProgram program = new ShaderProgram();
+        Shader vertexShader = new Shader(VS, ShaderType.VERTEX_SHADER);
+        Shader fragmentShader = new Shader(FS, ShaderType.FRAGMENT_SHADER);
 
+        program.attachShader(vertexShader);
+        program.attachShader(fragmentShader);
+        program.linkProgram();
 
-        glAttachShader(program, vs);
-        glAttachShader(program, fs);
-        glLinkProgram(program);
-        glValidateProgram(program);
-
-        glDeleteShader(vs);
-        glDeleteShader(fs);
+        vertexShader.deleteShader();
+        fragmentShader.deleteShader();
 
         return program;
     }
 
-    private int compileShader(int type, String src) {
-        int id = glCreateShader(type);
-        glShaderSource(id, src);
-        glCompileShader(id);
-        int[] res = new int[1];
-        glGetShaderiv(id, GL_COMPILE_STATUS, res);
-        if (res[0] == GL_FALSE) {
-            System.out.println(glGetShaderInfoLog(id));
-            glDeleteShader(id);
-            assert false : "Shader";
-        }
-
-        return id;
-    }
 
     private void makeTex() {
         if (texture != 0) {

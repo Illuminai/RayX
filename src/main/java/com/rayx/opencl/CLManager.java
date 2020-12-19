@@ -533,8 +533,8 @@ public class CLManager {
                     for(int j = 0; j < structSize / Double.BYTES; j++) {
                         System.out.print(shapesData.getDouble() +" ");
                     }
+                    System.out.println();
                 }
-                System.out.println();
             }
             {
                 System.out.println("Torus: ");
@@ -547,8 +547,8 @@ public class CLManager {
                     for(int j = 0; j < structSize / Double.BYTES; j++) {
                         System.out.print(shapesData.getDouble() + " ");
                     }
+                    System.out.println();
                 }
-                System.out.println();
             }
 
             /*

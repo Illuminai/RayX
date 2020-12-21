@@ -29,6 +29,8 @@ import static org.lwjgl.glfw.GLFWNativeWGL.glfwGetWGLContext;
 import static org.lwjgl.opencl.CL22.*;
 import static org.lwjgl.opencl.KHRGLSharing.*;
 import static org.lwjgl.opencl.KHRGLSharing.CL_GLX_DISPLAY_KHR;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
+import static org.lwjgl.opengl.GL11.glFinish;
 import static org.lwjgl.opengl.WGL.wglGetCurrentContext;
 import static org.lwjgl.opengl.WGL.wglGetCurrentDC;
 
@@ -480,6 +482,10 @@ public class CLManager {
         }
     }
 
+    public static void setCameraSettings() {
+
+    }
+
     public static void transferShapesToRAM(CLContext context, String shapesIdentifier, String shapeDataPrefix, List<Shape> shapes) {
         try (MemoryStack stack = CLManager.nextStackFrame()) {
             assert !shapes.isEmpty();
@@ -502,7 +508,7 @@ public class CLManager {
                     shapes.stream().filter(u -> u.getName() == Shape.TORUS).mapToInt(u -> context.getStructSize(u.getName())).sum(),
                     shapeDataPrefix + "Torus");
 
-            kernel.setParameterI(0, shapes.size());
+            kernel.setParameter1i(0, shapes.size());
             kernel.setParameterPointer(1, "inputData");
             kernel.setParameterPointer(2, shapesIdentifier);
             kernel.setParameterPointer(3, shapeDataPrefix + "Sphere");
@@ -528,7 +534,7 @@ public class CLManager {
                         context.getMemoryObject(shapeDataPrefix + "Sphere");
                 ByteBuffer shapesData = stack.malloc((int) shapeDataSphere.getSize());
                 shapeDataSphere.getValue(shapesData);
-                int structSize = context.getStructSize(Shape.SHAPE);
+                int structSize = context.getStructSize(Shape.SPHERE);
                 while(shapesData.hasRemaining()) {
                     for(int j = 0; j < structSize / Double.BYTES; j++) {
                         System.out.print(shapesData.getDouble() +" ");
@@ -550,25 +556,29 @@ public class CLManager {
                     System.out.println();
                 }
             }
-
-            /*
-            int positionInData = 0;
-            for(int i = 0; i < testReferences.size(); i++) {
-                shapesData.position(positionInData);
-                long type = shapes.getLong();
-                long memoryAddress = shapes.getLong();
-                int structSize = context.getStructSize((int) type);
-                System.out.println("Type: " + type + ", mem: " + memoryAddress);
-                System.out.print("\t");
-                for(int k = 0; k < structSize / Double.BYTES; k++) {
-                    System.out.print(shapesData.getDouble() +" ");
-                }
-                System.out.println();
-
-                positionInData += structSize;
-            }
-             */
         }
+    }
+
+    public static void runRenderKernel(CLContext context, int glTex, double[] cameraPos,
+                                       double[] cameraRot, double cameraFOV, double[] cameraDim,
+                                       int numShapes, String shapesMemObj, String shapeDataPrefix) {
+        glFinish();
+        CLContext.CLKernel kernel = context.getKernelObject(CLContext.KERNEL_RENDER);
+        CLManager.createCLFromGLTexture(context, CL_MEM_WRITE_ONLY, GL_TEXTURE_2D, glTex, "texture");
+        context.getMemoryObject("texture").acquireFromGL();
+        kernel.setParameterPointer(0, "texture");
+        kernel.setParameter4d(1, cameraPos[0], cameraPos[1], cameraPos[2],0);
+        kernel.setParameter4d(2, cameraRot[0], cameraRot[1], cameraRot[2],0);
+        kernel.setParameter1d(3, cameraFOV);
+        kernel.setParameter2d(4, cameraDim[0], cameraDim[1]);
+        kernel.setParameter1i(5, numShapes);
+        kernel.setParameterPointer(6, shapesMemObj);
+        kernel.setParameterPointer(7, shapeDataPrefix + "Sphere");
+        kernel.setParameterPointer(8, shapeDataPrefix + "Torus");
+        //TODO make image size dynamic
+        kernel.run(new long[]{1000, 1000}, null);
+        context.getMemoryObject("texture").releaseFromGL();
+        context.freeMemoryObject("texture");
     }
 
     public static void allocateMemory(CLContext context, long flags, long bytesToAllocate, String id) {

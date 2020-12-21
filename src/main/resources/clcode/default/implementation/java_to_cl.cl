@@ -28,10 +28,10 @@ __kernel void putShapesInMemory(int numShapes,
         if(shape == SPHERE) {
             shapes[i] = (struct shape_t){shape, dataSphere};
 
-            dataSphere->value.x = getNextDouble(inputData); inputData += sizeof(double);
-            dataSphere->value.y = getNextDouble(inputData); inputData += sizeof(double);
-            dataSphere->value.z = getNextDouble(inputData); inputData += sizeof(double);
-            dataSphere->value.w = getNextDouble(inputData); inputData += sizeof(double);
+            dataSphere->position.x = getNextDouble(inputData); inputData += sizeof(double);
+            dataSphere->position.y = getNextDouble(inputData); inputData += sizeof(double);
+            dataSphere->position.z = getNextDouble(inputData); inputData += sizeof(double);
+            dataSphere->radius = getNextDouble(inputData); inputData += sizeof(double);
 
             dataSphere++;
         } else if(shape == TORUS) {

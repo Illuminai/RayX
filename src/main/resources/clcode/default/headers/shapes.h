@@ -8,7 +8,8 @@ struct shape_t {
 
 // value.w is the radius
 struct sphere_t {
-    double4 value;
+    double3 position;
+    double radius;
 };
 
 struct torus_t {

@@ -10,9 +10,11 @@ import com.rayx.shape.Sphere;
 import com.rayx.shape.Torus;
 import com.rayx.shape.Vector3d;
 import org.lwjgl.BufferUtils;
+import org.lwjgl.opengl.EXTSharedTexturePalette;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import static org.lwjgl.opencl.CL22.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -20,10 +22,21 @@ import static org.lwjgl.opengl.GL11.*;
 public class RayX {
     static CLContext context;
 
+    static final ArrayList<Shape> testArray = new ArrayList<>();
+    static {
+        testArray.add(new Sphere(20, 5,5,10));
+        testArray.add(new Sphere(20, -5,-5,10));
+
+        testArray.add(new Torus(new Vector3d(0,0,0),
+                new Vector3d(0,0,1000),1,5));
+    }
+
+    static double t = 0;
+
     public static void main(String[] args) {
         WindowManager manager = WindowManager.getInstance();
 
-        TestOGLWindow window = new TestOGLWindow(800, 600, "Test");
+        TestOGLWindow window = new TestOGLWindow(1000, 1000, "Test");
         manager.addWindow(window);
 
         manager.setSwapInterval(0);
@@ -44,23 +57,27 @@ public class RayX {
         }
 
         window.setCallback((texture) -> {
-            glFinish();
-            CLContext.CLKernel kernel = context.getKernelObject("testKernel");
-            CLManager.allocateMemory(context, CL_MEM_READ_ONLY, new double[]{-1.5, 0.0, .5}, "center");
-            CLManager.createCLFromGLTexture(context, CL_MEM_WRITE_ONLY, GL_TEXTURE_2D, texture, "tex");
-            context.getMemoryObject("tex").acquireFromGL();
-            kernel.setParameterPointer(0, "tex");
-            kernel.setParameterPointer(1, "center");
-            kernel.run(new long[]{1000, 1000}, null);
-            context.getMemoryObject("tex").releaseFromGL();
-            context.freeMemoryObject("tex");
-            context.freeMemoryObject("center");
+            t += Math.PI / 50;
+            CLManager.runRenderKernel(context, texture,
+                    new double[]{Math.cos(t), Math.sin(t), Math.cos(t)},
+                    new double[]{0, 0, 0},
+                    1,
+                    new double[]{1,1},
+                    testArray.size(),
+                    "shapes",
+                    "shapesData"
+                    );
+            if(print) {
+                CLManager.testPrintGPUMemory(context, "shapes", "shapesData", testArray);
+                print = false;
+            }
         });
 
         manager.startManager();
 
         freeAll();
     }
+    static boolean print = true;
 
     static CLContext treatDevice(OpenGLWindow window, long device) {
         long t = System.currentTimeMillis();
@@ -93,16 +110,8 @@ public class RayX {
         System.out.println("Sphere struct: " + context.getStructSize(Shape.SPHERE));
         System.out.println("Torus struct: " + context.getStructSize(Shape.TORUS));
 
-        ArrayList<Shape> testGroup = new ArrayList<>();
-        testGroup.add(new Sphere(100,-216,165,145-1.234));
-        testGroup.add(new Torus(new Vector3d(1,2,3),
-                new Vector3d(4,5,6),7,8));
-        testGroup.add(new Sphere(10250,-1256,516,-51.22534));
-        testGroup.add(new Torus(new Vector3d(0,0,0),
-                new Vector3d(0,0,0),1,5));
         CLManager.transferShapesToRAM(context, "shapes",
-                "shapesData", testGroup);
-        CLManager.testPrintGPUMemory(context, "shapes", "shapesData", testGroup);
+                "shapesData", testArray);
     }
 
     static void freeAll() {

@@ -11,7 +11,13 @@ import static org.lwjgl.opencl.CL10.*;
 
 public class CLContext {
     public static final String KERNEL_GET_STRUCT_SIZE = "defaultKernelGetStructSize",
-            KERNEL_FILL_BUFFER_DATA = "defaultKernelFillDataBuffer";
+            KERNEL_FILL_BUFFER_DATA = "defaultKernelFillDataBuffer",
+            KERNEL_RENDER = "defaultKernelRender";
+
+    public static final String COMPILE_OPTIONS =
+            " -D SHAPE=" + Shape.SHAPE +
+            " -D SPHERE=" + Shape.SPHERE +
+            " -D TORUS=" + Shape.TORUS;
 
     private final long device;
     private long context;
@@ -138,6 +144,11 @@ public class CLContext {
                 new String[]{"clcode/default/headers/shapes.h"},
                 "clcode/default/headers/java_to_cl.h",
                 "");
+        //render.h
+        CLManager.putProgramFromFile(this,
+                new String[]{"clcode/default/headers/shapes.h"},
+                "clcode/default/headers/render.h",
+                "");
 
         //----------- C O D E -----------
         //mandelbrot.cl
@@ -156,9 +167,13 @@ public class CLContext {
                 new String[]{"clcode/default/headers/java_to_cl.h",
                         "clcode/default/headers/shapes.h"},
                 "clcode/default/implementation/java_to_cl.cl",
-                    "-D SHAPE=" + Shape.SHAPE +
-                                " -D SPHERE=" + Shape.SPHERE +
-                                " -D TORUS=" + Shape.TORUS);
+                COMPILE_OPTIONS);
+        //java_to_cl.cl
+        CLManager.putProgramFromFile(this,
+                new String[]{"clcode/default/headers/render.h",
+                        "clcode/default/headers/shapes.h"},
+                "clcode/default/implementation/render.cl",
+                COMPILE_OPTIONS);
 
         //----------- E X E C U T A B L E - P R O G R A M S -----------
         CLManager.putExecutableProgram(this,
@@ -166,19 +181,24 @@ public class CLContext {
                         "clcode/default/implementation/java_to_cl.cl"
                 },
                 "javaToCLProgram");
-
+        CLManager.putExecutableProgram(this,
+                new String[]{
+                        "clcode/default/implementation/render.cl"
+                },
+                "renderProgram");
         //----------- K E R N E L S -----------
         //Query struct sizes in opencl
         CLManager.putKernel(this, "getShapeSizes",
                 KERNEL_GET_STRUCT_SIZE, "javaToCLProgram");
 
-        getStructSizes();
-
-        //Query struct sizes in opencl
+        //Transfer data from RAM to VRAM
         CLManager.putKernel(this, "putShapesInMemory",
                 KERNEL_FILL_BUFFER_DATA, "javaToCLProgram");
-
-
+        //Run renderer
+        CLManager.putKernel(this, "render",
+                KERNEL_RENDER, "renderProgram");
+        //----------- I N I T I A L I Z E -----------
+        getStructSizes();
     }
 
     private void getStructSizes() {
@@ -191,7 +211,7 @@ public class CLContext {
         CLManager.allocateMemory(this, CL_MEM_WRITE_ONLY,
                 Integer.BYTES * structs.length,
                 "result");
-        kernelStruct.setParameterI(0, structs.length);
+        kernelStruct.setParameter1i(0, structs.length);
         kernelStruct.setParameterPointer(
                 1, "shapesInQuestion");
         kernelStruct.setParameterPointer(
@@ -302,8 +322,23 @@ public class CLContext {
             CLManager.checkForError(error);
         }
 
-        public void setParameterI(int index, int value) {
+        public void setParameter1i(int index, int value) {
             int error = CL22.clSetKernelArg1i(kernel, index, value);
+            CLManager.checkForError(error);
+        }
+
+        public void setParameter4d(int index, double d0, double d1, double d2, double d3) {
+            int error = CL22.clSetKernelArg4d(kernel, index, d0, d1, d2, d3);
+            CLManager.checkForError(error);
+        }
+
+        public void setParameter1d(int index, double d0) {
+            int error = CL22.clSetKernelArg1d(kernel, index, d0);
+            CLManager.checkForError(error);
+        }
+
+        public void setParameter2d(int index, double d0, double d1) {
+            int error = CL22.clSetKernelArg2d(kernel, index, d0, d1);
             CLManager.checkForError(error);
         }
 

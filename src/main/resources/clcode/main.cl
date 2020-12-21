@@ -11,5 +11,6 @@ __kernel void testKernel(__write_only image2d_t image, __global double* center) 
         {center[2] * ((1.0 * pixCo.x / w) - .5) + center[0],
          center[2] * ((1.0 * (h - pixCo.y - 1) / h) - .5) + center[1]};
 
-    write_imagef(image, pixCo, mandelbrotColor(mandelbrotCalc(absCo, ITERATIONS), ITERATIONS));
+    write_imagef(image, pixCo,
+        mandelbrotColor(mandelbrotCalc(absCo, ITERATIONS), ITERATIONS));
 }

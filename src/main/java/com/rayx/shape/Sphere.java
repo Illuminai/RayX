@@ -18,7 +18,7 @@ public class Sphere extends Shape {
 
     @Override
     public int getName() {
-        return SPHERE;
+        return SPHERE_RTC;
     }
 
     @Override

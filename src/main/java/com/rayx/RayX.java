@@ -9,15 +9,10 @@ import com.rayx.shape.Shape;
 import com.rayx.shape.Sphere;
 import com.rayx.shape.Torus;
 import com.rayx.shape.Vector3d;
-import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.EXTSharedTexturePalette;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import static org.lwjgl.opencl.CL22.*;
-import static org.lwjgl.opengl.GL11.*;
 
 public class RayX {
     static CLContext context;
@@ -30,11 +25,13 @@ public class RayX {
                 testArray.add(new Sphere(5,
                         y,z,.5));
             }
-        }*/
-        testArray.add(new Sphere(5, -1,0,.5));
-        testArray.add(new Sphere(5, 1,0,.5));
-        testArray.add(new Torus(new Vector3d(0,0,0),
-                new Vector3d(0,0,1000),1,5));
+        }
+        testArray.add(new Sphere(0, -1,0,.5));
+         */
+        testArray.add(new Sphere(0, 0,100,.5));
+        testArray.add(new Torus(
+                new Vector3d(0,0,0),
+                new Vector3d(0,0,0),.1,.5));
     }
 
     static double t = 0;
@@ -42,7 +39,7 @@ public class RayX {
     public static void main(String[] args) {
         WindowManager manager = WindowManager.getInstance();
 
-        TestOGLWindow window = new TestOGLWindow(500, 500, "Test");
+        TestOGLWindow window = new TestOGLWindow(750, 750, "Test");
         manager.addWindow(window);
 
         manager.setSwapInterval(0);
@@ -65,9 +62,9 @@ public class RayX {
         window.setCallback((texture) -> {
             t += Math.PI / 50;
             CLManager.runRenderKernel(context, texture,
-                    new double[]{0, 0, 0},
-                    new double[]{0, 0, 0},
-                    1.5,
+                    new double[]{-Math.cos(t), Math.sin(t), 0},
+                    new double[]{0, 0, -t},
+                    1,
                     testArray.size(),
                     "shapes",
                     "shapesData"
@@ -112,8 +109,8 @@ public class RayX {
 
     static void test(CLContext context) {
         System.out.println("Shape struct: " + context.getStructSize(Shape.SHAPE));
-        System.out.println("Sphere struct: " + context.getStructSize(Shape.SPHERE));
-        System.out.println("Torus struct: " + context.getStructSize(Shape.TORUS));
+        System.out.println("Sphere struct: " + context.getStructSize(Shape.SPHERE_RTC));
+        System.out.println("Torus struct: " + context.getStructSize(Shape.TORUS_SDF));
 
         CLManager.transferShapesToRAM(context, "shapes",
                 "shapesData", testArray);

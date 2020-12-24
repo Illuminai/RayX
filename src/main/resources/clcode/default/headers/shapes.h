@@ -7,12 +7,12 @@ struct shape_t {
 };
 
 // value.w is the radius
-struct sphere_t {
+struct sphereRTC_t {
     double3 position;
     double radius;
 };
 
-struct torus_t {
+struct torusSDF_t {
     double3 position;
     double3 rotation;
     double radiusSmall;

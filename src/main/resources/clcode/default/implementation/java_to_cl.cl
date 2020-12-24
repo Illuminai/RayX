@@ -7,10 +7,10 @@ __kernel void getShapeSizes(int numShapes,
         int shape = shapesInQuestion[i];
         if(shape == SHAPE) {
             result[i] = sizeof(struct shape_t);
-        } else if(shape == SPHERE) {
-            result[i] = sizeof(struct sphere_t);
-        } else if(shape == TORUS) {
-            result[i] = sizeof(struct torus_t);
+        } else if(shape == SPHERE_RTC) {
+            result[i] = sizeof(struct sphereRTC_t);
+        } else if(shape == TORUS_SDF) {
+            result[i] = sizeof(struct torusSDF_t);
         } else {
             result[i] = -1;
         }
@@ -20,12 +20,12 @@ __kernel void getShapeSizes(int numShapes,
 __kernel void putShapesInMemory(int numShapes,
                 __global char* inputData,
                 __global struct shape_t* shapes,
-                __global struct sphere_t* dataSphere,
-                __global struct torus_t* dataTorus) {
+                __global struct sphereRTC_t* dataSphere,
+                __global struct torusSDF_t* dataTorus) {
     for(int i = 0; i < numShapes; i++) {
         int shape = *((__global int*)inputData);
         inputData += sizeof(int);
-        if(shape == SPHERE) {
+        if(shape == SPHERE_RTC) {
             shapes[i] = (struct shape_t){shape, dataSphere};
 
             dataSphere->position.x = getNextDouble(inputData); inputData += sizeof(double);
@@ -34,7 +34,7 @@ __kernel void putShapesInMemory(int numShapes,
             dataSphere->radius = getNextDouble(inputData); inputData += sizeof(double);
 
             dataSphere++;
-        } else if(shape == TORUS) {
+        } else if(shape == TORUS_SDF) {
             shapes[i] = (struct shape_t){shape, dataTorus};
 
             dataTorus->position.x = getNextDouble(inputData); inputData += sizeof(double);

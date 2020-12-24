@@ -1,18 +1,14 @@
 package com.rayx.opencl;
 
-import com.rayx.RayX;
 import com.rayx.shape.Shape;
-import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opencl.CL12GL;
 import org.lwjgl.opencl.CL22;
-import org.lwjgl.opencl.CLProgramCallbackI;
 import org.lwjgl.opencl.KHRGLSharing;
 import org.lwjgl.opengl.CGL;
 import org.lwjgl.opengl.GLX14;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.Platform;
-import org.lwjgl.system.Pointer;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -25,7 +21,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.lwjgl.glfw.GLFWNativeGLX.glfwGetGLXContext;
-import static org.lwjgl.glfw.GLFWNativeWGL.glfwGetWGLContext;
 import static org.lwjgl.opencl.CL22.*;
 import static org.lwjgl.opencl.KHRGLSharing.*;
 import static org.lwjgl.opencl.KHRGLSharing.CL_GLX_DISPLAY_KHR;
@@ -502,10 +497,10 @@ public class CLManager {
                     (long) context.getStructSize(Shape.SHAPE) * shapes.size(),
                     shapesIdentifier);
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    shapes.stream().filter(u -> u.getName() == Shape.SPHERE).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    shapes.stream().filter(u -> u.getName() == Shape.SPHERE_RTC).mapToInt(u -> context.getStructSize(u.getName())).sum(),
                     shapeDataPrefix + "Sphere");
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    shapes.stream().filter(u -> u.getName() == Shape.TORUS).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    shapes.stream().filter(u -> u.getName() == Shape.TORUS_SDF).mapToInt(u -> context.getStructSize(u.getName())).sum(),
                     shapeDataPrefix + "Torus");
 
             kernel.setParameter1i(0, shapes.size());
@@ -534,7 +529,7 @@ public class CLManager {
                         context.getMemoryObject(shapeDataPrefix + "Sphere");
                 ByteBuffer shapesData = stack.malloc((int) shapeDataSphere.getSize());
                 shapeDataSphere.getValue(shapesData);
-                int structSize = context.getStructSize(Shape.SPHERE);
+                int structSize = context.getStructSize(Shape.SPHERE_RTC);
                 while(shapesData.hasRemaining()) {
                     for(int j = 0; j < structSize / Double.BYTES; j++) {
                         System.out.print(shapesData.getDouble() +" ");
@@ -548,7 +543,7 @@ public class CLManager {
                         context.getMemoryObject(shapeDataPrefix + "Torus");
                 ByteBuffer shapesData = stack.malloc((int) shapeDataTorus.getSize());
                 shapeDataTorus.getValue(shapesData);
-                int structSize = context.getStructSize(Shape.TORUS);
+                int structSize = context.getStructSize(Shape.TORUS_SDF);
                 while(shapesData.hasRemaining()) {
                     for(int j = 0; j < structSize / Double.BYTES; j++) {
                         System.out.print(shapesData.getDouble() + " ");

@@ -8,8 +8,8 @@ __kernel void render(  __write_only image2d_t resultImage,
                             double cameraFOV,
                             int numShapes,
                             __global struct shape_t * shapes,
-                            __global struct sphere_t * sphereData,
-                            __global struct torus_t * torusData) {
+                            __global struct sphereRTC_t * sphereData,
+                            __global struct torusSDF_t * torusData) {
     int2 pixCo = (int2){get_global_id(0), get_global_id(1)};
     int w = get_image_width(resultImage);
     int h = get_image_height(resultImage);
@@ -33,9 +33,6 @@ __kernel void render(  __write_only image2d_t resultImage,
         normalize(viewDirection * cameraFOV +
         cameraRight * u + cameraUp * v)};
     float4 color;
-//    if(pixCo.x == 0 && pixCo.y == 0) {
-//        sphereData[0].position = (double3){u, v, 0};
-//    }
 
     struct intersection_t inter = (struct intersection_t){
         (struct ray_t*)0,
@@ -54,25 +51,31 @@ __kernel void render(  __write_only image2d_t resultImage,
     if(inter.ray == 0) {
         color = (float4){0, 0, 0 ,1};
     } else {
-        color = (float4){1, 1, 1, 1};
+        double3 lightSource = (double3){0, 1, 1};
+        double angle = -dot(inter.point - lightSource, inter.normal);
+        if(angle < 0) {
+            angle = 0;
+        }
+        color = (float4){angle, angle, angle, 1};
     }
     write_imagef(resultImage, pixCo, color);
 }
 
 bool firstIntersectionWithShape(struct ray_t* ray, __global struct shape_t* shape, struct intersection_t* inter) {
-    if(shape->type == SPHERE) {
+    if(shape->type == SPHERE_RTC) {
         return firstIntersectionWithSphere(ray, shape->shape, inter);
-    } else if(shape->type == TORUS) {
-        return false;
+    } else if(shape->type == TORUS_SDF) {
+        return firstIntersectionWithTorus(ray, shape->shape, inter);
     } else {
         return false;
     }
 }
 
-bool firstIntersectionWithSphere(struct ray_t* ray, __global struct sphere_t* sphere, struct intersection_t* inter) {
+bool firstIntersectionWithSphere(struct ray_t* ray, __global struct sphereRTC_t* sphere, struct intersection_t* inter) {
     double3 omc = ray->origin - sphere->position;
-    double delta = pow(dot(ray->direction,omc),2) -
-                   (pow(length(omc),2) - sphere->radius * sphere->radius);
+    double tmp = dot(ray->direction,omc);
+    double delta = tmp * tmp -
+                   (dot(omc, omc) - sphere->radius * sphere->radius);
 
     if(delta < 0) {
         return false;
@@ -103,9 +106,30 @@ bool firstIntersectionWithSphere(struct ray_t* ray, __global struct sphere_t* sp
 
 }
 
-bool firstIntersectionWithTorus(struct ray_t* ray, __global struct torus_t* torus, struct intersection_t* inter) {
-    //TODO
+bool firstIntersectionWithTorus(struct ray_t* ray,
+                                __global struct torusSDF_t* torus,
+                                struct intersection_t * inter) {
+    inter->d = 0;
+    for(int i = 0; i < 100; i++) {
+        double dist = torusSDF(ray->origin + ray->direction * inter->d, torus);
+        if(dist < 0.0001) {
+            inter->ray = ray;
+            inter->point = ray->origin + ray->direction * inter->d;
+            inter->normal = sdfNormal(inter->point, torusSDF, torus);
+            return true;
+        } else if (dist > 10) {
+            return false;
+        }
+        inter->d += dist;
+    }
+
     return false;
+}
+
+double torusSDF(double3 point, __global struct torusSDF_t* torus) {
+    //return length(torus->position - point) - torus->radiusBig;
+    double2 q = (double2){length(point.xz) - torus->radiusBig, point.y};
+    return length(q) - torus->radiusSmall;
 }
 
 struct matrix3x3 matrixProduct(struct matrix3x3 a, struct matrix3x3 b) {

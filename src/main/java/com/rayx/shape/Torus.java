@@ -15,7 +15,7 @@ public class Torus extends Shape {
 
     @Override
     public int getName() {
-        return TORUS;
+        return TORUS_SDF;
     }
 
     @Override

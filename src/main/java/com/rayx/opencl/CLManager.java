@@ -41,7 +41,7 @@ public class CLManager {
     private static final MemoryStack internalMemoryStack;
 
     static {
-        internalMemoryStack = MemoryStack.create();
+        internalMemoryStack = MemoryStack.create(1024 * 1024 * 1024);
     }
 
     public static String readFromFile(String file) {
@@ -199,14 +199,14 @@ public class CLManager {
                 localWorkSize.asLongBuffer().put(localSize);
             }
 
-            //TODO check with event if kernel terminated normally
             PointerBuffer event = stack.mallocPointer(1);
-            CLManager.checkForError(CL22.clEnqueueNDRangeKernel(commandQueue, kernel, globalSize.length, null, PointerBuffer.create(globalWorkSize),
+            CLManager.checkForError(CL22.clEnqueueNDRangeKernel(commandQueue, kernel,
+                    globalSize.length, null,
+                    PointerBuffer.create(globalWorkSize),
                     localSize == null ? null: PointerBuffer.create(localWorkSize),
                     null, event));
             int executionStatus = CL22.clWaitForEvents(event.get(0));
             checkForError(executionStatus);
-            CLManager.checkForError(CL22.clFinish(commandQueue));
         }
     }
 
@@ -282,7 +282,7 @@ public class CLManager {
 
             return switch (info) {
                 case CL22.CL_DEVICE_BUILT_IN_KERNELS, CL22.CL_DEVICE_VERSION, CL22.CL_DEVICE_NAME, CL22.CL_DEVICE_EXTENSIONS -> byteBufferToString(rawInfo);
-                case CL22.CL_DEVICE_GLOBAL_MEM_CACHE_SIZE -> byteBufferToULong(rawInfo);
+                case CL22.CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, CL22.CL_DEVICE_MAX_WORK_GROUP_SIZE -> byteBufferToULong(rawInfo);
                 case CL22.CL_DEVICE_MAX_COMPUTE_UNITS, CL22.CL_DEVICE_MAX_CLOCK_FREQUENCY -> byteBufferToUInt(rawInfo);
                 case CL22.CL_DEVICE_TYPE -> byteBufferToDeviceType(rawInfo);
                 case CL22.CL_DEVICE_PLATFORM -> byteBufferToLong(rawInfo);
@@ -560,7 +560,7 @@ public class CLManager {
     }
 
     public static void runRenderKernel(CLContext context, int glTex, double[] cameraPos,
-                                       double[] cameraRot, double cameraFOV, double[] cameraDim,
+                                       double[] cameraRot, double cameraFOV,
                                        int numShapes, String shapesMemObj, String shapeDataPrefix) {
         glFinish();
         CLContext.CLKernel kernel = context.getKernelObject(CLContext.KERNEL_RENDER);
@@ -570,11 +570,10 @@ public class CLManager {
         kernel.setParameter4d(1, cameraPos[0], cameraPos[1], cameraPos[2],0);
         kernel.setParameter4d(2, cameraRot[0], cameraRot[1], cameraRot[2],0);
         kernel.setParameter1d(3, cameraFOV);
-        kernel.setParameter2d(4, cameraDim[0], cameraDim[1]);
-        kernel.setParameter1i(5, numShapes);
-        kernel.setParameterPointer(6, shapesMemObj);
-        kernel.setParameterPointer(7, shapeDataPrefix + "Sphere");
-        kernel.setParameterPointer(8, shapeDataPrefix + "Torus");
+        kernel.setParameter1i(4, numShapes);
+        kernel.setParameterPointer(5, shapesMemObj);
+        kernel.setParameterPointer(6, shapeDataPrefix + "Sphere");
+        kernel.setParameterPointer(7, shapeDataPrefix + "Torus");
         //TODO make image size dynamic
         kernel.run(new long[]{1000, 1000}, null);
         context.getMemoryObject("texture").releaseFromGL();

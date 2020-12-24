@@ -24,9 +24,15 @@ public class RayX {
 
     static final ArrayList<Shape> testArray = new ArrayList<>();
     static {
-        testArray.add(new Sphere(20, 5,5,10));
-        testArray.add(new Sphere(20, -5,-5,10));
-
+        /*
+        for(int y = -2; y < 5; y++) {
+            for(int z = -2; z < 5; z++) {
+                testArray.add(new Sphere(5,
+                        y,z,.5));
+            }
+        }*/
+        testArray.add(new Sphere(5, -1,0,.5));
+        testArray.add(new Sphere(5, 1,0,.5));
         testArray.add(new Torus(new Vector3d(0,0,0),
                 new Vector3d(0,0,1000),1,5));
     }
@@ -36,7 +42,7 @@ public class RayX {
     public static void main(String[] args) {
         WindowManager manager = WindowManager.getInstance();
 
-        TestOGLWindow window = new TestOGLWindow(1000, 1000, "Test");
+        TestOGLWindow window = new TestOGLWindow(500, 500, "Test");
         manager.addWindow(window);
 
         manager.setSwapInterval(0);
@@ -59,10 +65,9 @@ public class RayX {
         window.setCallback((texture) -> {
             t += Math.PI / 50;
             CLManager.runRenderKernel(context, texture,
-                    new double[]{Math.cos(t), Math.sin(t), Math.cos(t)},
                     new double[]{0, 0, 0},
-                    1,
-                    new double[]{1,1},
+                    new double[]{0, 0, 0},
+                    1.5,
                     testArray.size(),
                     "shapes",
                     "shapesData"
@@ -134,6 +139,8 @@ public class RayX {
                 CLManager.queryDeviceInfo(device, CL_DEVICE_GLOBAL_MEM_CACHE_SIZE));
         System.out.println(prefix + "\tCompute Units: " +
                 CLManager.queryDeviceInfo(device, CL_DEVICE_MAX_COMPUTE_UNITS));
+        System.out.println(prefix + "\tMax Work Group Size: " +
+                CLManager.queryDeviceInfo(device, CL_DEVICE_MAX_WORK_GROUP_SIZE));
         System.out.println(prefix + "\tMax clock    : " +
                 CLManager.queryDeviceInfo(device, CL_DEVICE_MAX_CLOCK_FREQUENCY));
         System.out.println(prefix + "\tDevice type  : " +

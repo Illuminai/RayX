@@ -13,7 +13,16 @@
         <maven.compiler.source>15</maven.compiler.source>
         <maven.compiler.target>15</maven.compiler.target>
         <lwjgl.version>3.2.3</lwjgl.version>
+        <imgui.java.version>1.79-1.4.0</imgui.java.version>
     </properties>
+
+
+    <repositories>
+        <repository>
+            <id>jcenter</id>
+            <url>https://jcenter.bintray.com/</url>
+        </repository>
+    </repositories>
 
 
     <dependencies>
@@ -66,6 +75,21 @@
             <artifactId>lwjgl-opengl</artifactId>
             <classifier>${lwjgl.natives}</classifier>
         </dependency>
+        <dependency>
+            <groupId>io.imgui.java</groupId>
+            <artifactId>imgui-java-binding</artifactId>
+            <version>${imgui.java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.imgui.java</groupId>
+            <artifactId>imgui-java-lwjgl3</artifactId>
+            <version>${imgui.java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.imgui.java</groupId>
+            <artifactId>${imguiNatives}</artifactId>
+            <version>${imgui.java.version}</version>
+        </dependency>
     </dependencies>
 
 
@@ -93,6 +117,7 @@
             </activation>
             <properties>
                 <lwjgl.natives>natives-linux</lwjgl.natives>
+                <imguiNatives>imgui-java-natives-linux</imguiNatives>
             </properties>
         </profile>
         <profile>
@@ -105,6 +130,7 @@
             </activation>
             <properties>
                 <lwjgl.natives>natives-linux-arm64</lwjgl.natives>
+                <imguiNatives>imgui-java-natives-linux</imguiNatives>
             </properties>
         </profile>
         <profile>
@@ -117,6 +143,7 @@
             </activation>
             <properties>
                 <lwjgl.natives>natives-linux-arm32</lwjgl.natives>
+                <imguiNatives>imgui-java-natives-linux</imguiNatives>
             </properties>
         </profile>
         <profile>
@@ -129,6 +156,7 @@
             </activation>
             <properties>
                 <lwjgl.natives>natives-linux-arm32</lwjgl.natives>
+                <imguiNatives>imgui-java-natives-linux</imguiNatives>
             </properties>
         </profile>
         <profile>
@@ -141,6 +169,7 @@
             </activation>
             <properties>
                 <lwjgl.natives>natives-macos</lwjgl.natives>
+                <imguiNatives>imgui-java-natives-macos</imguiNatives>
             </properties>
         </profile>
         <profile>
@@ -153,6 +182,7 @@
             </activation>
             <properties>
                 <lwjgl.natives>natives-windows</lwjgl.natives>
+                <imguiNatives>imgui-java-natives-windows</imguiNatives>
             </properties>
         </profile>
         <profile>
@@ -165,6 +195,7 @@
             </activation>
             <properties>
                 <lwjgl.natives>natives-windows-x86</lwjgl.natives>
+                <lwjglNatives>natives-windows-x86</lwjglNatives>
             </properties>
         </profile>
     </profiles>

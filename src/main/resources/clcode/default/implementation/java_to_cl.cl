@@ -11,6 +11,8 @@ __kernel void getShapeSizes(int numShapes,
             result[i] = sizeof(struct sphereRTC_t);
         } else if(shape == TORUS_SDF) {
             result[i] = sizeof(struct torusSDF_t);
+        } else if(shape == PLANE_RTC) {
+            result[i] = sizeof(struct planeRTC_t);
         } else {
             result[i] = -1;
         }
@@ -21,7 +23,8 @@ __kernel void putShapesInMemory(int numShapes,
                 __global char* inputData,
                 __global struct shape_t* shapes,
                 __global struct sphereRTC_t* dataSphere,
-                __global struct torusSDF_t* dataTorus) {
+                __global struct torusSDF_t* dataTorus,
+                __global struct planeRTC_t* dataPlane) {
     for(int i = 0; i < numShapes; i++) {
         int shape = *((__global int*)inputData);
         inputData += sizeof(int);
@@ -47,6 +50,17 @@ __kernel void putShapesInMemory(int numShapes,
             dataTorus->radiusBig = getNextDouble(inputData); inputData += sizeof(double);
 
             dataTorus++;
+        } else if (shape == PLANE_RTC) {
+            shapes[i] = (struct shape_t){shape, dataPlane};
+
+            dataPlane->position.x = getNextDouble(inputData); inputData += sizeof(double);
+            dataPlane->position.y = getNextDouble(inputData); inputData += sizeof(double);
+            dataPlane->position.z = getNextDouble(inputData); inputData += sizeof(double);
+            dataPlane->normal.x = getNextDouble(inputData); inputData += sizeof(double);
+            dataPlane->normal.y = getNextDouble(inputData); inputData += sizeof(double);
+            dataPlane->normal.z = getNextDouble(inputData); inputData += sizeof(double);
+
+            dataPlane++;
         } else {
             //TODO notify host of error
             shapes[i] = (struct shape_t){shape, (__global void*)(long)i};

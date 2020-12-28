@@ -1,5 +1,6 @@
 package com.rayx.opencl;
 
+import com.rayx.RayX;
 import com.rayx.shape.Shape;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opencl.CL12GL;
@@ -502,12 +503,15 @@ public class CLManager {
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
                     shapes.stream().filter(u -> u.getName() == Shape.TORUS_SDF).mapToInt(u -> context.getStructSize(u.getName())).sum(),
                     shapeDataPrefix + "Torus");
-
+            CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
+                    shapes.stream().filter(u -> u.getName() == Shape.PLANE_RTC).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    shapeDataPrefix + "Plane");
             kernel.setParameter1i(0, shapes.size());
             kernel.setParameterPointer(1, "inputData");
             kernel.setParameterPointer(2, shapesIdentifier);
             kernel.setParameterPointer(3, shapeDataPrefix + "Sphere");
             kernel.setParameterPointer(4, shapeDataPrefix + "Torus");
+            kernel.setParameterPointer(5, shapeDataPrefix + "Plane");
             kernel.run(new long[]{1}, null);
 
             context.freeMemoryObject("inputData");
@@ -551,6 +555,20 @@ public class CLManager {
                     System.out.println();
                 }
             }
+            {
+                System.out.println("Plane: ");
+                CLContext.CLMemoryObject planeData =
+                        context.getMemoryObject(shapeDataPrefix + "Plane");
+                ByteBuffer shapesData = stack.malloc((int) planeData.getSize());
+                planeData.getValue(shapesData);
+                int structSize = context.getStructSize(Shape.PLANE_RTC);
+                while(shapesData.hasRemaining()) {
+                    for(int j = 0; j < structSize / Double.BYTES; j++) {
+                        System.out.print(shapesData.getDouble() + " ");
+                    }
+                    System.out.println();
+                }
+            }
         }
     }
 
@@ -569,8 +587,10 @@ public class CLManager {
         kernel.setParameterPointer(5, shapesMemObj);
         kernel.setParameterPointer(6, shapeDataPrefix + "Sphere");
         kernel.setParameterPointer(7, shapeDataPrefix + "Torus");
+        kernel.setParameterPointer(8, shapeDataPrefix + "Plane");
+
         //TODO make image size dynamic
-        kernel.run(new long[]{1000, 1000}, null);
+        kernel.run(new long[]{RayX.IMG_WID, RayX.IMG_HEI}, null);
         context.getMemoryObject("texture").releaseFromGL();
         context.freeMemoryObject("texture");
     }

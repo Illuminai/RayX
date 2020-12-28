@@ -5,29 +5,43 @@ import com.rayx.glfw.OpenGLWindow;
 import com.rayx.glfw.WindowManager;
 import com.rayx.opencl.CLContext;
 import com.rayx.opencl.CLManager;
-import com.rayx.shape.Shape;
-import com.rayx.shape.Sphere;
-import com.rayx.shape.Torus;
-import com.rayx.shape.Vector3d;
+import com.rayx.shape.*;
+import org.lwjgl.system.CallbackI;
 
 import java.util.ArrayList;
 
 import static org.lwjgl.opencl.CL22.*;
 
 public class RayX {
+    public static final int IMG_WID = 1000, IMG_HEI = 1000;
     static CLContext context;
 
     static final ArrayList<Shape> testArray = new ArrayList<>();
     static {
-        /*
-        for(int y = -2; y < 5; y++) {
-            for(int z = -2; z < 5; z++) {
-                testArray.add(new Sphere(5,
-                        y,z,.5));
-            }
+        for(int i = 0; i < 10; i++) {
+            testArray.add(new Sphere(0,Math.sin(i/10.0 * 2 * Math.PI),
+                    Math.cos(i/10.0 * 2 * Math.PI),.1));
         }
-        testArray.add(new Sphere(0, -1,0,.5));
-         */
+
+        testArray.add(new Plane(
+                new Vector3d(0,0,-3),
+                new Vector3d(0,0,3).normalized()));
+        testArray.add(new Plane(
+                new Vector3d(0,0,3),
+                new Vector3d(0,0,-3).normalized()));
+        testArray.add(new Plane(
+                new Vector3d(0,-3,0),
+                new Vector3d(0,3,0).normalized()));
+        testArray.add(new Plane(
+                new Vector3d(0,3,0),
+                new Vector3d(0,-3,0).normalized()));
+        testArray.add(new Plane(
+                new Vector3d(3,0,0),
+                new Vector3d(-3,0,0).normalized()));
+        testArray.add(new Plane(
+                new Vector3d(-3,0,0),
+                new Vector3d(3,0,0).normalized()));
+
         testArray.add(new Sphere(0, 0,100,.5));
         testArray.add(new Torus(
                 new Vector3d(0,0,0),
@@ -39,7 +53,7 @@ public class RayX {
     public static void main(String[] args) {
         WindowManager manager = WindowManager.getInstance();
 
-        TestOGLWindow window = new TestOGLWindow(750, 750, "Test");
+        TestOGLWindow window = new TestOGLWindow(1000, 1000, "Test");
         manager.addWindow(window);
 
         manager.setSwapInterval(0);
@@ -62,24 +76,19 @@ public class RayX {
         window.setCallback((texture) -> {
             t += Math.PI / 50;
             CLManager.runRenderKernel(context, texture,
-                    new double[]{-Math.cos(t), Math.sin(t), 0},
+                    new double[]{-2 * Math.cos(t), 2 * Math.sin(t), 0},
                     new double[]{0, 0, -t},
                     1,
                     testArray.size(),
                     "shapes",
                     "shapesData"
                     );
-            if(print) {
-                CLManager.testPrintGPUMemory(context, "shapes", "shapesData", testArray);
-                print = false;
-            }
         });
 
         manager.startManager();
 
         freeAll();
     }
-    static boolean print = true;
 
     static CLContext treatDevice(OpenGLWindow window, long device) {
         long t = System.currentTimeMillis();
@@ -111,9 +120,13 @@ public class RayX {
         System.out.println("Shape struct: " + context.getStructSize(Shape.SHAPE));
         System.out.println("Sphere struct: " + context.getStructSize(Shape.SPHERE_RTC));
         System.out.println("Torus struct: " + context.getStructSize(Shape.TORUS_SDF));
+        System.out.println("Plane struct: " + context.getStructSize(Shape.PLANE_RTC));
 
         CLManager.transferShapesToRAM(context, "shapes",
                 "shapesData", testArray);
+        CLManager.testPrintGPUMemory(context, "shapes",
+                "shapesData", testArray);
+        System.out.println("Transferred");
     }
 
     static void freeAll() {

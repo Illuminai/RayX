@@ -20,4 +20,18 @@ public class Vector3d {
     public double getZ() {
         return z;
     }
+
+    public Vector3d normalized() {
+        double l = length();
+        if(l != 0) {
+            return new Vector3d(x / l, y / l, z / l);
+        } else {
+            //Return null vector
+            return this;
+        }
+    }
+
+    public double length() {
+        return Math.sqrt(x * x + y * y + z * z);
+    }
 }

@@ -6,7 +6,6 @@ struct shape_t {
     __global void* shape;
 };
 
-// value.w is the radius
 struct sphereRTC_t {
     double3 position;
     double radius;
@@ -17,6 +16,11 @@ struct torusSDF_t {
     double3 rotation;
     double radiusSmall;
     double radiusBig;
+};
+
+struct planeRTC_t {
+    double3 position;
+    double3 normal;
 };
 
 #endif

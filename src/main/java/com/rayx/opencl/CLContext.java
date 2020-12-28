@@ -17,7 +17,8 @@ public class CLContext {
     public static final String COMPILE_OPTIONS =
             " -D SHAPE=" + Shape.SHAPE +
             " -D SPHERE_RTC=" + Shape.SPHERE_RTC +
-            " -D TORUS_SDF=" + Shape.TORUS_SDF;
+            " -D TORUS_SDF=" + Shape.TORUS_SDF +
+            " -D PLANE_RTC=" + Shape.PLANE_RTC;
 
     private final long device;
     private long context;
@@ -202,7 +203,7 @@ public class CLContext {
     }
 
     private void getStructSizes() {
-        int[] structs = {Shape.SHAPE, Shape.SPHERE_RTC, Shape.TORUS_SDF};
+        int[] structs = {Shape.SHAPE, Shape.SPHERE_RTC, Shape.TORUS_SDF, Shape.PLANE_RTC};
         CLContext.CLKernel kernelStruct =
                 getKernelObject(CLContext.KERNEL_GET_STRUCT_SIZE);
         CLManager.allocateMemory(this, CL_MEM_READ_ONLY,

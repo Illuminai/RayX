@@ -9,7 +9,8 @@ __kernel void render(  __write_only image2d_t resultImage,
                             int numShapes,
                             __global struct shape_t * shapes,
                             __global struct sphereRTC_t * sphereData,
-                            __global struct torusSDF_t * torusData) {
+                            __global struct torusSDF_t * torusData,
+                            __global struct planeRTC_t * planeData) {
     int2 pixCo = (int2){get_global_id(0), get_global_id(1)};
     int w = get_image_width(resultImage);
     int h = get_image_height(resultImage);
@@ -35,37 +36,70 @@ __kernel void render(  __write_only image2d_t resultImage,
     float4 color;
 
     struct intersection_t inter = (struct intersection_t){
+        (__global struct shape_t*)0,
         (struct ray_t*)0,
-        (double3){0,0,0},(double3){0,0,0}, 0}, tmp;
-    for(int i = 0; i < numShapes; i++) {
-        if(firstIntersectionWithShape(&rayToCheck, &shapes[i], &tmp)) {
-            if(inter.ray != 0) {
-                if(tmp.d < inter.d) {
-                    inter = tmp;
-                }
-            } else {
-                inter = tmp;
-            }
-        }
-    }
+        (double3){0,0,0},
+        (double3){0,0,0},
+        0}, tmp;
+
+    traceRay(&rayToCheck, numShapes, shapes, &inter);
+
     if(inter.ray == 0) {
-        color = (float4){0, 0, 0 ,1};
-    } else {
-        double3 lightSource = (double3){0, 1, 1};
-        double angle = -dot(inter.point - lightSource, inter.normal);
+        write_imagef(resultImage, pixCo, (float4){0, 0, 0 ,1});
+        return;
+    }
+
+    struct ray_t newRay = (struct ray_t){
+        inter.point,
+        normalize(rayToCheck.direction + 2 * inter.normal)
+    };
+
+    {
+        double3 lightSource = (double3){-1, 0, 0};
+        double angle = -dot(normalize(inter.point - lightSource), inter.normal);
         if(angle < 0) {
             angle = 0;
         }
-        color = (float4){angle, angle, angle, 1};
+        float3 asdf = (float3){0,0,0};
+        if(inter.obj->type == TORUS_SDF) {
+            asdf = (float3){1,0,0};
+        } else if(inter.obj->type == SPHERE_RTC) {
+           asdf = (float3){0,1,0};
+       } else if(inter.obj->type == PLANE_RTC) {
+          asdf = (float3){0,0,1};
+      }
+        color = (float4){(float)angle * asdf, 1};
     }
     write_imagef(resultImage, pixCo, color);
 }
 
+void traceRay(  struct ray_t* ray,
+                int numShapes,
+                __global struct shape_t* allShapes,
+                struct intersection_t* inter) {
+    struct intersection_t tmp;
+    for(int i = 0; i < numShapes; i++) {
+            if(firstIntersectionWithShape(ray, &allShapes[i], &tmp)) {
+                if(inter->ray != 0) {
+                    if(tmp.d < inter->d) {
+                        *inter = tmp;
+                    }
+                } else {
+                    *inter = tmp;
+                }
+            }
+        }
+}
+
 bool firstIntersectionWithShape(struct ray_t* ray, __global struct shape_t* shape, struct intersection_t* inter) {
+    inter->obj = shape;
+    inter->ray = ray;
     if(shape->type == SPHERE_RTC) {
         return firstIntersectionWithSphere(ray, shape->shape, inter);
     } else if(shape->type == TORUS_SDF) {
         return firstIntersectionWithTorus(ray, shape->shape, inter);
+    } else if(shape->type == PLANE_RTC) {
+        return firstIntersectionWithPlane(ray, shape->shape, inter);
     } else {
         return false;
     }
@@ -89,13 +123,11 @@ bool firstIntersectionWithSphere(struct ray_t* ray, __global struct sphereRTC_t*
     d2 -= delta;
 
     if(d2 > 0) {
-        inter->ray = ray;
         inter->point = ray->origin + d2 * ray->direction;
         inter->normal = normalize(inter->point - sphere->position);
         inter->d = d2;
         return true;
     } else if (d1 > 0) {
-        inter->ray = ray;
         inter->point = ray->origin + d1 * ray->direction;
         inter->normal = normalize(inter->point - sphere->position);
         inter->d = d1;
@@ -113,7 +145,6 @@ bool firstIntersectionWithTorus(struct ray_t* ray,
     for(int i = 0; i < 100; i++) {
         double dist = torusSDF(ray->origin + ray->direction * inter->d, torus);
         if(dist < 0.0001) {
-            inter->ray = ray;
             inter->point = ray->origin + ray->direction * inter->d;
             inter->normal = sdfNormal(inter->point, torusSDF, torus);
             return true;
@@ -126,9 +157,24 @@ bool firstIntersectionWithTorus(struct ray_t* ray,
     return false;
 }
 
+bool firstIntersectionWithPlane(struct ray_t* ray, __global struct planeRTC_t* plane, struct intersection_t * inter) {
+    double tmp = dot(ray->direction, plane->normal);
+    if(tmp == 0) {
+        return false;
+    }
+
+    inter->d = (dot(plane->position - ray->origin, plane->normal))/(tmp);
+    if(inter->d < 0) {
+        return false;
+    }
+    inter->point = ray->origin + inter->d * ray->direction;
+    inter->normal = plane->normal;
+    return true;
+}
+
 double torusSDF(double3 point, __global struct torusSDF_t* torus) {
-    //return length(torus->position - point) - torus->radiusBig;
-    double2 q = (double2){length(point.xz) - torus->radiusBig, point.y};
+    double2 q =
+        (double2){length(point.yz) - torus->radiusBig, point.x};
     return length(q) - torus->radiusSmall;
 }
 

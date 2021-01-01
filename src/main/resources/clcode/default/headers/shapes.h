@@ -3,23 +3,22 @@
 
 struct shape_t {
     int type;
+    double maxRadius;
+    double3 position;
     __global void* shape;
 };
 
 struct sphereRTC_t {
-    double3 position;
     double radius;
 };
 
 struct torusSDF_t {
-    double3 position;
     double3 rotation;
     double radiusSmall;
     double radiusBig;
 };
 
 struct planeRTC_t {
-    double3 position;
     double3 normal;
 };
 

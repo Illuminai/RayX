@@ -3,10 +3,10 @@ package com.rayx.shape;
 import java.nio.ByteBuffer;
 
 public class Plane extends Shape {
-    private final Vector3d position, normal;
+    private final Vector3d normal;
 
     public Plane(Vector3d position, Vector3d normal) {
-        this.position = position;
+        super(position);
         this.normal = normal;
     }
 
@@ -14,17 +14,19 @@ public class Plane extends Shape {
     public void writeToByteBuffer(ByteBuffer buffer) {
         super.writeToByteBuffer(buffer);
         buffer.
-                putDouble(position.getX()).
-                putDouble(position.getY()).
-                putDouble(position.getZ()).
                 putDouble(normal.getX()).
                 putDouble(normal.getY()).
                 putDouble(normal.getZ());
     }
 
     @Override
+    public double getMaxRadius() {
+        return -1;
+    }
+
+    @Override
     public int bytesToInBuffer() {
-        return super.bytesToInBuffer() + Double.BYTES * 6;
+        return super.bytesToInBuffer() + Double.BYTES * 3;
     }
 
     @Override

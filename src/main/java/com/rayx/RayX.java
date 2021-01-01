@@ -15,12 +15,14 @@ import static org.lwjgl.opencl.CL22.*;
 public class RayX {
     public static final int IMG_WID = 1000, IMG_HEI = 1000;
     static CLContext context;
-
+    static Torus torus;
     static final ArrayList<Shape> testArray = new ArrayList<>();
     static {
-        for(int i = 0; i < 10; i++) {
-            testArray.add(new Sphere(0,Math.sin(i/10.0 * 2 * Math.PI),
-                    Math.cos(i/10.0 * 2 * Math.PI),.1));
+        int N = 5;
+        for(int i = 0; i < N; i++) {
+            testArray.add(new Sphere(2.0 * i / N - 1,
+                    Math.sin(1.0 * i/N * 2 * Math.PI),
+                    Math.cos(1.0 * i/N * 2 * Math.PI),.01));
         }
 
         testArray.add(new Plane(
@@ -43,9 +45,10 @@ public class RayX {
                 new Vector3d(3,0,0).normalized()));
 
         testArray.add(new Sphere(0, 0,100,.5));
-        testArray.add(new Torus(
-                new Vector3d(0,0,0),
-                new Vector3d(0,0,0),.1,.5));
+
+        testArray.add(torus = new Torus(
+                new Vector3d(0,0,2),
+                new Vector3d(0, 0,Math.PI),.1,.5));
     }
 
     static double t = 0;
@@ -75,9 +78,21 @@ public class RayX {
 
         window.setCallback((texture) -> {
             t += Math.PI / 50;
+            context.freeAllMemoryObjects();
+
+            testArray.remove(torus);
+            testArray.add(torus = new Torus(
+                    new Vector3d(0,0, 0),
+                    new Vector3d(0, t, t),.1,.5));
+
+            CLManager.transferShapesToRAM(context, "shapes",
+                    "shapesData", testArray);
+
             CLManager.runRenderKernel(context, texture,
-                    new double[]{-2 * Math.cos(t), 2 * Math.sin(t), 0},
-                    new double[]{0, 0, -t},
+                    //new double[]{-2 * Math.cos(t), 2 * Math.sin(t), 0},
+                    //new double[]{0, 0, -t},
+                    new double[]{-2, 0, 0},
+                    new double[]{0, 0, 0},
                     1,
                     testArray.size(),
                     "shapes",

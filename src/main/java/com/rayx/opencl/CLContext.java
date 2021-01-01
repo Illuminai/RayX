@@ -45,6 +45,11 @@ public class CLContext {
         memoryObjects.remove(id);
     }
 
+    public void freeAllMemoryObjects() {
+        memoryObjects.values().forEach(CLMemoryObject::delete);
+        memoryObjects.clear();
+    }
+
     public void destroy() {
         kernels.values().forEach(CLKernel::destroy);
         kernels.clear();

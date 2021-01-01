@@ -13,14 +13,27 @@ public abstract class Shape {
     /** A plane, rendered using raytracing*/
     public static final int PLANE_RTC = 0x3;
 
+    private final Vector3d position;
+
+    public Shape(Vector3d position) {
+        this.position = position;
+    }
+
     /** Is the same for all shapes of a class*/
     public abstract int getName();
 
+    public abstract double getMaxRadius();
+
     public void writeToByteBuffer(ByteBuffer buffer) {
-        buffer.putInt(getName());
+        buffer.
+                putInt(getName()).
+                putDouble(getMaxRadius()).
+                putDouble(position.getX()).
+                putDouble(position.getY()).
+                putDouble(position.getZ());
     }
 
     public int bytesToInBuffer() {
-        return Integer.BYTES;
+        return Integer.BYTES + 4 * Double.BYTES;
     }
 }

@@ -26,23 +26,22 @@ __kernel void putShapesInMemory(int numShapes,
                 __global struct torusSDF_t* dataTorus,
                 __global struct planeRTC_t* dataPlane) {
     for(int i = 0; i < numShapes; i++) {
-        int shape = *((__global int*)inputData);
-        inputData += sizeof(int);
-        if(shape == SPHERE_RTC) {
-            shapes[i] = (struct shape_t){shape, dataSphere};
+        int shape = getNextInt(inputData); inputData += sizeof(int);
+        double maxRad = getNextDouble(inputData); inputData += sizeof(double);
+        double3 position;
+        position.x = getNextDouble(inputData); inputData += sizeof(double);
+        position.y = getNextDouble(inputData); inputData += sizeof(double);
+        position.z = getNextDouble(inputData); inputData += sizeof(double);
 
-            dataSphere->position.x = getNextDouble(inputData); inputData += sizeof(double);
-            dataSphere->position.y = getNextDouble(inputData); inputData += sizeof(double);
-            dataSphere->position.z = getNextDouble(inputData); inputData += sizeof(double);
+        if(shape == SPHERE_RTC) {
+            shapes[i] = (struct shape_t){shape, maxRad, position, dataSphere};
+
             dataSphere->radius = getNextDouble(inputData); inputData += sizeof(double);
 
             dataSphere++;
         } else if(shape == TORUS_SDF) {
-            shapes[i] = (struct shape_t){shape, dataTorus};
+            shapes[i] = (struct shape_t){shape, maxRad, position, dataTorus};
 
-            dataTorus->position.x = getNextDouble(inputData); inputData += sizeof(double);
-            dataTorus->position.y = getNextDouble(inputData); inputData += sizeof(double);
-            dataTorus->position.z = getNextDouble(inputData); inputData += sizeof(double);
             dataTorus->rotation.x = getNextDouble(inputData); inputData += sizeof(double);
             dataTorus->rotation.y = getNextDouble(inputData); inputData += sizeof(double);
             dataTorus->rotation.z = getNextDouble(inputData); inputData += sizeof(double);
@@ -51,11 +50,8 @@ __kernel void putShapesInMemory(int numShapes,
 
             dataTorus++;
         } else if (shape == PLANE_RTC) {
-            shapes[i] = (struct shape_t){shape, dataPlane};
+            shapes[i] = (struct shape_t){shape, maxRad, position, dataPlane};
 
-            dataPlane->position.x = getNextDouble(inputData); inputData += sizeof(double);
-            dataPlane->position.y = getNextDouble(inputData); inputData += sizeof(double);
-            dataPlane->position.z = getNextDouble(inputData); inputData += sizeof(double);
             dataPlane->normal.x = getNextDouble(inputData); inputData += sizeof(double);
             dataPlane->normal.y = getNextDouble(inputData); inputData += sizeof(double);
             dataPlane->normal.z = getNextDouble(inputData); inputData += sizeof(double);
@@ -63,9 +59,20 @@ __kernel void putShapesInMemory(int numShapes,
             dataPlane++;
         } else {
             //TODO notify host of error
-            shapes[i] = (struct shape_t){shape, (__global void*)(long)i};
+            shapes[i] = (struct shape_t){shape, 0, (double3){0,0,0}, (__global void*)(long)i};
         }
     }
+}
+
+int getNextInt(__global char* data) {
+    int res;
+    char* pointer = (char*)&res;
+    for(int k = 0; k < sizeof(int); k++) {
+        *pointer = data[0];
+        pointer++;
+        data++;
+    }
+    return res;
 }
 
 double getNextDouble(__global char* data) {

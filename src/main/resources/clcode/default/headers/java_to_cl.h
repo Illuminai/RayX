@@ -15,4 +15,6 @@ __kernel void putShapesInMemory(int numShapes,
 
 double getNextDouble(__global char* data);
 
+int getNextInt(__global char* data);
+
 #endif

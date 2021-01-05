@@ -277,7 +277,8 @@ public class CLManager {
             checkForError(error);
 
             return switch (info) {
-                case CL22.CL_DEVICE_BUILT_IN_KERNELS, CL22.CL_DEVICE_VERSION, CL22.CL_DEVICE_NAME, CL22.CL_DEVICE_EXTENSIONS -> byteBufferToString(rawInfo);
+                case CL22.CL_DEVICE_BUILT_IN_KERNELS, CL22.CL_DEVICE_VERSION,
+                        CL22.CL_DEVICE_NAME, CL22.CL_DEVICE_EXTENSIONS -> byteBufferToString(rawInfo);
                 case CL22.CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, CL22.CL_DEVICE_MAX_WORK_GROUP_SIZE -> byteBufferToULong(rawInfo);
                 case CL22.CL_DEVICE_MAX_COMPUTE_UNITS, CL22.CL_DEVICE_MAX_CLOCK_FREQUENCY -> byteBufferToUInt(rawInfo);
                 case CL22.CL_DEVICE_TYPE -> byteBufferToDeviceType(rawInfo);
@@ -499,19 +500,22 @@ public class CLManager {
                     shapesIdentifier);
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
                     shapes.stream().filter(u -> u.getName() == Shape.SPHERE_RTC).mapToInt(u -> context.getStructSize(u.getName())).sum(),
-                    shapeDataPrefix + "Sphere");
+                    shapeDataPrefix + "SphereRTC");
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
                     shapes.stream().filter(u -> u.getName() == Shape.TORUS_SDF).mapToInt(u -> context.getStructSize(u.getName())).sum(),
-                    shapeDataPrefix + "Torus");
+                    shapeDataPrefix + "TorusSDF");
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
                     shapes.stream().filter(u -> u.getName() == Shape.PLANE_RTC).mapToInt(u -> context.getStructSize(u.getName())).sum(),
-                    shapeDataPrefix + "Plane");
+                    shapeDataPrefix + "PlaneRTC");
+            CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
+                    shapes.stream().filter(u -> u.getName() == Shape.SUBTRACTION_SDF).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    shapeDataPrefix + "SubtractionSDF");
             kernel.setParameter1i(0, shapes.size());
             kernel.setParameterPointer(1, "inputData");
             kernel.setParameterPointer(2, shapesIdentifier);
-            kernel.setParameterPointer(3, shapeDataPrefix + "Sphere");
-            kernel.setParameterPointer(4, shapeDataPrefix + "Torus");
-            kernel.setParameterPointer(5, shapeDataPrefix + "Plane");
+            kernel.setParameterPointer(3, shapeDataPrefix + "SphereRTC");
+            kernel.setParameterPointer(4, shapeDataPrefix + "TorusSDF");
+            kernel.setParameterPointer(5, shapeDataPrefix + "PlaneRTC");
             kernel.run(new long[]{1}, null);
 
             context.freeMemoryObject("inputData");
@@ -528,9 +532,9 @@ public class CLManager {
             context.getMemoryObject(shapesIdentifier).getValue(shapes);
 
             {
-                System.out.println("Spheres: ");
+                System.out.println("SphereRTC: ");
                 CLContext.CLMemoryObject shapeDataSphere =
-                        context.getMemoryObject(shapeDataPrefix + "Sphere");
+                        context.getMemoryObject(shapeDataPrefix + "SphereRTC");
                 ByteBuffer shapesData = stack.malloc((int) shapeDataSphere.getSize());
                 shapeDataSphere.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.SPHERE_RTC);
@@ -542,9 +546,9 @@ public class CLManager {
                 }
             }
             {
-                System.out.println("Torus: ");
+                System.out.println("TorusSDF: ");
                 CLContext.CLMemoryObject shapeDataTorus =
-                        context.getMemoryObject(shapeDataPrefix + "Torus");
+                        context.getMemoryObject(shapeDataPrefix + "TorusSDF");
                 ByteBuffer shapesData = stack.malloc((int) shapeDataTorus.getSize());
                 shapeDataTorus.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.TORUS_SDF);
@@ -556,12 +560,26 @@ public class CLManager {
                 }
             }
             {
-                System.out.println("Plane: ");
+                System.out.println("PlaneRTC: ");
                 CLContext.CLMemoryObject planeData =
-                        context.getMemoryObject(shapeDataPrefix + "Plane");
+                        context.getMemoryObject(shapeDataPrefix + "PlaneRTC");
                 ByteBuffer shapesData = stack.malloc((int) planeData.getSize());
                 planeData.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.PLANE_RTC);
+                while(shapesData.hasRemaining()) {
+                    for(int j = 0; j < structSize / Double.BYTES; j++) {
+                        System.out.print(shapesData.getDouble() + " ");
+                    }
+                    System.out.println();
+                }
+            }
+            {
+                System.out.println("SubtractionSDF: ");
+                CLContext.CLMemoryObject subtractionData =
+                        context.getMemoryObject(shapeDataPrefix + "SubtractionSDF");
+                ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
+                subtractionData.getValue(shapesData);
+                int structSize = context.getStructSize(Shape.SUBTRACTION_SDF);
                 while(shapesData.hasRemaining()) {
                     for(int j = 0; j < structSize / Double.BYTES; j++) {
                         System.out.print(shapesData.getDouble() + " ");
@@ -585,9 +603,9 @@ public class CLManager {
         kernel.setParameter1d(3, cameraFOV);
         kernel.setParameter1i(4, numShapes);
         kernel.setParameterPointer(5, shapesMemObj);
-        kernel.setParameterPointer(6, shapeDataPrefix + "Sphere");
-        kernel.setParameterPointer(7, shapeDataPrefix + "Torus");
-        kernel.setParameterPointer(8, shapeDataPrefix + "Plane");
+        kernel.setParameterPointer(6, shapeDataPrefix + "SphereRTC");
+        kernel.setParameterPointer(7, shapeDataPrefix + "TorusSDF");
+        kernel.setParameterPointer(8, shapeDataPrefix + "PlaneRTC");
 
         //TODO make image size dynamic
         kernel.run(new long[]{RayX.IMG_WID, RayX.IMG_HEI}, null);
@@ -596,6 +614,7 @@ public class CLManager {
     }
 
     public static void allocateMemory(CLContext context, long flags, long bytesToAllocate, String id) {
+        assert bytesToAllocate > 0;
         try (MemoryStack stack = CLManager.nextStackFrame()) {
             IntBuffer error = stack.mallocInt(1);
             long memory = CL22.clCreateBuffer(context.getContext(), flags, bytesToAllocate, error);

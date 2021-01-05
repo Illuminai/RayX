@@ -12,11 +12,17 @@ public abstract class Shape {
     public static final int TORUS_SDF = 0x2;
     /** A plane, rendered using raytracing*/
     public static final int PLANE_RTC = 0x3;
+    /** A subtraction SDF*/
+    public static final int SUBTRACTION_SDF = 0x4;
 
     private final Vector3d position;
 
     public Shape(Vector3d position) {
         this.position = position;
+    }
+
+    public Vector3d getPosition() {
+        return position;
     }
 
     /** Is the same for all shapes of a class*/
@@ -33,6 +39,7 @@ public abstract class Shape {
                 putDouble(position.getZ());
     }
 
+    /** Must be equal for every instance of a class */
     public int bytesToInBuffer() {
         return Integer.BYTES + 4 * Double.BYTES;
     }

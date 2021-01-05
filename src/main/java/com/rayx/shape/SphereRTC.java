@@ -2,14 +2,14 @@ package com.rayx.shape;
 
 import java.nio.ByteBuffer;
 
-public class Sphere extends Shape {
+public class SphereRTC extends Shape {
     private final double radius;
 
-    public Sphere(double x, double y, double z, double radius) {
+    public SphereRTC(double x, double y, double z, double radius) {
         this(new Vector3d(x, y, z), radius);
     }
 
-    public Sphere(Vector3d position, double radius) {
+    public SphereRTC(Vector3d position, double radius) {
         super(position);
         this.radius = radius;
     }

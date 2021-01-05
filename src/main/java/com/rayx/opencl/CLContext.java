@@ -15,10 +15,14 @@ public class CLContext {
             KERNEL_RENDER = "defaultKernelRender";
 
     public static final String COMPILE_OPTIONS =
+           // " -fblocks" +
+            " -cl-kernel-arg-info " +
+            " -Werror " +
             " -D SHAPE=" + Shape.SHAPE +
             " -D SPHERE_RTC=" + Shape.SPHERE_RTC +
             " -D TORUS_SDF=" + Shape.TORUS_SDF +
-            " -D PLANE_RTC=" + Shape.PLANE_RTC;
+            " -D PLANE_RTC=" + Shape.PLANE_RTC +
+            " -D SUBTRACTION_SDF=" + Shape.SUBTRACTION_SDF;
 
     private final long device;
     private long context;
@@ -139,34 +143,36 @@ public class CLContext {
         //----------- H E A D E R S -----------
         //mandelbrot.h
         CLManager.putProgramFromFile(this, null,
-                "clcode/default/headers/mandelbrot.h", "");
+                "clcode/default/headers/mandelbrot.h",
+                COMPILE_OPTIONS);
         //shapes.h
         CLManager.putProgramFromFile(this,
                 null,
                 "clcode/default/headers/shapes.h",
-                "");
+                COMPILE_OPTIONS);
         //java_to_cl.h
         CLManager.putProgramFromFile(this,
                 new String[]{"clcode/default/headers/shapes.h"},
                 "clcode/default/headers/java_to_cl.h",
-                "");
+                COMPILE_OPTIONS);
         //render.h
         CLManager.putProgramFromFile(this,
                 new String[]{"clcode/default/headers/shapes.h"},
                 "clcode/default/headers/render.h",
-                "");
+                COMPILE_OPTIONS);
 
         //----------- C O D E -----------
         //mandelbrot.cl
         CLManager.putProgramFromFile(this, new String[]{
                         "clcode/default/headers/mandelbrot.h"
                 },
-                "clcode/default/implementation/mandelbrot.cl", "");
+                "clcode/default/implementation/mandelbrot.cl",
+                COMPILE_OPTIONS);
         //shapes.cl
         CLManager.putProgramFromFile(this,
                 new String[]{"clcode/default/headers/shapes.h"},
                 "clcode/default/implementation/shapes.cl",
-                "");
+                COMPILE_OPTIONS);
 
         //java_to_cl.cl
         CLManager.putProgramFromFile(this,
@@ -208,7 +214,13 @@ public class CLContext {
     }
 
     private void getStructSizes() {
-        int[] structs = {Shape.SHAPE, Shape.SPHERE_RTC, Shape.TORUS_SDF, Shape.PLANE_RTC};
+        int[] structs = {
+                Shape.SHAPE,
+                Shape.SPHERE_RTC,
+                Shape.TORUS_SDF,
+                Shape.PLANE_RTC,
+                Shape.SUBTRACTION_SDF,
+        };
         CLContext.CLKernel kernelStruct =
                 getKernelObject(CLContext.KERNEL_GET_STRUCT_SIZE);
         CLManager.allocateMemory(this, CL_MEM_READ_ONLY,

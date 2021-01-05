@@ -1,11 +1,5 @@
 #include<clcode/default/headers/render.h>
 
-#define MAX_RENDER_DIST 10
-#define MAX_LOCAL_RENDER_SHAPES 50
-#define MAX_LOCAL_SPHERE_RTC 50
-#define MAX_LOCAL_TORUS_SDF 50
-#define MAX_LOCAL_PLANE_RTC 50
-
 /** Although cameraPosition/cameraRotation are 3dim, the parameter passed is 4dim so it can
 be passed using clSetKernelArg4d */
 __kernel void render(  __write_only image2d_t resultImage,
@@ -46,12 +40,6 @@ __kernel void render(  __write_only image2d_t resultImage,
         write_imagef(resultImage, pixCo, (float4){0, 0, 0 ,1});
         return;
     }
-
-    struct ray_t newRay = (struct ray_t){
-        inter.point,
-        //TODO calculate direction of new ray using normal
-        normalize(rayToCheck.direction + 2 * inter.normal)
-    };
 
     {
         double3 lightSource = (double3){-2, 0, 0};
@@ -105,6 +93,7 @@ void traceRay(  struct ray_t* ray,
 }
 
 bool firstIntersectionWithShape(struct ray_t* ray, __global struct shape_t* shape, struct intersection_t* inter) {
+    int multiplier = 7;
     inter->obj = shape;
     inter->ray = ray;
     if(shape->type == SPHERE_RTC) {

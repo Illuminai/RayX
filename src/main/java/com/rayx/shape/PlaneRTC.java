@@ -2,10 +2,10 @@ package com.rayx.shape;
 
 import java.nio.ByteBuffer;
 
-public class Plane extends Shape {
+public class PlaneRTC extends Shape {
     private final Vector3d normal;
 
-    public Plane(Vector3d position, Vector3d normal) {
+    public PlaneRTC(Vector3d position, Vector3d normal) {
         super(position);
         this.normal = normal;
     }

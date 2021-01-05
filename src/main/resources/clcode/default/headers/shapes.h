@@ -22,4 +22,9 @@ struct planeRTC_t {
     double3 normal;
 };
 
+struct subtractionSDF_t {
+    struct shape_t shape1;
+    struct shape_t shape2;
+};
+
 #endif

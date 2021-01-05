@@ -13,6 +13,8 @@ __kernel void getShapeSizes(int numShapes,
             result[i] = sizeof(struct torusSDF_t);
         } else if(shape == PLANE_RTC) {
             result[i] = sizeof(struct planeRTC_t);
+        } else if(shape == SUBTRACTION_SDF) {
+            result[i] = sizeof(struct subtractionSDF_t);
         } else {
             result[i] = -1;
         }
@@ -55,8 +57,12 @@ __kernel void putShapesInMemory(int numShapes,
             dataPlane->normal.x = getNextDouble(inputData); inputData += sizeof(double);
             dataPlane->normal.y = getNextDouble(inputData); inputData += sizeof(double);
             dataPlane->normal.z = getNextDouble(inputData); inputData += sizeof(double);
-
             dataPlane++;
+        } else if (shape == SUBTRACTION_SDF) {
+            //TODO
+            shapes[i] = (struct shape_t){shape, maxRad, position, dataPlane};
+
+            inputData += sizeof(struct subtractionSDF_t);
         } else {
             //TODO notify host of error
             shapes[i] = (struct shape_t){shape, 0, (double3){0,0,0}, (__global void*)(long)i};

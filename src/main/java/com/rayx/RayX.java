@@ -14,46 +14,10 @@ import static org.lwjgl.opencl.CL22.*;
 public class RayX {
     public static final int IMG_WID = 1000, IMG_HEI = 1000;
     static CLContext context;
-    static final Scene scene;
-    static TorusSDF torus;
+    static final Scene.DemoScene scene;
+
     static {
-        scene = new Scene();
-
-        int N = 5;
-        for(int i = 0; i < N; i++) {
-            scene.add(new SphereRTC(2.0 * i / N - 1,
-                    Math.sin(1.0 * i/N * 2 * Math.PI),
-                    Math.cos(1.0 * i/N * 2 * Math.PI),.01));
-        }
-
-        scene.add(new PlaneRTC(
-                new Vector3d(0,0,-3),
-                new Vector3d(0,0,3).normalized()));
-        scene.add(new PlaneRTC(
-                new Vector3d(0,0,3),
-                new Vector3d(0,0,-3).normalized()));
-        scene.add(new PlaneRTC(
-                new Vector3d(0,-3,0),
-                new Vector3d(0,3,0).normalized()));
-        scene.add(new PlaneRTC(
-                new Vector3d(0,3,0),
-                new Vector3d(0,-3,0).normalized()));
-        scene.add(new PlaneRTC(
-                new Vector3d(3,0,0),
-                new Vector3d(-3,0,0).normalized()));
-        scene.add(new PlaneRTC(
-                new Vector3d(-3,0,0),
-                new Vector3d(3,0,0).normalized()));
-
-        scene.add(torus = new TorusSDF(
-                new Vector3d(1, 1, 1),
-                new Vector3d(1, 1, 1),.1,.5));
-        scene.add(new SubtractionSDF(
-                new Vector3d(0,0,0),
-                new TorusSDF( new Vector3d(0,0,2),
-                    new Vector3d(0, 0,Math.PI),.1,.5),
-                new TorusSDF( new Vector3d(0,0,2),
-                    new Vector3d(0, 0,Math.PI),.1,.5)));
+        scene = new Scene.DemoScene();
     }
 
     static double t = 0;
@@ -83,6 +47,8 @@ public class RayX {
 
         window.setCallback((texture) -> {
             scene.deleteRenderMemory(context);
+
+            scene.set(context, 0);
 
             scene.render(context, texture, t == 0);
             t += Math.PI / 50;

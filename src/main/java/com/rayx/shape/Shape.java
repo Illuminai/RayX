@@ -1,9 +1,16 @@
 package com.rayx.shape;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 public abstract class Shape {
-
+    // Marker interfaces
+    public  interface ShapeRTC {
+    }
+    public interface ShapeSDF {
+    }
     /** Used to determine the size of shape_t */
     public static final int SHAPE = 0x0;
     /** A sphere, rendered using raytracing*/
@@ -16,9 +23,15 @@ public abstract class Shape {
     public static final int SUBTRACTION_SDF = 0x4;
 
     private final Vector3d position;
+    private long id;
+    private boolean shouldRender;
+    private final List<Shape> subShapes;
 
-    public Shape(Vector3d position) {
+    public Shape(Vector3d position, List<Shape> subShapes) {
         this.position = position;
+        this.subShapes = subShapes == null ? new ArrayList<>(0) : subShapes;
+        shouldRender = false;
+        id = -1;
     }
 
     public Vector3d getPosition() {
@@ -30,9 +43,23 @@ public abstract class Shape {
 
     public abstract double getMaxRadius();
 
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public void setShouldRender(boolean shouldRender) {
+        this.shouldRender = shouldRender;
+    }
+
     public void writeToByteBuffer(ByteBuffer buffer) {
         buffer.
-                putInt(getName()).
+                putLong(getName()).
+                putLong(getId()).
+                putLong(shouldRender ? 1 : 0).
                 putDouble(getMaxRadius()).
                 putDouble(position.getX()).
                 putDouble(position.getY()).
@@ -41,6 +68,10 @@ public abstract class Shape {
 
     /** Must be equal for every instance of a class */
     public int bytesToInBuffer() {
-        return Integer.BYTES + 4 * Double.BYTES;
+        return 4 * Double.BYTES + 3 * Long.BYTES;
+    }
+
+    public List<Shape> getSubShapes() {
+        return subShapes;
     }
 }

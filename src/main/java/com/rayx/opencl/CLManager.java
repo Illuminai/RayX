@@ -56,7 +56,7 @@ public class CLManager {
         return b.toString();
     }
 
-    private static MemoryStack nextStackFrame() {
+    public static MemoryStack nextStackFrame() {
         return internalMemoryStack.push();
     }
 
@@ -484,42 +484,7 @@ public class CLManager {
     }
 
     public static void transferShapesToRAM(CLContext context, String shapesIdentifier, String shapeDataPrefix, List<Shape> shapes) {
-        try (MemoryStack stack = CLManager.nextStackFrame()) {
-            assert !shapes.isEmpty();
-            CLContext.CLKernel kernel = context.getKernelObject(CLContext.KERNEL_FILL_BUFFER_DATA);
 
-            int hostByteSize = shapes.stream().mapToInt(Shape::bytesToInBuffer).sum();
-            ByteBuffer inputData = stack.malloc(hostByteSize);
-            shapes.forEach(u -> u.writeToByteBuffer(inputData));
-            inputData.position(0);
-
-            CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    inputData, "inputData");
-            CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    (long) context.getStructSize(Shape.SHAPE) * shapes.size(),
-                    shapesIdentifier);
-            CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    shapes.stream().filter(u -> u.getName() == Shape.SPHERE_RTC).mapToInt(u -> context.getStructSize(u.getName())).sum(),
-                    shapeDataPrefix + "SphereRTC");
-            CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    shapes.stream().filter(u -> u.getName() == Shape.TORUS_SDF).mapToInt(u -> context.getStructSize(u.getName())).sum(),
-                    shapeDataPrefix + "TorusSDF");
-            CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    shapes.stream().filter(u -> u.getName() == Shape.PLANE_RTC).mapToInt(u -> context.getStructSize(u.getName())).sum(),
-                    shapeDataPrefix + "PlaneRTC");
-            CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    shapes.stream().filter(u -> u.getName() == Shape.SUBTRACTION_SDF).mapToInt(u -> context.getStructSize(u.getName())).sum(),
-                    shapeDataPrefix + "SubtractionSDF");
-            kernel.setParameter1i(0, shapes.size());
-            kernel.setParameterPointer(1, "inputData");
-            kernel.setParameterPointer(2, shapesIdentifier);
-            kernel.setParameterPointer(3, shapeDataPrefix + "SphereRTC");
-            kernel.setParameterPointer(4, shapeDataPrefix + "TorusSDF");
-            kernel.setParameterPointer(5, shapeDataPrefix + "PlaneRTC");
-            kernel.run(new long[]{1}, null);
-
-            context.freeMemoryObject("inputData");
-        }
     }
 
     /** This function prints the shapes which are allocated on the GPU
@@ -530,7 +495,32 @@ public class CLManager {
             ByteBuffer shapes = stack.malloc(
                     context.getStructSize(Shape.SHAPE) * testReferences.size());
             context.getMemoryObject(shapesIdentifier).getValue(shapes);
-
+            {
+                System.out.println("ShapeData: ");
+                CLContext.CLMemoryObject pureShapes =
+                        context.getMemoryObject(shapesIdentifier);
+                ByteBuffer shapesData = stack.malloc((int) pureShapes.getSize());
+                pureShapes.getValue(shapesData);
+                int structSize = context.getStructSize(Shape.SHAPE);
+                System.out.println(structSize);
+                int k = 0;
+                while(shapesData.hasRemaining()) {
+                    System.out.println( shapesData.getLong() + " " +
+                            shapesData.getLong() + " " +
+                            shapesData.getLong() + " " +
+                            shapesData.getDouble() + " " +
+                            shapesData.getDouble() + " " +
+                            shapesData.getDouble() + " " +
+                            shapesData.getDouble() + " " +
+                            shapesData.getLong() + " " +
+                            shapesData.getLong() + " " +
+                            shapesData.getLong() + " " +
+                            shapesData.getLong() + " " +
+                            shapesData.getLong() + " ");
+                    k++;
+                    shapesData.position(k * structSize);
+                }
+            }
             {
                 System.out.println("SphereRTC: ");
                 CLContext.CLMemoryObject shapeDataSphere =

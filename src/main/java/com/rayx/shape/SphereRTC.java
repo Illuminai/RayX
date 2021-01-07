@@ -2,7 +2,7 @@ package com.rayx.shape;
 
 import java.nio.ByteBuffer;
 
-public class SphereRTC extends Shape {
+public class SphereRTC extends Shape implements Shape.ShapeRTC {
     private final double radius;
 
     public SphereRTC(double x, double y, double z, double radius) {
@@ -10,7 +10,7 @@ public class SphereRTC extends Shape {
     }
 
     public SphereRTC(Vector3d position, double radius) {
-        super(position);
+        super(position, null);
         this.radius = radius;
     }
 

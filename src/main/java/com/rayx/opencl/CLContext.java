@@ -15,7 +15,6 @@ public class CLContext {
             KERNEL_RENDER = "defaultKernelRender";
 
     public static final String COMPILE_OPTIONS =
-           // " -fblocks" +
             " -cl-kernel-arg-info " +
             " -Werror " +
             " -D SHAPE=" + Shape.SHAPE +

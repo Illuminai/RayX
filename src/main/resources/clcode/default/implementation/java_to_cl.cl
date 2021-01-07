@@ -26,61 +26,63 @@ __kernel void putShapesInMemory(int numShapes,
                 __global struct shape_t* shapes,
                 __global struct sphereRTC_t* dataSphere,
                 __global struct torusSDF_t* dataTorus,
-                __global struct planeRTC_t* dataPlane) {
+                __global struct planeRTC_t* dataPlane,
+                __global struct subtractionSDF_t* dataSubtractionSDF) {
     for(int i = 0; i < numShapes; i++) {
-        int shape = getNextInt(inputData); inputData += sizeof(int);
+        for(int k = 0; k < sizeof(struct shape_t) / sizeof(long); k++) {
+            __global long* tmp= (__global long*)&shapes[i];
+            tmp[k] = -12;
+        }
+        long shape = getNextLong(inputData); inputData += sizeof(long);
+        long id = getNextLong(inputData); inputData += sizeof(long);
+        long shouldRender = getNextLong(inputData); inputData += sizeof(long);
         double maxRad = getNextDouble(inputData); inputData += sizeof(double);
-        double3 position;
-        position.x = getNextDouble(inputData); inputData += sizeof(double);
-        position.y = getNextDouble(inputData); inputData += sizeof(double);
-        position.z = getNextDouble(inputData); inputData += sizeof(double);
+        double3 position = getNextDouble3 (inputData); inputData += sizeof(double) * 3;
 
         if(shape == SPHERE_RTC) {
-            shapes[i] = (struct shape_t){shape, maxRad, position, dataSphere};
-
+            shapes[i] = (struct shape_t){shape, id, shouldRender, maxRad, position, dataSphere};
             dataSphere->radius = getNextDouble(inputData); inputData += sizeof(double);
-
             dataSphere++;
         } else if(shape == TORUS_SDF) {
-            shapes[i] = (struct shape_t){shape, maxRad, position, dataTorus};
-
-            dataTorus->rotation.x = getNextDouble(inputData); inputData += sizeof(double);
-            dataTorus->rotation.y = getNextDouble(inputData); inputData += sizeof(double);
-            dataTorus->rotation.z = getNextDouble(inputData); inputData += sizeof(double);
+            shapes[i] = (struct shape_t){shape, id, shouldRender, maxRad, position, dataTorus};
+            dataTorus->rotation = getNextDouble3 (inputData); inputData += sizeof(double) * 3;
             dataTorus->radiusSmall = getNextDouble(inputData); inputData += sizeof(double);
             dataTorus->radiusBig = getNextDouble(inputData); inputData += sizeof(double);
-
             dataTorus++;
         } else if (shape == PLANE_RTC) {
-            shapes[i] = (struct shape_t){shape, maxRad, position, dataPlane};
-
-            dataPlane->normal.x = getNextDouble(inputData); inputData += sizeof(double);
-            dataPlane->normal.y = getNextDouble(inputData); inputData += sizeof(double);
-            dataPlane->normal.z = getNextDouble(inputData); inputData += sizeof(double);
+            shapes[i] = (struct shape_t){shape, id, shouldRender, maxRad, position, dataPlane};
+            dataPlane->normal = getNextDouble3 (inputData); inputData += sizeof(double) * 3;
             dataPlane++;
         } else if (shape == SUBTRACTION_SDF) {
-            //TODO
-            shapes[i] = (struct shape_t){shape, maxRad, position, dataPlane};
-
-            inputData += sizeof(struct subtractionSDF_t);
+            shapes[i] = (struct shape_t){shape, id, shouldRender, maxRad, position, dataSubtractionSDF};
+            dataSubtractionSDF->shape1 = shapes + getNextLong(inputData); inputData += sizeof(long);
+            dataSubtractionSDF->shape2 = shapes + getNextLong(inputData); inputData += sizeof(long);
+            dataSubtractionSDF++;
         } else {
             //TODO notify host of error
-            shapes[i] = (struct shape_t){shape, 0, (double3){0,0,0}, (__global void*)(long)i};
+            shapes[i] = (struct shape_t){shape, id, shouldRender, maxRad, position, (__global void*) 0};
         }
     }
 }
 
-int getNextInt(__global char* data) {
-    int res;
+double3 getNextDouble3(__global char* data) {
+    return (double3){
+        getNextDouble(data),
+        getNextDouble(data + sizeof(double)),
+        getNextDouble(data + 2 * sizeof(double))
+        };
+}
+
+long getNextLong(__global char* data) {
+    long res;
     char* pointer = (char*)&res;
-    for(int k = 0; k < sizeof(int); k++) {
+    for(int k = 0; k < sizeof(long); k++) {
         *pointer = data[0];
         pointer++;
         data++;
     }
     return res;
 }
-
 double getNextDouble(__global char* data) {
     double res;
     char* pointer = (char*)&res;

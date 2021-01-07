@@ -2,7 +2,9 @@
 #define __HEADER_SHAPES_H
 
 struct shape_t {
-    int type;
+    long type;
+    long id;
+    long shouldRender;
     double maxRadius;
     double3 position;
     __global void* shape;
@@ -23,8 +25,8 @@ struct planeRTC_t {
 };
 
 struct subtractionSDF_t {
-    struct shape_t shape1;
-    struct shape_t shape2;
+    __global struct shape_t* shape1;
+    __global struct shape_t* shape2;
 };
 
 #endif

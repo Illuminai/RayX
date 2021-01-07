@@ -80,7 +80,7 @@ void traceRay(  struct ray_t* ray,
                 struct intersection_t* inter) {
     struct intersection_t tmp;
     for(int i = 0; i < numShapes; i++) {
-        if(firstIntersectionWithShape(ray, &allShapes[i], &tmp)) {
+        if(allShapes[i].shouldRender && firstIntersectionWithShape(ray, &allShapes[i], &tmp)) {
             if(inter->ray != 0) {
                 if(tmp.d < inter->d) {
                     *inter = tmp;
@@ -102,6 +102,10 @@ bool firstIntersectionWithShape(struct ray_t* ray, __global struct shape_t* shap
         return firstIntersectionWithTorus(ray, shape, inter);
     } else if(shape->type == PLANE_RTC) {
         return firstIntersectionWithPlane(ray, shape, inter);
+    } else if(shape->type == SUBTRACTION_SDF) {
+        //#error
+        //TODO
+        return false;
     } else {
         return false;
     }

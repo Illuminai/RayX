@@ -19,7 +19,8 @@ __kernel void render(  __write_only image2d_t resultImage,
     //sign is because image is saved with origin in the
     //upper left corner instead of lower left
     double v = -2.0 * (((pixCo.y + .5) / h) - .5);
-    struct ray_t rayToCheck = getRay(u, v, cameraPosition.xyz, cameraRotation.xyz, cameraFOV);
+    struct ray_t rayToCheck =
+        getRay(u, v, cameraPosition.xyz, cameraRotation.xyz, cameraFOV);
 
     if(pixCo.x >= w | pixCo.y >= h) {
         return;
@@ -37,7 +38,9 @@ __kernel void render(  __write_only image2d_t resultImage,
     traceRay(&rayToCheck, globalNumShapes, globalShapes, &inter);
 
     if(inter.ray == 0) {
-        write_imagef(resultImage, pixCo, (float4){0, 0, 0 ,1});
+        write_imagef(resultImage, pixCo, (float4){
+            (pixCo.x / (pixCo.x % 4 + 4) + pixCo.y / (pixCo.y % 4 + 4)) % 2, 0,
+            (pixCo.x / (pixCo.x % 4 + 4) + pixCo.y / (pixCo.y % 4 + 4)) % 2, 1});
         return;
     }
 
@@ -50,12 +53,11 @@ __kernel void render(  __write_only image2d_t resultImage,
             //angle = 1;
         }
         float3 asdf = (float3){0,0,0};
-        if(inter.obj->type == TORUS_SDF) {
-            asdf = (float3){1,0,0};
-        } else if(inter.obj->type == SPHERE_RTC) {
-            asdf = (float3){0,1,0};
-        } else if(inter.obj->type == PLANE_RTC) {
-            asdf = (float3){0,0,1};
+        switch(inter.obj->type) {
+            case TORUS_SDF: asdf = (float3){1,0,0}; break;
+            case SPHERE_RTC: asdf = (float3){0,1,0}; break;
+            case PLANE_RTC: asdf = (float3){0,0,1}; break;
+            case SUBTRACTION_SDF: asdf = (float3){0,1,1}; break;
         }
         color = (float4){(float)angle * asdf, 1};
     }
@@ -96,18 +98,62 @@ bool firstIntersectionWithShape(struct ray_t* ray, __global struct shape_t* shap
     int multiplier = 7;
     inter->obj = shape;
     inter->ray = ray;
-    if(shape->type == SPHERE_RTC) {
-        return firstIntersectionWithSphere(ray, shape, inter);
-    } else if(shape->type == TORUS_SDF) {
-        return firstIntersectionWithTorus(ray, shape, inter);
-    } else if(shape->type == PLANE_RTC) {
-        return firstIntersectionWithPlane(ray, shape, inter);
-    } else if(shape->type == SUBTRACTION_SDF) {
-        //#error
-        //TODO
+    switch(shape->type) {
+        case SPHERE_RTC:
+            return firstIntersectionWithSphere(ray, shape, inter);
+        case PLANE_RTC:
+            return firstIntersectionWithPlane(ray, shape, inter);
+        case TORUS_SDF:
+        case SUBTRACTION_SDF:
+            return firstIntersectionWithSDF(ray, shape, inter);
+        default:
+            return false;
+    }
+}
+
+bool firstIntersectionWithSDF(struct ray_t* pRay, __global struct shape_t* shape, struct intersection_t * inter) {
+    struct ray_t ray = (struct ray_t){pRay->origin - shape->position, pRay->direction};
+
+    ray.origin = matrixTimesVector(shape->rotationMatrix, ray.origin);
+    ray.direction = matrixTimesVector(shape->rotationMatrix, ray.direction);
+
+    if(distToOrig(&ray) > shape->maxRadius) {
         return false;
-    } else {
-        return false;
+    }
+
+    double d = 0;
+    for(int i = 0; i < 100; i++) {
+        double dist = oneStepSDF(ray.origin + ray.direction * d, shape);
+        if(dist < 0.0001) {
+            inter->point = pRay->origin + pRay->direction * d;
+            inter->d = d;
+
+            inter->normal = sdfNormal(ray.origin + ray.direction * d, oneStepSDF, shape);
+            inter->normal = matrixTimesVector(shape->inverseRotationMatrix, inter->normal);
+            return true;
+        } else if (dist > 10) {//TODO max distance
+            return false;
+        }
+        d += dist;
+    }
+
+    return false;
+}
+double oneStepSDF(double3 point, __global struct shape_t* shape) {
+    switch(shape->type) {
+        case SUBTRACTION_SDF: {
+            __global struct shape_t* shape1 =
+                ((__global struct subtractionSDF_t*)shape->shape)->shape1;
+            __global struct shape_t* shape2 =
+                ((__global struct subtractionSDF_t*)shape->shape)->shape2;
+            return max(
+                -oneStepSDF(matrixTimesVector(shape1->rotationMatrix, point - shape1->position), shape1),
+                oneStepSDF(matrixTimesVector (shape2->rotationMatrix, point - shape2->position), shape2));
+        }
+        case TORUS_SDF:
+            return torusSDF(point, shape->shape);
+        default:
+            return 0;
     }
 }
 
@@ -145,40 +191,6 @@ bool firstIntersectionWithSphere(struct ray_t* ray, __global struct shape_t* sha
 
 }
 
-bool firstIntersectionWithTorus(struct ray_t* pRay,
-                                __global struct shape_t* shape,
-                                struct intersection_t * inter) {
-    __global struct torusSDF_t* torus = shape->shape;
-    struct ray_t ray = (struct ray_t){pRay->origin - shape->position, pRay->direction};
-    struct matrix3x3 m = rotationMatrix(torus->rotation.x, torus->rotation.y, torus->rotation.z);
-    ray.origin = matrixTimesVector(m, ray.origin);
-    ray.direction = matrixTimesVector(m, ray.direction);
-
-    if(distToOrig(&ray) > shape->maxRadius) {
-        return false;
-    }
-
-    double d = 0;
-    for(int i = 0; i < 100; i++) {
-        double dist = torusSDF(ray.origin + ray.direction * d, torus);
-        if(dist < 0.0001) {
-            inter->point = pRay->origin + pRay->direction * d;
-            inter->d = d;
-            m = reverseRotationMatrix( torus->rotation.z,
-                                torus->rotation.y,
-                                torus->rotation.x);
-            inter->normal = sdfNormal(ray.origin + ray.direction * d, torusSDF, torus);
-            inter->normal = matrixTimesVector(m, inter->normal);
-            return true;
-        } else if (dist > 10) {//TODO max distance
-            return false;
-        }
-        d += dist;
-    }
-
-    return false;
-}
-
 bool firstIntersectionWithPlane(struct ray_t* ray, __global struct shape_t* shape, struct intersection_t * inter) {
     __global struct planeRTC_t* plane = (shape->shape);
     double tmp = dot(ray->direction, plane->normal);
@@ -199,72 +211,6 @@ double torusSDF(double3 point, __global struct torusSDF_t* torus) {
     double2 q =
         (double2){length(point.yz) - torus->radiusBig, point.x};
     return length(q) - torus->radiusSmall;
-}
-
-struct matrix3x3 matrixProduct(struct matrix3x3 a, struct matrix3x3 b) {
-    return (struct matrix3x3){
-        {(double3){ a.r[0].x * b.r[0].x + a.r[0].y * b.r[1].x + a.r[0].z * b.r[2].x,
-                    a.r[0].x * b.r[0].y + a.r[0].y * b.r[1].y + a.r[0].z * b.r[2].y,
-                    a.r[0].x * b.r[0].z + a.r[0].y * b.r[1].z + a.r[0].z * b.r[2].z},
-        (double3){  a.r[1].x * b.r[0].x + a.r[1].y * b.r[1].x + a.r[1].z * b.r[2].x,
-                    a.r[1].x * b.r[0].y + a.r[1].y * b.r[1].y + a.r[1].z * b.r[2].y,
-                    a.r[1].x * b.r[0].z + a.r[1].y * b.r[1].z + a.r[1].z * b.r[2].z},
-        (double3){  a.r[2].x * b.r[0].x + a.r[2].y * b.r[1].x + a.r[2].z * b.r[2].x,
-                    a.r[2].x * b.r[0].y + a.r[2].y * b.r[1].y + a.r[2].z * b.r[2].y,
-                    a.r[2].x * b.r[0].z + a.r[2].y * b.r[1].z + a.r[2].z * b.r[2].z}}
-    };
-}
-
-double3 matrixTimesVector(struct matrix3x3 m, double3 v) {
-    return (double3){
-        m.r[0].x * v.x + m.r[0].y * v.y + m.r[0].z * v.z,
-        m.r[1].x * v.x + m.r[1].y * v.y + m.r[1].z * v.z,
-        m.r[2].x * v.x + m.r[2].y * v.y + m.r[2].z * v.z
-    };
-}
-
-struct matrix3x3 rotationMatrix(double alpha, double beta, double gamma) {
-    return (struct matrix3x3){{
-            (double3){cos(beta) * cos(gamma), - cos(beta) * sin(gamma), sin(beta)},
-            (double3){cos(gamma) * sin(alpha) * sin(beta) + cos(alpha) * sin(gamma),
-                      cos(alpha) * cos(gamma) - sin(alpha) * sin(beta) * sin(gamma),
-                      -cos(beta) * sin(alpha)},
-            (double3){-cos(alpha) * cos(gamma) * sin(beta) + sin(alpha) * sin(gamma),
-                      cos(gamma) * sin(alpha) + cos(alpha) * sin(beta) * sin(gamma),
-                      cos(alpha) * cos(beta)}
-        }};
-}
-
-struct matrix3x3 reverseRotationMatrix(double gamma, double beta, double alpha) {
-    return (struct matrix3x3){{
-                (double3){cos(beta) * cos(gamma), cos(gamma) * sin(alpha) * sin(beta) + cos(alpha) * sin(gamma), -cos(alpha) * cos(gamma) * sin(beta) + sin(alpha) * sin(gamma)},
-                (double3){-cos(beta) * sin(gamma), cos(alpha) * cos(gamma) - sin(alpha) * sin(beta) * sin(gamma), cos(gamma) * sin(alpha) + cos(alpha) * sin(beta) * sin(gamma)},
-                (double3){sin(beta), -cos(beta) * sin(alpha), cos(alpha) * cos(beta)}
-            }};
-}
-
-struct matrix3x3 rotationMatrixX(double alpha) {
-    return (struct matrix3x3){{
-                (double3){1,0,0},
-                (double3){0, cos(alpha), -sin(alpha)},
-                (double3){0, sin(alpha), cos(alpha)}
-            }};
-}
-
-struct matrix3x3 rotationMatrixY(double beta) {
-    return (struct matrix3x3){{
-                (double3){cos(beta), 0, sin(beta)},
-                (double3){0,1,0},
-                (double3){-sin(beta), 0, cos(beta)}
-            }};
-}
-
-struct matrix3x3 rotationMatrixZ(double gamma) {
-    return (struct matrix3x3){{
-                    (double3){cos(gamma), -sin(gamma), 0},
-                    (double3){sin(gamma), cos(gamma), 0},
-                    (double3){0,0,1}
-                }};
 }
 
 double distToRay(double3 point, struct ray_t* ray) {

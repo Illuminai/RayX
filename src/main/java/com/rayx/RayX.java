@@ -48,7 +48,7 @@ public class RayX {
         window.setCallback((texture) -> {
             scene.deleteRenderMemory(context);
 
-            scene.set(context, 0);
+            scene.set(context, t);
 
             scene.render(context, texture, t == 0);
             t += Math.PI / 50;

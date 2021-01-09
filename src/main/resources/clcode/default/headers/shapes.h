@@ -1,12 +1,17 @@
 #ifndef __HEADER_SHAPES_H
 #define __HEADER_SHAPES_H
 
+#include<clcode/default/headers/matrixmath.h>
+
 struct shape_t {
     long type;
     long id;
     long shouldRender;
     double maxRadius;
     double3 position;
+    double3 rotation;
+    struct matrix3x3 rotationMatrix;
+    struct matrix3x3 inverseRotationMatrix;
     __global void* shape;
 };
 
@@ -15,7 +20,6 @@ struct sphereRTC_t {
 };
 
 struct torusSDF_t {
-    double3 rotation;
     double radiusSmall;
     double radiusBig;
 };

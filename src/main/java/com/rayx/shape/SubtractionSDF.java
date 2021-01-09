@@ -6,8 +6,8 @@ import java.util.Arrays;
 public class SubtractionSDF extends Shape implements Shape.ShapeSDF {
     private final Shape shape1, shape2;
 
-    public SubtractionSDF(Vector3d position, Shape shape1, Shape shape2) {
-        super(position, Arrays.asList(shape1, shape2));
+    public SubtractionSDF(Vector3d position, Vector3d rotation, Shape shape1, Shape shape2) {
+        super(position, rotation, Arrays.asList(shape1, shape2));
         this.shape1 = shape1;
         this.shape2 = shape2;
     }

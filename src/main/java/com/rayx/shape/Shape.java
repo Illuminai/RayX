@@ -22,13 +22,14 @@ public abstract class Shape {
     /** A subtraction SDF*/
     public static final int SUBTRACTION_SDF = 0x4;
 
-    private final Vector3d position;
+    private final Vector3d position, rotation;
     private long id;
     private boolean shouldRender;
     private final List<Shape> subShapes;
 
-    public Shape(Vector3d position, List<Shape> subShapes) {
+    public Shape(Vector3d position, Vector3d rotation, List<Shape> subShapes) {
         this.position = position;
+        this.rotation = rotation;
         this.subShapes = subShapes == null ? new ArrayList<>(0) : subShapes;
         shouldRender = false;
         id = -1;
@@ -63,12 +64,15 @@ public abstract class Shape {
                 putDouble(getMaxRadius()).
                 putDouble(position.getX()).
                 putDouble(position.getY()).
-                putDouble(position.getZ());
+                putDouble(position.getZ()).
+                putDouble(rotation.getX()).
+                putDouble(rotation.getY()).
+                putDouble(rotation.getZ());
     }
 
     /** Must be equal for every instance of a class */
     public int bytesToInBuffer() {
-        return 4 * Double.BYTES + 3 * Long.BYTES;
+        return 7 * Double.BYTES + 3 * Long.BYTES;
     }
 
     public List<Shape> getSubShapes() {

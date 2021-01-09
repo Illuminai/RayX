@@ -10,7 +10,7 @@ public class SphereRTC extends Shape implements Shape.ShapeRTC {
     }
 
     public SphereRTC(Vector3d position, double radius) {
-        super(position, null);
+        super(position, new Vector3d(0,0,0), null);
         this.radius = radius;
     }
 

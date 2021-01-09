@@ -1,3 +1,4 @@
+#include<clcode/default/headers/matrixmath.h>
 #include<clcode/default/headers/java_to_cl.h>
 
 __kernel void getShapeSizes(int numShapes,
@@ -38,29 +39,31 @@ __kernel void putShapesInMemory(int numShapes,
         long shouldRender = getNextLong(inputData); inputData += sizeof(long);
         double maxRad = getNextDouble(inputData); inputData += sizeof(double);
         double3 position = getNextDouble3 (inputData); inputData += sizeof(double) * 3;
-
+        double3 rotation = getNextDouble3 (inputData); inputData += sizeof(double) * 3;
+        shapes[i] = (struct shape_t){shape, id, shouldRender, maxRad, position, rotation,
+                        rotationMatrix(rotation.x, rotation.y, rotation.z),
+                        reverseRotationMatrix(rotation.z, rotation.y, rotation.x),
+                    0};
         if(shape == SPHERE_RTC) {
-            shapes[i] = (struct shape_t){shape, id, shouldRender, maxRad, position, dataSphere};
+            shapes[i].shape = dataSphere;
             dataSphere->radius = getNextDouble(inputData); inputData += sizeof(double);
             dataSphere++;
         } else if(shape == TORUS_SDF) {
-            shapes[i] = (struct shape_t){shape, id, shouldRender, maxRad, position, dataTorus};
-            dataTorus->rotation = getNextDouble3 (inputData); inputData += sizeof(double) * 3;
+            shapes[i].shape = dataTorus;
             dataTorus->radiusSmall = getNextDouble(inputData); inputData += sizeof(double);
             dataTorus->radiusBig = getNextDouble(inputData); inputData += sizeof(double);
             dataTorus++;
         } else if (shape == PLANE_RTC) {
-            shapes[i] = (struct shape_t){shape, id, shouldRender, maxRad, position, dataPlane};
+            shapes[i].shape = dataPlane;
             dataPlane->normal = getNextDouble3 (inputData); inputData += sizeof(double) * 3;
             dataPlane++;
         } else if (shape == SUBTRACTION_SDF) {
-            shapes[i] = (struct shape_t){shape, id, shouldRender, maxRad, position, dataSubtractionSDF};
+            shapes[i].shape = dataSubtractionSDF;
             dataSubtractionSDF->shape1 = shapes + getNextLong(inputData); inputData += sizeof(long);
             dataSubtractionSDF->shape2 = shapes + getNextLong(inputData); inputData += sizeof(long);
             dataSubtractionSDF++;
         } else {
             //TODO notify host of error
-            shapes[i] = (struct shape_t){shape, id, shouldRender, maxRad, position, (__global void*) 0};
         }
     }
 }

@@ -577,6 +577,20 @@ public class CLManager {
                     System.out.println();
                 }
             }
+            {
+                System.out.println("BoxSDF: ");
+                CLContext.CLMemoryObject subtractionData =
+                        context.getMemoryObject(shapeDataPrefix + "BoxSDF");
+                ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
+                subtractionData.getValue(shapesData);
+                int structSize = context.getStructSize(Shape.BOX_SDF);
+                while(shapesData.hasRemaining()) {
+                    for(int j = 0; j < structSize / Double.BYTES; j++) {
+                        System.out.print(shapesData.getDouble() + " ");
+                    }
+                    System.out.println();
+                }
+            }
         }
     }
 
@@ -593,9 +607,6 @@ public class CLManager {
         kernel.setParameter1d(3, cameraFOV);
         kernel.setParameter1i(4, numShapes);
         kernel.setParameterPointer(5, shapesMemObj);
-        kernel.setParameterPointer(6, shapeDataPrefix + "SphereRTC");
-        kernel.setParameterPointer(7, shapeDataPrefix + "TorusSDF");
-        kernel.setParameterPointer(8, shapeDataPrefix + "PlaneRTC");
 
         //TODO make image size dynamic
         kernel.run(new long[]{RayX.IMG_WID, RayX.IMG_HEI}, null);

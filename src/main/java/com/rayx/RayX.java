@@ -91,6 +91,7 @@ public class RayX {
         System.out.println("Torus struct: " + context.getStructSize(Shape.TORUS_SDF));
         System.out.println("Plane struct: " + context.getStructSize(Shape.PLANE_RTC));
         System.out.println("Subtraction struct: " + context.getStructSize(Shape.SUBTRACTION_SDF));
+        System.out.println("Box struct: " + context.getStructSize(Shape.BOX_SDF));
     }
 
     static void freeAll() {

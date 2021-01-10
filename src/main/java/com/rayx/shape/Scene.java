@@ -2,6 +2,7 @@ package com.rayx.shape;
 
 import com.rayx.opencl.CLContext;
 import com.rayx.opencl.CLManager;
+import org.lwjgl.system.CallbackI;
 import org.lwjgl.system.MemoryStack;
 
 import java.nio.ByteBuffer;
@@ -91,6 +92,9 @@ public class Scene {
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
                     allObjects.stream().filter(u -> u.getName() == Shape.SUBTRACTION_SDF).mapToInt(u -> context.getStructSize(u.getName())).sum(),
                     shapesDataPrefix + "SubtractionSDF");
+            CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
+                    allObjects.stream().filter(u -> u.getName() == Shape.BOX_SDF).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    shapesDataPrefix + "BoxSDF");
 
             CLContext.CLKernel kernel = context.getKernelObject(CLContext.KERNEL_FILL_BUFFER_DATA);
             kernel.setParameter1i(0, allObjects.size());
@@ -100,6 +104,7 @@ public class Scene {
             kernel.setParameterPointer(4, shapesDataPrefix + "TorusSDF");
             kernel.setParameterPointer(5, shapesDataPrefix + "PlaneRTC");
             kernel.setParameterPointer(6, shapesDataPrefix + "SubtractionSDF");
+            kernel.setParameterPointer(7, shapesDataPrefix + "BoxSDF");
 
             kernel.run(new long[]{1}, null);
 
@@ -166,6 +171,10 @@ public class Scene {
                             new Vector3d(0, 0, 0),.1,1),
                     new TorusSDF( new Vector3d(0,-.5,0),
                             new Vector3d(0, 0,0),.1,.5)));
+            add(new BoxSDF(
+                    new Vector3d(0,0,0),
+                    new Vector3d(0,t,t),
+                    new Vector3d(.3,.3,.3)));
         }
     }
 }

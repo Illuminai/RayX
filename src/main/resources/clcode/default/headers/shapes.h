@@ -28,6 +28,10 @@ struct planeRTC_t {
     double3 normal;
 };
 
+struct boxSDF_t {
+    double3 dimensions;
+};
+
 struct subtractionSDF_t {
     __global struct shape_t* shape1;
     __global struct shape_t* shape2;

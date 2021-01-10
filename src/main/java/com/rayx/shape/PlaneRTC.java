@@ -13,10 +13,7 @@ public class PlaneRTC extends Shape implements Shape.ShapeRTC{
     @Override
     public void writeToByteBuffer(ByteBuffer buffer) {
         super.writeToByteBuffer(buffer);
-        buffer.
-                putDouble(normal.getX()).
-                putDouble(normal.getY()).
-                putDouble(normal.getZ());
+        normal.putInByteBuffer(buffer);
     }
 
     @Override

@@ -16,6 +16,8 @@ __kernel void getShapeSizes(int numShapes,
             result[i] = sizeof(struct planeRTC_t);
         } else if(shape == SUBTRACTION_SDF) {
             result[i] = sizeof(struct subtractionSDF_t);
+        } else if(shape == BOX_SDF) {
+            result[i] = sizeof(struct boxSDF_t);
         } else {
             result[i] = -1;
         }
@@ -28,7 +30,8 @@ __kernel void putShapesInMemory(int numShapes,
                 __global struct sphereRTC_t* dataSphere,
                 __global struct torusSDF_t* dataTorus,
                 __global struct planeRTC_t* dataPlane,
-                __global struct subtractionSDF_t* dataSubtractionSDF) {
+                __global struct subtractionSDF_t* dataSubtractionSDF,
+                __global struct boxSDF_t* dataBoxSDF) {
     for(int i = 0; i < numShapes; i++) {
         for(int k = 0; k < sizeof(struct shape_t) / sizeof(long); k++) {
             __global long* tmp= (__global long*)&shapes[i];
@@ -61,6 +64,10 @@ __kernel void putShapesInMemory(int numShapes,
             shapes[i].shape = dataSubtractionSDF;
             dataSubtractionSDF->shape1 = shapes + getNextLong(inputData); inputData += sizeof(long);
             dataSubtractionSDF->shape2 = shapes + getNextLong(inputData); inputData += sizeof(long);
+            dataSubtractionSDF++;
+        } else if (shape == BOX_SDF) {
+            shapes[i].shape = dataBoxSDF;
+            dataBoxSDF->dimensions = getNextDouble3 (inputData); inputData += sizeof(double) * 3;
             dataSubtractionSDF++;
         } else {
             //TODO notify host of error

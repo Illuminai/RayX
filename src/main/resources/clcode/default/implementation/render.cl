@@ -7,10 +7,7 @@ __kernel void render(  __write_only image2d_t resultImage,
                             double4 cameraRotation,
                             double cameraFOV,
                             int globalNumShapes,
-                            __global struct shape_t * globalShapes,
-                            __global struct sphereRTC_t * sphereData,
-                            __global struct torusSDF_t * torusData,
-                            __global struct planeRTC_t * planeData) {
+                            __global struct shape_t * globalShapes) {
     int2 pixCo = (int2){get_global_id(0), get_global_id(1)};
     int w = get_image_width(resultImage);
     int h = get_image_height(resultImage);
@@ -58,6 +55,7 @@ __kernel void render(  __write_only image2d_t resultImage,
             case SPHERE_RTC: asdf = (float3){0,1,0}; break;
             case PLANE_RTC: asdf = (float3){0,0,1}; break;
             case SUBTRACTION_SDF: asdf = (float3){0,1,1}; break;
+            case BOX_SDF: asdf = (float3){1,0,1}; break;
         }
         color = (float4){(float)angle * asdf, 1};
     }
@@ -105,6 +103,7 @@ bool firstIntersectionWithShape(struct ray_t* ray, __global struct shape_t* shap
             return firstIntersectionWithPlane(ray, shape, inter);
         case TORUS_SDF:
         case SUBTRACTION_SDF:
+        case BOX_SDF:
             return firstIntersectionWithSDF(ray, shape, inter);
         default:
             return false;
@@ -192,6 +191,10 @@ double oneStepSDF(double3 point, __global struct shape_t* shape) {
                     stack[index].d1 = torusSDF(point, shape->shape);
                     index--;
                     continue;
+                case BOX_SDF:
+                    stack[index].d1 = boxSDF(point, shape->shape);
+                    index--;
+                    continue;
                 default:
                     return 0;
             }
@@ -253,6 +256,14 @@ double torusSDF(double3 point, __global struct torusSDF_t* torus) {
     double2 q =
         (double2){length(point.yz) - torus->radiusBig, point.x};
     return length(q) - torus->radiusSmall;
+}
+
+double boxSDF(double3 point, __global struct boxSDF_t* box) {
+    //TODO optimize
+    double3 p = point;
+    double3 dimensions = box->dimensions;
+    double3 q = fabs((double4){p, 0}).xyz - dimensions;
+    return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
 }
 
 double distToRay(double3 point, struct ray_t* ray) {

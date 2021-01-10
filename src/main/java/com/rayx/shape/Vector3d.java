@@ -1,5 +1,7 @@
 package com.rayx.shape;
 
+import java.nio.ByteBuffer;
+
 public class Vector3d {
     private final double x, y, z;
 
@@ -33,5 +35,9 @@ public class Vector3d {
 
     public double length() {
         return Math.sqrt(x * x + y * y + z * z);
+    }
+
+    public void putInByteBuffer(ByteBuffer buffer) {
+        buffer.putDouble(x).putDouble(y).putDouble(z);
     }
 }

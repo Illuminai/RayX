@@ -32,10 +32,7 @@ __kernel void render(  __write_only image2d_t resultImage,
                        double4 cameraRotation,
                        double cameraFOV,
                        int globalNumShapes,
-                       __global struct shape_t * globalShapes,
-                       __global struct sphereRTC_t * sphereData,
-                       __global struct torusSDF_t * torusData,
-                       __global struct planeRTC_t * planeData);
+                       __global struct shape_t * globalShapes);
 
 struct ray_t getRay(double u, double v, double3 camPos, double3 camRot, double camFOV);
 
@@ -53,6 +50,8 @@ bool firstIntersectionWithSDF(struct ray_t* ray, __global struct shape_t* shape,
 
 double torusSDF(double3 point, __global struct torusSDF_t* torus);
 
+double boxSDF(double3 point, __global struct boxSDF_t* box);
+
 double subtractionSDF(double3 point, __global struct subtractionSDF_t* subtraction);
 
 double distToRay(double3 point, struct ray_t* ray);
@@ -62,7 +61,6 @@ double distToOrig(struct ray_t* ray);
 double oneStepSDF(double3 point, __global struct shape_t* shape);
 
 #define EPSILON 0.0001
-
 
 #define sdfNormal(POINT,SDFFUN,OBJ)\
     (normalize((double3){\

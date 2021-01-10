@@ -12,7 +12,8 @@ __kernel void putShapesInMemory(int numShapes,
                 __global struct sphereRTC_t* dataSphere,
                 __global struct torusSDF_t* dataTorus,
                 __global struct planeRTC_t* dataPlane,
-                __global struct subtractionSDF_t* dataSubtractionSDF);
+                __global struct subtractionSDF_t* dataSubtractionSDF,
+                __global struct boxSDF_t* dataBoxSDF);
 
 double getNextDouble(__global char* data);
 

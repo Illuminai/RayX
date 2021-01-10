@@ -15,13 +15,15 @@ public class CLContext {
             KERNEL_RENDER = "defaultKernelRender";
 
     public static final String COMPILE_OPTIONS =
+            " -cl-fast-relaxed-math " +
             " -cl-kernel-arg-info " +
             " -Werror " +
             " -D SHAPE=" + Shape.SHAPE +
             " -D SPHERE_RTC=" + Shape.SPHERE_RTC +
             " -D TORUS_SDF=" + Shape.TORUS_SDF +
             " -D PLANE_RTC=" + Shape.PLANE_RTC +
-            " -D SUBTRACTION_SDF=" + Shape.SUBTRACTION_SDF;
+            " -D SUBTRACTION_SDF=" + Shape.SUBTRACTION_SDF +
+            " -D BOX_SDF=" + Shape.BOX_SDF;
 
     private final long device;
     private long context;
@@ -239,6 +241,7 @@ public class CLContext {
                 Shape.TORUS_SDF,
                 Shape.PLANE_RTC,
                 Shape.SUBTRACTION_SDF,
+                Shape.BOX_SDF
         };
         CLContext.CLKernel kernelStruct =
                 getKernelObject(CLContext.KERNEL_GET_STRUCT_SIZE);
@@ -263,6 +266,9 @@ public class CLContext {
         for (int struct : structs) {
             this.structSizes.put(struct, buffer.getInt());
         }
+
+        assert !this.structSizes.containsValue(-1) :
+         "Struct with size -1. The kernel does not recognize a struct";
 
         freeMemoryObject("result");
         freeMemoryObject("shapesInQuestion");

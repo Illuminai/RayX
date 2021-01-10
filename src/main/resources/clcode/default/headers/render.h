@@ -9,6 +9,14 @@ struct ray_t {
     double3 direction;
 };
 
+//The parameter for the oneStepSDF function
+struct oneStepSDFArgs_t {
+    double3 point;
+    __global struct shape_t* shape;
+    double d1;
+    double d2;
+    int status;
+};
 
 /** Make sure that normal is always normalized*/
 struct intersection_t {

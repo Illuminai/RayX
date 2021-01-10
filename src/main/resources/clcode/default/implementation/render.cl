@@ -140,21 +140,63 @@ bool firstIntersectionWithSDF(struct ray_t* pRay, __global struct shape_t* shape
     return false;
 }
 double oneStepSDF(double3 point, __global struct shape_t* shape) {
-    switch(shape->type) {
-        case SUBTRACTION_SDF: {
-            __global struct shape_t* shape1 =
-                ((__global struct subtractionSDF_t*)shape->shape)->shape1;
-            __global struct shape_t* shape2 =
-                ((__global struct subtractionSDF_t*)shape->shape)->shape2;
-            return max(
-                -oneStepSDF(matrixTimesVector(shape1->rotationMatrix, point - shape1->position), shape1),
-                oneStepSDF(matrixTimesVector (shape2->rotationMatrix, point - shape2->position), shape2));
-        }
-        case TORUS_SDF:
-            return torusSDF(point, shape->shape);
-        default:
-            return 0;
-    }
+    int index = 0;
+    //TODO define max stack size
+    struct oneStepSDFArgs_t stack[10];
+    stack[0] = (struct oneStepSDFArgs_t) {
+       point,
+       shape,
+       0, 0, 0
+    };
+    do {
+        double3 point = stack[index].point;
+        __global struct shape_t* shape = stack[index].shape;
+        switch(shape->type) {
+                case SUBTRACTION_SDF: {
+                    __global struct shape_t* shape1 =
+                        ((__global struct subtractionSDF_t*)shape->shape)->shape1;
+                    __global struct shape_t* shape2 =
+                        ((__global struct subtractionSDF_t*)shape->shape)->shape2;
+
+                    switch(stack[index].status) {
+                        case 0:
+                            stack[index].status = 1;
+                            index++;
+                            stack[index] = (struct oneStepSDFArgs_t) {
+                                matrixTimesVector(shape1->rotationMatrix,
+                                    point - shape1->position),
+                                shape1,
+                                0, 0, 0
+                            };
+                            continue;
+                        case 1:
+                            stack[index].status = 2;
+                            stack[index].d1 = stack[index + 1].d1;
+                            index++;
+                            stack[index] = (struct oneStepSDFArgs_t) {
+                                matrixTimesVector(shape2->rotationMatrix,
+                                    point - shape2->position),
+                                shape2,
+                                0, 0, 0
+                            };
+                            continue;
+                        case 2:
+                            stack[index].d2 = stack[index + 1].d1;
+                            stack[index].d1 = max(-stack[index].d1,
+                                stack[index].d2);
+                            index--;
+                            continue;
+                    }
+                }
+                case TORUS_SDF:
+                    stack[index].d1 = torusSDF(point, shape->shape);
+                    index--;
+                    continue;
+                default:
+                    return 0;
+            }
+    } while(index >= 0);
+    return stack[0].d1;
 }
 
 bool firstIntersectionWithSphere(struct ray_t* ray, __global struct shape_t* shape, struct intersection_t* inter) {

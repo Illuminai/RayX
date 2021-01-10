@@ -28,7 +28,6 @@ public class BoxSDF extends Shape implements Shape.ShapeSDF {
 
     @Override
     public double getMaxRadius() {
-        //TODO
-        return 10;
+        return dimensions.length();
     }
 }

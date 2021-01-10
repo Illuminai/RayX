@@ -23,7 +23,9 @@ public class CLContext {
             " -D TORUS_SDF=" + Shape.TORUS_SDF +
             " -D PLANE_RTC=" + Shape.PLANE_RTC +
             " -D SUBTRACTION_SDF=" + Shape.SUBTRACTION_SDF +
-            " -D BOX_SDF=" + Shape.BOX_SDF;
+            " -D BOX_SDF=" + Shape.BOX_SDF +
+            " -D UNION_SDF=" + Shape.UNION_SDF +
+            " -D INTERSECTION_SDF=" + Shape.INTERSECTION_SDF;
 
     private final long device;
     private long context;
@@ -241,7 +243,9 @@ public class CLContext {
                 Shape.TORUS_SDF,
                 Shape.PLANE_RTC,
                 Shape.SUBTRACTION_SDF,
-                Shape.BOX_SDF
+                Shape.BOX_SDF,
+                Shape.UNION_SDF,
+                Shape.INTERSECTION_SDF
         };
         CLContext.CLKernel kernelStruct =
                 getKernelObject(CLContext.KERNEL_GET_STRUCT_SIZE);

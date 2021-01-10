@@ -18,6 +18,10 @@ __kernel void getShapeSizes(int numShapes,
             result[i] = sizeof(struct subtractionSDF_t);
         } else if(shape == BOX_SDF) {
             result[i] = sizeof(struct boxSDF_t);
+        } else if(shape == UNION_SDF) {
+            result[i] = sizeof(struct unionSDF_t);
+        } else if(shape == INTERSECTION_SDF) {
+            result[i] = sizeof(struct intersectionSDF_t);
         } else {
             result[i] = -1;
         }
@@ -31,7 +35,9 @@ __kernel void putShapesInMemory(int numShapes,
                 __global struct torusSDF_t* dataTorus,
                 __global struct planeRTC_t* dataPlane,
                 __global struct subtractionSDF_t* dataSubtractionSDF,
-                __global struct boxSDF_t* dataBoxSDF) {
+                __global struct boxSDF_t* dataBoxSDF,
+                __global struct unionSDF_t* dataUnionSDF,
+                __global struct intersectionSDF_t* dataIntersectionSDF) {
     for(int i = 0; i < numShapes; i++) {
         for(int k = 0; k < sizeof(struct shape_t) / sizeof(long); k++) {
             __global long* tmp= (__global long*)&shapes[i];
@@ -68,8 +74,18 @@ __kernel void putShapesInMemory(int numShapes,
         } else if (shape == BOX_SDF) {
             shapes[i].shape = dataBoxSDF;
             dataBoxSDF->dimensions = getNextDouble3 (inputData); inputData += sizeof(double) * 3;
-            dataSubtractionSDF++;
-        } else {
+            dataBoxSDF++;
+        } else if (shape == UNION_SDF) {
+            shapes[i].shape = dataUnionSDF;
+            dataUnionSDF->shape1 = shapes + getNextLong(inputData); inputData += sizeof(long);
+            dataUnionSDF->shape2 = shapes + getNextLong(inputData); inputData += sizeof(long);
+            dataUnionSDF++;
+        } else if (shape == INTERSECTION_SDF) {
+            shapes[i].shape = dataIntersectionSDF;
+            dataIntersectionSDF->shape1 = shapes + getNextLong(inputData); inputData += sizeof(long);
+            dataIntersectionSDF->shape2 = shapes + getNextLong(inputData); inputData += sizeof(long);
+            dataIntersectionSDF++;
+        }else {
             //TODO notify host of error
         }
     }

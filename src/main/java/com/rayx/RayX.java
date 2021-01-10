@@ -92,6 +92,9 @@ public class RayX {
         System.out.println("Plane struct: " + context.getStructSize(Shape.PLANE_RTC));
         System.out.println("Subtraction struct: " + context.getStructSize(Shape.SUBTRACTION_SDF));
         System.out.println("Box struct: " + context.getStructSize(Shape.BOX_SDF));
+        System.out.println("Union struct: " + context.getStructSize(Shape.UNION_SDF));
+        System.out.println("Intersection struct: " + context.getStructSize(Shape.INTERSECTION_SDF));
+
     }
 
     static void freeAll() {

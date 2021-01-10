@@ -22,6 +22,10 @@ public abstract class Shape {
     public static final int SUBTRACTION_SDF = 0x4;
     /** A box, render using SDF */
     public static final int BOX_SDF = 0x5;
+    /** An union SDF */
+    public static final int UNION_SDF = 0x6;
+    /** An intersection SDF */
+    public static final int INTERSECTION_SDF = 0x7;
 
     private final Vector3d position, rotation;
     private long id;

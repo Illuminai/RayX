@@ -591,6 +591,34 @@ public class CLManager {
                     System.out.println();
                 }
             }
+            {
+                System.out.println("UnionSDF: ");
+                CLContext.CLMemoryObject subtractionData =
+                        context.getMemoryObject(shapeDataPrefix + "UnionSDF");
+                ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
+                subtractionData.getValue(shapesData);
+                int structSize = context.getStructSize(Shape.UNION_SDF);
+                while(shapesData.hasRemaining()) {
+                    for(int j = 0; j < structSize / Double.BYTES; j++) {
+                        System.out.print(shapesData.getDouble() + " ");
+                    }
+                    System.out.println();
+                }
+            }
+            {
+                System.out.println("IntersectionSDF: ");
+                CLContext.CLMemoryObject subtractionData =
+                        context.getMemoryObject(shapeDataPrefix + "IntersectionSDF");
+                ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
+                subtractionData.getValue(shapesData);
+                int structSize = context.getStructSize(Shape.INTERSECTION_SDF);
+                while(shapesData.hasRemaining()) {
+                    for(int j = 0; j < structSize / Double.BYTES; j++) {
+                        System.out.print(shapesData.getDouble() + " ");
+                    }
+                    System.out.println();
+                }
+            }
         }
     }
 

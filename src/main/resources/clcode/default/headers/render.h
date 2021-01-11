@@ -21,7 +21,7 @@ struct oneStepSDFArgs_t {
 /** Make sure that normal is always normalized*/
 struct intersection_t {
     __global struct shape_t* obj;
-    struct ray_t* ray;
+    //struct ray_t* ray;
     float3 point;
     float3 normal;
     float d;
@@ -33,6 +33,8 @@ __kernel void render(  __write_only image2d_t resultImage,
                        float cameraFOV,
                        int globalNumShapes,
                        __global struct shape_t * globalShapes);
+
+float4 getTypeColor(int type);
 
 struct ray_t getRay(float u, float v, float3 camPos, float3 camRot, float camFOV);
 
@@ -60,7 +62,7 @@ float distToOrig(struct ray_t* ray);
 
 float oneStepSDF(float3 point, __global struct shape_t* shape);
 
-#define EPSILON 0.0001
+float3 reflectionRayDirection(float3 direction, float3 normal);
 
 #define sdfNormal(POINT,SDFFUN,OBJ)\
     (normalize((float3){\

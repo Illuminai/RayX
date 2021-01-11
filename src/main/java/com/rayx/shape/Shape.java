@@ -11,6 +11,9 @@ public abstract class Shape {
     public interface ShapeSDF {
     }
 
+    public static final long FLAG_SHOULD_RENDER = 1 << 0;
+    public static final long FLAG_IS_LIGHT_SOURCE = 1 << 1;
+
     /** Used to determine the size of shape_t */
     public static final int SHAPE = 0x0;
     /** A sphere, rendered using raytracing*/
@@ -30,14 +33,14 @@ public abstract class Shape {
 
     private final Vector3d position, rotation;
     private long id;
-    private boolean shouldRender;
+    private long flags;
     private final List<Shape> subShapes;
 
     public Shape(Vector3d position, Vector3d rotation, List<Shape> subShapes) {
         this.position = position;
         this.rotation = rotation;
         this.subShapes = subShapes == null ? new ArrayList<>(0) : subShapes;
-        shouldRender = false;
+        flags = 0;
         id = -1;
     }
 
@@ -59,14 +62,30 @@ public abstract class Shape {
     }
 
     public void setShouldRender(boolean shouldRender) {
-        this.shouldRender = shouldRender;
+        if(shouldRender) {
+            flags |= FLAG_SHOULD_RENDER;
+        } else {
+            flags &= ~FLAG_SHOULD_RENDER;
+        }
+    }
+
+    public void setFlagIsLightSource(boolean isLightSource) {
+        if(isLightSource) {
+            flags |= FLAG_IS_LIGHT_SOURCE;
+        } else {
+            flags &= ~FLAG_IS_LIGHT_SOURCE;
+        }
+    }
+
+    public boolean isLightSource() {
+        return (flags & FLAG_IS_LIGHT_SOURCE) != 0;
     }
 
     public void writeToByteBuffer(ByteBuffer buffer) {
         buffer.
                 putLong(getName()).
                 putLong(getId()).
-                putLong(shouldRender ? 1L : 0L).
+                putLong(flags).
                 putFloat(getMaxRadius());
         position.putInByteBuffer(buffer);
         rotation.putInByteBuffer(buffer);

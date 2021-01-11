@@ -6,7 +6,7 @@
 struct shape_t {
     long type;
     long id;
-    long shouldRender;
+    long flags;
     float maxRadius;
     float3 position;
     float3 rotation;

@@ -146,10 +146,29 @@ public class Scene {
         }
 
         private void exhibition(double t) {
-            add(new PlaneRTC(new Vector3d(0,0,-3),new Vector3d(0,0,3).normalized()));
-            add(new PlaneRTC(new Vector3d(3,0,0), new Vector3d(-3,0,0).normalized()));
 
-            add(new SphereRTC(0,-1,-1,.2f));
+            PlaneRTC bottom = new PlaneRTC(new Vector3d(0,0,-3),new Vector3d(0,0,3).normalized());
+            bottom.setFlagIsLightSource(true);
+            add(bottom);
+            PlaneRTC top = new PlaneRTC(new Vector3d(0,0,3), new Vector3d(0,0,-3).normalized());
+            top.setFlagIsLightSource(true);
+            add(top);
+
+            PlaneRTC back = new PlaneRTC(new Vector3d(3,0,0), new Vector3d(-3,0,0).normalized());
+            back.setFlagIsLightSource(true);
+            add(back);
+            PlaneRTC front = new PlaneRTC(new Vector3d(-3,0,0), new Vector3d(3,0,0).normalized());
+            front.setFlagIsLightSource(true);
+            add(front);
+
+            PlaneRTC left = new PlaneRTC(new Vector3d(0,-3,0), new Vector3d(0,3,0).normalized());
+            left.setFlagIsLightSource(true);
+            add(left);
+            PlaneRTC right = new PlaneRTC(new Vector3d(0,3,0), new Vector3d(0,-3,0).normalized());
+            right.setFlagIsLightSource(true);
+            add(right);
+
+
             add(new TorusSDF(new Vector3d(0, -1, 0), new Vector3d(0, 0, 0),.05f,.3f));
 
             add(new SubtractionSDF(
@@ -158,6 +177,8 @@ public class Scene {
                     new TorusSDF( new Vector3d(-.3,0,0),
                             new Vector3d(0, 0,0),.05f,.2f),
                     new BoxSDF(new Vector3d(0,0,0), new Vector3d(0,0,0), new Vector3d(.3,.3,.3))));
+
+            add(new SphereRTC(0,-1,-1,.3f));
 
             add(new BoxSDF(
                     new Vector3d(0,0,-1),

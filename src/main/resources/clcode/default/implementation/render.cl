@@ -23,46 +23,56 @@ __kernel void render(  __write_only image2d_t resultImage,
         return;
     }
 
-    float4 color;
-
-    struct intersection_t inter = (struct intersection_t){
+    struct intersection_t inter = (struct intersection_t) {
         (__global struct shape_t*)0,
-        (struct ray_t*)0,
         (float3){0,0,0},
         (float3){0,0,0},
-        0}, tmp;
+        0 };
 
     traceRay(&rayToCheck, globalNumShapes, globalShapes, &inter);
 
-    if(inter.ray == 0) {
-        write_imagef(resultImage, pixCo, (float4){
+    if(inter.obj == 0) {
+        write_imagef(resultImage, pixCo, (float4) {
             (pixCo.x / (pixCo.x % 4 + 4) + pixCo.y / (pixCo.y % 4 + 4)) % 2, 0,
             (pixCo.x / (pixCo.x % 4 + 4) + pixCo.y / (pixCo.y % 4 + 4)) % 2, 1});
         return;
     }
-
-    {
-        float3 lightSource = (float3){-2, 0, 0};
-        float angle = -dot(normalize(inter.point - lightSource), inter.normal);
-        if(angle < 0) {
-            angle = 0;
-        } else {
-            //angle = 1;
-        }
-        float3 asdf = (float3){0,0,0};
-        switch(inter.obj->type) {
-            case TORUS_SDF: asdf = (float3){1,0,0}; break;
-            case SPHERE_RTC: asdf = (float3){0,1,0}; break;
-            case PLANE_RTC: asdf = (float3){0,0,1}; break;
-            case SUBTRACTION_SDF: asdf = (float3){0,1,1}; break;
-            case BOX_SDF: asdf = (float3){1,0,1}; break;
-            case UNION_SDF: asdf = (float3){0,.5,.5}; break;
-            case INTERSECTION_SDF: asdf = (float3){1,1,1}; break;
-
-        }
-        color = (float4){(float)angle * asdf, 1};
+    if(inter.obj->flags & FLAG_IS_LIGHT_SOURCE) {
+        write_imagef(resultImage, pixCo, getTypeColor(inter.obj->type));
+        return;
     }
-    write_imagef(resultImage, pixCo, color);
+
+    struct ray_t reflectionRay = (struct ray_t) {inter.point, reflectionRayDirection(rayToCheck.direction, inter.normal)};
+    reflectionRay.origin += 2 * EPSILON * reflectionRay.direction;
+
+    struct intersection_t refInter = (struct intersection_t) {
+                    (__global struct shape_t*)0,
+                    (float3){0,0,0},
+                    (float3){0,0,0},
+                    0 };
+    traceRay(&reflectionRay, globalNumShapes, globalShapes, &refInter);
+
+    if(refInter.obj != 0 && (refInter.obj->flags & FLAG_IS_LIGHT_SOURCE)) {
+        write_imagef(resultImage, pixCo, getTypeColor(inter.obj->type) * 1 / (1 + refInter.d * refInter.d));
+        return;
+    }
+
+    write_imagef(resultImage, pixCo, (float4){0,0,0,0});
+}
+
+float4 getTypeColor(int type) {
+    float3 tc;
+    switch(type) {
+        case TORUS_SDF:         tc = (float3){1,0,0}; break;
+        case SPHERE_RTC:        tc = (float3){0,1,0}; break;
+        case PLANE_RTC:         tc = (float3){0,0,1}; break;
+        case SUBTRACTION_SDF:   tc = (float3){0,1,1}; break;
+        case BOX_SDF:           tc = (float3){1,0,1}; break;
+        case UNION_SDF:         tc = (float3){0,.5,.5}; break;
+        case INTERSECTION_SDF:  tc = (float3){1,1,1}; break;
+        default:                tc = (float3){1,0,1}; break;
+    }
+    return (float4){tc, 0};
 }
 
 struct ray_t getRay(float u, float v, float3 camPos, float3 camRot, float camFOV) {
@@ -83,8 +93,8 @@ void traceRay(  struct ray_t* ray,
                 struct intersection_t* inter) {
     struct intersection_t tmp;
     for(int i = 0; i < numShapes; i++) {
-        if(allShapes[i].shouldRender && firstIntersectionWithShape(ray, &allShapes[i], &tmp)) {
-            if(inter->ray != 0) {
+        if((allShapes[i].flags & FLAG_SHOULD_RENDER) && firstIntersectionWithShape(ray, &allShapes[i], &tmp)) {
+            if(inter->obj != 0) {
                 if(tmp.d < inter->d) {
                     *inter = tmp;
                 }
@@ -96,9 +106,7 @@ void traceRay(  struct ray_t* ray,
 }
 
 bool firstIntersectionWithShape(struct ray_t* ray, __global struct shape_t* shape, struct intersection_t* inter) {
-    int multiplier = 7;
     inter->obj = shape;
-    inter->ray = ray;
     switch(shape->type) {
         case SPHERE_RTC:
             return firstIntersectionWithSphere(ray, shape, inter);
@@ -126,9 +134,9 @@ bool firstIntersectionWithSDF(struct ray_t* pRay, __global struct shape_t* shape
     }
 
     float d = 0;
-    for(int i = 0; i < 100; i++) {
+    for(int i = 0; i < 1000; i++) {
         float dist = oneStepSDF(ray.origin + ray.direction * d, shape);
-        if(dist < 0.0001) {
+        if(dist < EPSILON) {
             inter->point = pRay->origin + pRay->direction * d;
             inter->d = d;
 
@@ -341,7 +349,7 @@ float boxSDF(float3 point, __global struct boxSDF_t* box) {
     float3 p = point;
     float3 dimensions = box->dimensions;
     float3 q = fabs((float4){p, 0}).xyz - dimensions;
-    return length(max(q,0.0)) + min((float)max(q.x,max(q.y,q.z)),0.0f);
+    return length(max(q,(float3)0.0)) + min((float)max(q.x,max(q.y,q.z)),0.0f);
 }
 
 float distToRay(float3 point, struct ray_t* ray) {
@@ -352,4 +360,9 @@ float distToRay(float3 point, struct ray_t* ray) {
 
 float distToOrig(struct ray_t* ray) {
     return length(cross(ray->origin, ray->direction));
+}
+
+float3 reflectionRayDirection(float3 direction, float3 normal) {
+    //http://paulbourke.net/geometry/reflected/
+    return direction - 2 * normal * dot(direction, normal);
 }

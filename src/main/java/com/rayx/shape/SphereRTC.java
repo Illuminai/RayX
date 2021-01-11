@@ -3,19 +3,19 @@ package com.rayx.shape;
 import java.nio.ByteBuffer;
 
 public class SphereRTC extends Shape implements Shape.ShapeRTC {
-    private final double radius;
+    private final float radius;
 
-    public SphereRTC(double x, double y, double z, double radius) {
+    public SphereRTC(float x, float y, float z, float radius) {
         this(new Vector3d(x, y, z), radius);
     }
 
-    public SphereRTC(Vector3d position, double radius) {
+    public SphereRTC(Vector3d position, float radius) {
         super(position, new Vector3d(0,0,0), null);
         this.radius = radius;
     }
 
     @Override
-    public double getMaxRadius() {
+    public float getMaxRadius() {
         return radius;
     }
 
@@ -28,11 +28,11 @@ public class SphereRTC extends Shape implements Shape.ShapeRTC {
     public void writeToByteBuffer(ByteBuffer buffer) {
         super.writeToByteBuffer(buffer);
         buffer.
-                putDouble(radius);
+                putFloat(radius);
     }
 
     @Override
     public int bytesToInBuffer() {
-        return super.bytesToInBuffer() + Double.BYTES;
+        return super.bytesToInBuffer() + Float.BYTES;
     }
 }

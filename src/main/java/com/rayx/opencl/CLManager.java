@@ -508,10 +508,10 @@ public class CLManager {
                     System.out.println( shapesData.getLong() + " " +
                             shapesData.getLong() + " " +
                             shapesData.getLong() + " " +
-                            shapesData.getDouble() + " " +
-                            shapesData.getDouble() + " " +
-                            shapesData.getDouble() + " " +
-                            shapesData.getDouble() + " " +
+                            shapesData.getFloat() + " " +
+                            shapesData.getFloat() + " " +
+                            shapesData.getFloat() + " " +
+                            shapesData.getFloat() + " " +
                             shapesData.getLong() + " " +
                             shapesData.getLong() + " " +
                             shapesData.getLong() + " " +
@@ -529,8 +529,8 @@ public class CLManager {
                 shapeDataSphere.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.SPHERE_RTC);
                 while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Double.BYTES; j++) {
-                        System.out.print(shapesData.getDouble() +" ");
+                    for(int j = 0; j < structSize / Float.BYTES; j++) {
+                        System.out.print(shapesData.getFloat() +" ");
                     }
                     System.out.println();
                 }
@@ -543,8 +543,8 @@ public class CLManager {
                 shapeDataTorus.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.TORUS_SDF);
                 while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Double.BYTES; j++) {
-                        System.out.print(shapesData.getDouble() + " ");
+                    for(int j = 0; j < structSize / Float.BYTES; j++) {
+                        System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();
                 }
@@ -557,8 +557,8 @@ public class CLManager {
                 planeData.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.PLANE_RTC);
                 while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Double.BYTES; j++) {
-                        System.out.print(shapesData.getDouble() + " ");
+                    for(int j = 0; j < structSize / Float.BYTES; j++) {
+                        System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();
                 }
@@ -571,8 +571,8 @@ public class CLManager {
                 subtractionData.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.SUBTRACTION_SDF);
                 while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Double.BYTES; j++) {
-                        System.out.print(shapesData.getDouble() + " ");
+                    for(int j = 0; j < structSize / Float.BYTES; j++) {
+                        System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();
                 }
@@ -585,8 +585,8 @@ public class CLManager {
                 subtractionData.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.BOX_SDF);
                 while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Double.BYTES; j++) {
-                        System.out.print(shapesData.getDouble() + " ");
+                    for(int j = 0; j < structSize / Float.BYTES; j++) {
+                        System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();
                 }
@@ -599,8 +599,8 @@ public class CLManager {
                 subtractionData.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.UNION_SDF);
                 while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Double.BYTES; j++) {
-                        System.out.print(shapesData.getDouble() + " ");
+                    for(int j = 0; j < structSize / Float.BYTES; j++) {
+                        System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();
                 }
@@ -613,8 +613,8 @@ public class CLManager {
                 subtractionData.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.INTERSECTION_SDF);
                 while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Double.BYTES; j++) {
-                        System.out.print(shapesData.getDouble() + " ");
+                    for(int j = 0; j < structSize / Float.BYTES; j++) {
+                        System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();
                 }
@@ -622,17 +622,17 @@ public class CLManager {
         }
     }
 
-    public static void runRenderKernel(CLContext context, int glTex, double[] cameraPos,
-                                       double[] cameraRot, double cameraFOV,
+    public static void runRenderKernel(CLContext context, int glTex, float[] cameraPos,
+                                       float[] cameraRot, float cameraFOV,
                                        int numShapes, String shapesMemObj, String shapeDataPrefix) {
         glFinish();
         CLContext.CLKernel kernel = context.getKernelObject(CLContext.KERNEL_RENDER);
         CLManager.createCLFromGLTexture(context, CL_MEM_WRITE_ONLY, GL_TEXTURE_2D, glTex, "texture");
         context.getMemoryObject("texture").acquireFromGL();
         kernel.setParameterPointer(0, "texture");
-        kernel.setParameter4d(1, cameraPos[0], cameraPos[1], cameraPos[2],0);
-        kernel.setParameter4d(2, cameraRot[0], cameraRot[1], cameraRot[2],0);
-        kernel.setParameter1d(3, cameraFOV);
+        kernel.setParameter4f(1, cameraPos[0], cameraPos[1], cameraPos[2],0);
+        kernel.setParameter4f(2, cameraRot[0], cameraRot[1], cameraRot[2],0);
+        kernel.setParameter1f(3, cameraFOV);
         kernel.setParameter1i(4, numShapes);
         kernel.setParameterPointer(5, shapesMemObj);
 
@@ -659,11 +659,11 @@ public class CLManager {
         context.addMemoryObject(id, context.new CLMemoryObject(memory, (long) source.length * Integer.BYTES));
     }
 
-    public static void allocateMemory(CLContext context, long flags, double[] source, String id) {
+    public static void allocateMemory(CLContext context, long flags, float[] source, String id) {
         int[] error = new int[1];
         long memory = CL22.clCreateBuffer(context.getContext(), flags | CL_MEM_COPY_HOST_PTR, source, error);
         checkForError(error);
-        context.addMemoryObject(id, context.new CLMemoryObject(memory, (long) source.length * Double.BYTES));
+        context.addMemoryObject(id, context.new CLMemoryObject(memory, (long) source.length * Float.BYTES));
     }
 
     static void freeCommandQueueInternal(long queue) {

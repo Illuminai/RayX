@@ -3,9 +3,9 @@ package com.rayx.shape;
 import java.nio.ByteBuffer;
 
 public class TorusSDF extends Shape implements Shape.ShapeSDF {
-    private final double smallRadius, bigRadius;
+    private final float smallRadius, bigRadius;
 
-    public TorusSDF(Vector3d position, Vector3d rotation, double smallRadius, double bigRadius) {
+    public TorusSDF(Vector3d position, Vector3d rotation, float smallRadius, float bigRadius) {
         super(position, rotation,null);
         this.smallRadius = smallRadius;
         this.bigRadius = bigRadius;
@@ -17,7 +17,7 @@ public class TorusSDF extends Shape implements Shape.ShapeSDF {
     }
 
     @Override
-    public double getMaxRadius() {
+    public float getMaxRadius() {
         return smallRadius + bigRadius;
     }
 
@@ -25,12 +25,12 @@ public class TorusSDF extends Shape implements Shape.ShapeSDF {
     public void writeToByteBuffer(ByteBuffer buffer) {
         super.writeToByteBuffer(buffer);
         buffer.
-                putDouble(smallRadius).
-                putDouble(bigRadius);
+                putFloat(smallRadius).
+                putFloat(bigRadius);
     }
 
     @Override
     public int bytesToInBuffer() {
-        return super.bytesToInBuffer() + Double.BYTES * 2;
+        return super.bytesToInBuffer() + Float.BYTES * 2;
     }
 }

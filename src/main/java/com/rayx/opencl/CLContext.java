@@ -374,13 +374,13 @@ public class CLContext {
             CLManager.checkForError(error);
         }
 
-        public void setParameter4d(int index, double d0, double d1, double d2, double d3) {
-            int error = CL22.clSetKernelArg4d(kernel, index, d0, d1, d2, d3);
+        public void setParameter4f(int index, float d0, float d1, float d2, float d3) {
+            int error = CL22.clSetKernelArg4f(kernel, index, d0, d1, d2, d3);
             CLManager.checkForError(error);
         }
 
-        public void setParameter1d(int index, double d0) {
-            int error = CL22.clSetKernelArg1d(kernel, index, d0);
+        public void setParameter1f(int index, float d0) {
+            int error = CL22.clSetKernelArg1f(kernel, index, d0);
             CLManager.checkForError(error);
         }
 

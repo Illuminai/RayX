@@ -7,25 +7,25 @@ struct shape_t {
     long type;
     long id;
     long shouldRender;
-    double maxRadius;
-    double3 position;
-    double3 rotation;
+    float maxRadius;
+    float3 position;
+    float3 rotation;
     struct matrix3x3 rotationMatrix;
     struct matrix3x3 inverseRotationMatrix;
     __global void* shape;
 };
 
 struct sphereRTC_t {
-    double radius;
+    float radius;
 };
 
 struct torusSDF_t {
-    double radiusSmall;
-    double radiusBig;
+    float radiusSmall;
+    float radiusBig;
 };
 
 struct planeRTC_t {
-    double3 normal;
+    float3 normal;
 };
 
 struct subtractionSDF_t {
@@ -34,7 +34,7 @@ struct subtractionSDF_t {
 };
 
 struct boxSDF_t {
-    double3 dimensions;
+    float3 dimensions;
 };
 
 struct unionSDF_t {

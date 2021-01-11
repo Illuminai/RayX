@@ -40,8 +40,8 @@ public class Scene {
         }
 
         CLManager.runRenderKernel(context, glTexture,
-                new double[]{-2, 0, 0},
-                new double[]{0, 0, 0},
+                new float[]{-2, 0, 0},
+                new float[]{0, 0, 0},
                 1,
                 allObjects.size(),
                 shapesIdentifier,
@@ -149,14 +149,14 @@ public class Scene {
             add(new PlaneRTC(new Vector3d(0,0,-3),new Vector3d(0,0,3).normalized()));
             add(new PlaneRTC(new Vector3d(3,0,0), new Vector3d(-3,0,0).normalized()));
 
-            add(new SphereRTC(0,-1,-1,.2));
-            add(new TorusSDF(new Vector3d(0, -1, 0), new Vector3d(0, 0, 0),.05,.3));
+            add(new SphereRTC(0,-1,-1,.2f));
+            add(new TorusSDF(new Vector3d(0, -1, 0), new Vector3d(0, 0, 0),.05f,.3f));
 
             add(new SubtractionSDF(
                     new Vector3d(0, -1,1),
                     new Vector3d(0, 0,0),
                     new TorusSDF( new Vector3d(-.3,0,0),
-                            new Vector3d(0, 0,0),.05,.2),
+                            new Vector3d(0, 0,0),.05f,.2f),
                     new BoxSDF(new Vector3d(0,0,0), new Vector3d(0,0,0), new Vector3d(.3,.3,.3))));
 
             add(new BoxSDF(
@@ -168,7 +168,7 @@ public class Scene {
                     new Vector3d(0, 0,0),
                     new Vector3d(0, t,0),
                     new TorusSDF( new Vector3d(0,0,0),
-                            new Vector3d(0, 0, 0),.05,.3),
+                            new Vector3d(0, 0, 0),.05f,.3f),
                     new BoxSDF(
                             new Vector3d(0,0,0),
                             new Vector3d(0,0,0),
@@ -178,7 +178,7 @@ public class Scene {
                     new Vector3d(0, 0,1),
                     new Vector3d(0, t,0),
                     new TorusSDF( new Vector3d(0,.3,0),
-                            new Vector3d(0, 0, 0),.1,.3),
+                            new Vector3d(0, 0, 0),.1f,.3f),
                     new BoxSDF(
                             new Vector3d(0,0,0),
                             new Vector3d(0,0,0),
@@ -191,7 +191,7 @@ public class Scene {
                             new Vector3d(-.3, 0,0),
                             new Vector3d(t, 0,0),
                             new TorusSDF( new Vector3d(0,0,0),
-                                    new Vector3d(0, 0, 0),.05,.2),
+                                    new Vector3d(0, 0, 0),.05f,.2f),
                             new BoxSDF(
                                     new Vector3d(0,0,0),
                                     new Vector3d(0,0,0),

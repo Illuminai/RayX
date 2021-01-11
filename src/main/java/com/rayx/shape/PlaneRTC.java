@@ -17,13 +17,13 @@ public class PlaneRTC extends Shape implements Shape.ShapeRTC{
     }
 
     @Override
-    public double getMaxRadius() {
+    public float getMaxRadius() {
         return -1;
     }
 
     @Override
     public int bytesToInBuffer() {
-        return super.bytesToInBuffer() + Double.BYTES * 3;
+        return super.bytesToInBuffer() + Float.BYTES * 3;
     }
 
     @Override

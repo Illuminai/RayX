@@ -10,6 +10,7 @@ public abstract class Shape {
     }
     public interface ShapeSDF {
     }
+
     /** Used to determine the size of shape_t */
     public static final int SHAPE = 0x0;
     /** A sphere, rendered using raytracing*/
@@ -47,7 +48,7 @@ public abstract class Shape {
     /** Is the same for all shapes of a class*/
     public abstract int getName();
 
-    public abstract double getMaxRadius();
+    public abstract float getMaxRadius();
 
     public long getId() {
         return id;
@@ -65,15 +66,15 @@ public abstract class Shape {
         buffer.
                 putLong(getName()).
                 putLong(getId()).
-                putLong(shouldRender ? 1 : 0).
-                putDouble(getMaxRadius());
+                putLong(shouldRender ? 1L : 0L).
+                putFloat(getMaxRadius());
         position.putInByteBuffer(buffer);
         rotation.putInByteBuffer(buffer);
     }
 
     /** Must be equal for every instance of a class */
     public int bytesToInBuffer() {
-        return 7 * Double.BYTES + 3 * Long.BYTES;
+        return 7 * Float.BYTES + 3 * Long.BYTES;
     }
 
     public List<Shape> getSubShapes() {

@@ -3,28 +3,32 @@ package com.rayx.shape;
 import java.nio.ByteBuffer;
 
 public class Vector3d {
-    private final double x, y, z;
+    private final float x, y, z;
 
     public Vector3d(double x, double y, double z) {
+        this((float) x, (float) y, (float) z);
+    }
+
+    public Vector3d(float x, float y, float z) {
         this.x = x;
         this.y = y;
         this.z = z;
     }
 
-    public double getX() {
+    public float getX() {
         return x;
     }
 
-    public double getY() {
+    public float getY() {
         return y;
     }
 
-    public double getZ() {
+    public float getZ() {
         return z;
     }
 
     public Vector3d normalized() {
-        double l = length();
+        float l = length();
         if(l != 0) {
             return new Vector3d(x / l, y / l, z / l);
         } else {
@@ -33,11 +37,11 @@ public class Vector3d {
         }
     }
 
-    public double length() {
-        return Math.sqrt(x * x + y * y + z * z);
+    public float length() {
+        return (float) Math.sqrt(x * x + y * y + z * z);
     }
 
     public void putInByteBuffer(ByteBuffer buffer) {
-        buffer.putDouble(x).putDouble(y).putDouble(z);
+        buffer.putFloat(x).putFloat(y).putFloat(z);
     }
 }

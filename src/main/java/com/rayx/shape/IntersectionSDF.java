@@ -18,7 +18,7 @@ public class IntersectionSDF extends Shape implements Shape.ShapeSDF {
     }
 
     @Override
-    public double getMaxRadius() {
+    public float getMaxRadius() {
         return Math.max(shape1.getMaxRadius() + shape1.getPosition().length(),
                 shape2.getMaxRadius() + shape2.getPosition().length());
     }

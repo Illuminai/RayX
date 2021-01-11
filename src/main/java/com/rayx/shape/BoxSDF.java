@@ -18,7 +18,7 @@ public class BoxSDF extends Shape implements Shape.ShapeSDF {
 
     @Override
     public int bytesToInBuffer() {
-        return super.bytesToInBuffer() + 3 * Double.BYTES;
+        return super.bytesToInBuffer() + 3 * Float.BYTES;
     }
 
     @Override
@@ -27,7 +27,7 @@ public class BoxSDF extends Shape implements Shape.ShapeSDF {
     }
 
     @Override
-    public double getMaxRadius() {
+    public float getMaxRadius() {
         return dimensions.length();
     }
 }

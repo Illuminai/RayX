@@ -21,7 +21,6 @@ struct oneStepSDFArgs_t {
 /** Make sure that normal is always normalized*/
 struct intersection_t {
     __global struct shape_t* obj;
-    //struct ray_t* ray;
     float3 point;
     float3 normal;
     float d;

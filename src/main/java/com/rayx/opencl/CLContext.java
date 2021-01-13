@@ -20,7 +20,6 @@ public class CLContext {
             " -Werror " +
             " -D EPSILON=((float)0.0001) " +
             " -D FLAG_SHOULD_RENDER=" + Shape.FLAG_SHOULD_RENDER +
-            " -D FLAG_IS_LIGHT_SOURCE=" + Shape.FLAG_IS_LIGHT_SOURCE +
             " -D SHAPE=" + Shape.SHAPE +
             " -D SPHERE_RTC=" + Shape.SPHERE_RTC +
             " -D TORUS_SDF=" + Shape.TORUS_SDF +

@@ -12,7 +12,6 @@ public abstract class Shape {
     }
 
     public static final long FLAG_SHOULD_RENDER = 1 << 0;
-    public static final long FLAG_IS_LIGHT_SOURCE = 1 << 1;
 
     /** Used to determine the size of shape_t */
     public static final int SHAPE = 0x0;
@@ -35,6 +34,7 @@ public abstract class Shape {
     private long id;
     private long flags;
     private final List<Shape> subShapes;
+    private float lumen;
 
     public Shape(Vector3d position, Vector3d rotation, List<Shape> subShapes) {
         this.position = position;
@@ -69,16 +69,12 @@ public abstract class Shape {
         }
     }
 
-    public void setFlagIsLightSource(boolean isLightSource) {
-        if(isLightSource) {
-            flags |= FLAG_IS_LIGHT_SOURCE;
-        } else {
-            flags &= ~FLAG_IS_LIGHT_SOURCE;
-        }
+    public float getLumen() {
+        return lumen;
     }
 
-    public boolean isLightSource() {
-        return (flags & FLAG_IS_LIGHT_SOURCE) != 0;
+    public void setLumen(float lumen) {
+        this.lumen = lumen;
     }
 
     public void writeToByteBuffer(ByteBuffer buffer) {
@@ -86,14 +82,15 @@ public abstract class Shape {
                 putLong(getName()).
                 putLong(getId()).
                 putLong(flags).
-                putFloat(getMaxRadius());
+                putFloat(getMaxRadius()).
+                putFloat(lumen);
         position.putInByteBuffer(buffer);
         rotation.putInByteBuffer(buffer);
     }
 
     /** Must be equal for every instance of a class */
     public int bytesToInBuffer() {
-        return 7 * Float.BYTES + 3 * Long.BYTES;
+        return 8 * Float.BYTES + 3 * Long.BYTES;
     }
 
     public List<Shape> getSubShapes() {

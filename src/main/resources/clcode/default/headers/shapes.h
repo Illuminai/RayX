@@ -8,6 +8,7 @@ struct shape_t {
     long id;
     long flags;
     float maxRadius;
+    float lumen;
     float3 position;
     float3 rotation;
     struct matrix3x3 rotationMatrix;

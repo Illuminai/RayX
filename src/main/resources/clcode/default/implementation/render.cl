@@ -16,48 +16,57 @@ __kernel void render(  __write_only image2d_t resultImage,
     //sign is because image is saved with origin in the
     //upper left corner instead of lower left
     float v = -2.0 * (((pixCo.y + .5) / h) - .5);
-    struct ray_t rayToCheck =
-        getRay(u, v, cameraPosition.xyz, cameraRotation.xyz, cameraFOV);
 
     if(pixCo.x >= w | pixCo.y >= h) {
         return;
     }
 
-    struct intersection_t inter = (struct intersection_t) {
-        (__global struct shape_t*)0,
-        (float3){0,0,0},
-        (float3){0,0,0},
-        0 };
+    #define MAX 4
+    struct ray_t rays[MAX];
+    struct intersection_t inters[MAX];
 
-    traceRay(&rayToCheck, globalNumShapes, globalShapes, &inter);
+    rays[0] = getRay(u, v, cameraPosition.xyz, cameraRotation.xyz, cameraFOV);
+    for(int i = 0; i < MAX; i++) {
+        inters[i] = (struct intersection_t) {
+                (__global struct shape_t*)0,
+                (float3){0,0,0},
+                (float3){0,0,0},
+                0 };
+    }
+    int i;
+    float lumen;
+    for(i = 0; i < MAX; i++) {
+        traceRay(&rays[i], globalNumShapes, globalShapes, &inters[i]);
+        if(inters[i].obj == 0) {
+            goto finished;
+        }
 
-    if(inter.obj == 0) {
-        write_imagef(resultImage, pixCo, (float4) {
-            (pixCo.x / (pixCo.x % 4 + 4) + pixCo.y / (pixCo.y % 4 + 4)) % 2, 0,
-            (pixCo.x / (pixCo.x % 4 + 4) + pixCo.y / (pixCo.y % 4 + 4)) % 2, 1});
+        if(i != MAX - 1) {
+            rays[i + 1] = (struct ray_t) {inters[i].point, reflectionRayDirection(rays[i].direction, inters[i].normal)};
+            rays[i + 1].origin += 2 * EPSILON * rays[i+1].direction;
+        }
+    }
+    finished:
+    i--;
+
+    if(i == -1) {
+        write_imagef(resultImage, pixCo, (float4){1,0,1,1});
         return;
     }
-    if(inter.obj->flags & FLAG_IS_LIGHT_SOURCE) {
-        write_imagef(resultImage, pixCo, getTypeColor(inter.obj->type));
-        return;
+    lumen = 0;
+
+    float4 color = getTypeColor(inters[i].obj->type);
+
+    for(int j = i; j >= 0; j--) {
+        color *= (float).5;
+        color += (float).5 * getTypeColor(inters[j].obj->type);
+        lumen += inters[j].obj->lumen;
+        lumen *= 1 / (1 + inters[j].d);
     }
 
-    struct ray_t reflectionRay = (struct ray_t) {inter.point, reflectionRayDirection(rayToCheck.direction, inter.normal)};
-    reflectionRay.origin += 2 * EPSILON * reflectionRay.direction;
+    float factor = atanpi(lumen) * 2;
+    write_imagef(resultImage, pixCo, factor * color);
 
-    struct intersection_t refInter = (struct intersection_t) {
-                    (__global struct shape_t*)0,
-                    (float3){0,0,0},
-                    (float3){0,0,0},
-                    0 };
-    traceRay(&reflectionRay, globalNumShapes, globalShapes, &refInter);
-
-    if(refInter.obj != 0 && (refInter.obj->flags & FLAG_IS_LIGHT_SOURCE)) {
-        write_imagef(resultImage, pixCo, getTypeColor(inter.obj->type) * 1 / (1 + refInter.d * refInter.d));
-        return;
-    }
-
-    write_imagef(resultImage, pixCo, (float4){0,0,0,0});
 }
 
 float4 getTypeColor(int type) {
@@ -65,7 +74,7 @@ float4 getTypeColor(int type) {
     switch(type) {
         case TORUS_SDF:         tc = (float3){1,0,0}; break;
         case SPHERE_RTC:        tc = (float3){0,1,0}; break;
-        case PLANE_RTC:         tc = (float3){0,0,1}; break;
+        case PLANE_RTC:         tc = (float3){1,1,1}; break;
         case SUBTRACTION_SDF:   tc = (float3){0,1,1}; break;
         case BOX_SDF:           tc = (float3){1,0,1}; break;
         case UNION_SDF:         tc = (float3){0,.5,.5}; break;
@@ -119,6 +128,7 @@ bool firstIntersectionWithShape(struct ray_t* ray, __global struct shape_t* shap
         case INTERSECTION_SDF:
             return firstIntersectionWithSDF(ray, shape, inter);
         default:
+            inter->obj = 0;
             return false;
     }
 }

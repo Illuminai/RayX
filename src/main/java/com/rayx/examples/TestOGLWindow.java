@@ -2,8 +2,21 @@ package com.rayx.examples;
 
 import com.rayx.RayX;
 import com.rayx.glfw.OpenGLWindow;
+import com.rayx.opengl.Shader;
+import com.rayx.opengl.ShaderProgram;
+import com.rayx.opengl.ShaderType;
+import imgui.ImFontAtlas;
+import imgui.ImGui;
+import imgui.ImGuiIO;
+import imgui.ImGuiStyle;
+import imgui.flag.ImGuiCol;
+import imgui.flag.ImGuiConfigFlags;
+import imgui.gl3.ImGuiImplGl3;
+import imgui.glfw.ImGuiImplGlfw;
+import org.lwjgl.glfw.GLFW;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.function.Consumer;
 
 import static org.lwjgl.opengl.GL11.*;
@@ -49,17 +62,19 @@ public class TestOGLWindow extends OpenGLWindow {
 
     private Consumer<Integer> callback;
 
+    private ImGuiImplGlfw imGuiImplGlfw;
+    private ImGuiImplGl3 imGuiImplGl3;
+
     public TestOGLWindow(int width, int height, String title) {
         super(width, height, title);
 
-        int shader = createShader();
-        glLinkProgram(shader);
-        glUseProgram(shader);
+        ShaderProgram program = createProgram();
+        program.useProgram();
 
         float[] vertices = {
                 1.0f, 1.0f, 0.0f, 1f, 0f,// top right
                 1.0f, -1.0f, 0.0f, 1f, 1f,// bottom right
-                -1.0f, -1.0f, 0.0f, 0f,1f,// bottom left
+                -1.0f, -1.0f, 0.0f, 0f, 1f,// bottom left
                 -1.0f, 1.0f, 0.0f, 0f, 0f // top left
         };
         int[] indices = { // note that we start from 0!
@@ -88,6 +103,36 @@ public class TestOGLWindow extends OpenGLWindow {
         makeTex();
 
         glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
+
+        imGuiImplGlfw = new ImGuiImplGlfw();
+        imGuiImplGl3 = new ImGuiImplGl3();
+
+        initImGui();
+    }
+
+    private void initImGui() {
+        ImGui.createContext();
+
+        ImGuiIO io = ImGui.getIO();
+        io.setIniFilename(null);
+        io.addConfigFlags(ImGuiConfigFlags.NavEnableKeyboard);
+        io.addConfigFlags(ImGuiConfigFlags.DockingEnable);
+        io.addConfigFlags(ImGuiConfigFlags.ViewportsEnable);
+        io.setConfigViewportsNoTaskBarIcon(true);
+
+        final ImFontAtlas fontAtlas = io.getFonts();
+        fontAtlas.addFontDefault();
+
+        if (io.hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {
+            final ImGuiStyle style = ImGui.getStyle();
+            style.setWindowRounding(0.0f);
+            style.setColor(ImGuiCol.WindowBg, ImGui.getColorU32(ImGuiCol.WindowBg, 1));
+        }
+
+        imGuiImplGlfw.init(getWindow(), true);
+        imGuiImplGl3.init("#version 450");
+
+
     }
 
     @Override
@@ -103,47 +148,77 @@ public class TestOGLWindow extends OpenGLWindow {
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+        imGuiImplGlfw.newFrame();
+        ImGui.newFrame();
+
+        ImGui.begin("Test");
+
+        ImGui.button("Hallo");
+
+        ImGui.end();
+
+        ImGui.render();
+
+        imGuiImplGl3.renderDrawData(ImGui.getDrawData());
+
+        if (ImGui.getIO().hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {
+            final long backupWindowPtr = GLFW.glfwGetCurrentContext();
+            ImGui.updatePlatformWindows();
+            ImGui.renderPlatformWindowsDefault();
+            GLFW.glfwMakeContextCurrent(backupWindowPtr);
+        }
+
         frames++;
-        if(System.currentTimeMillis() - lastPrint > 1000) {
-            System.out.println("FPS: "+frames);
+        if (System.currentTimeMillis() - lastPrint > 1000) {
+            System.out.println("FPS: " + frames);
             frames = 0;
             lastPrint = System.currentTimeMillis();
         }
     }
 
-    private int createShader() {
-        int program = glCreateProgram();
-        int vs = compileShader(GL_VERTEX_SHADER, VS);
-        int fs = compileShader(GL_FRAGMENT_SHADER, FS);
+    @Override
+    public void onKeyboardEvent(int key, int scancode, int action, int mods) {
+        if (action == GLFW.GLFW_PRESS) {
+            if (key == GLFW.GLFW_KEY_A) {
+                System.out.println("Key 'A' pressed");
+            } else if (key == GLFW.GLFW_KEY_B && mods == GLFW.GLFW_MOD_SHIFT) {
+                System.out.println("Key 'SHIFT + B' pressed");
+            }
+        } else if (action == GLFW.GLFW_RELEASE) {
+            if (key == GLFW.GLFW_KEY_C) {
+                System.out.println("Key 'C' released");
+            }
+        } else if (action == GLFW.GLFW_REPEAT) {
+            if (key == GLFW.GLFW_KEY_D) {
+                System.out.println("Key 'D' repeated");
+            }
+        }
+    }
 
-        glAttachShader(program, vs);
-        glAttachShader(program, fs);
-        glLinkProgram(program);
-        glValidateProgram(program);
+    @Override
+    public void onResize(int width, int height) {
+        super.onResize(width, height);
+    }
 
-        glDeleteShader(vs);
-        glDeleteShader(fs);
+    private ShaderProgram createProgram() {
+        ShaderProgram program = new ShaderProgram();
+        Shader vertexShader = new Shader(VS, ShaderType.VERTEX_SHADER);
+        Shader fragmentShader = new Shader(FS, ShaderType.FRAGMENT_SHADER);
+
+        program.attachShader(vertexShader);
+        program.attachShader(fragmentShader);
+        program.linkProgram();
+
+        vertexShader.deleteShader();
+        fragmentShader.deleteShader();
 
         return program;
     }
 
-    private int compileShader(int type, String src) {
-        int id = glCreateShader(type);
-        glShaderSource(id, src);
-        glCompileShader(id);
-        int[] res = new int[1];
-        glGetShaderiv(id, GL_COMPILE_STATUS, res);
-        if(res[0] == GL_FALSE) {
-            System.out.println(glGetShaderInfoLog(id));
-            glDeleteShader(id);
-            assert false: "Shader";
-        }
-
-        return id;
-    }
 
     private void makeTex() {
-        if(texture != 0) {
+        if (texture != 0) {
             glDeleteTextures(texture);
         }
         texture = glGenTextures();
@@ -158,6 +233,7 @@ public class TestOGLWindow extends OpenGLWindow {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     }
+
 
     public void setCallback(Consumer<Integer> callback) {
         this.callback = callback;

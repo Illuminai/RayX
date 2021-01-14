@@ -13,6 +13,7 @@ import org.lwjgl.system.Platform;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
@@ -41,7 +42,9 @@ public class CLManager {
     }
 
     public static String readFromFile(String file) {
-        BufferedReader r = new BufferedReader(new InputStreamReader(CLManager.class.getResourceAsStream(file)));
+        InputStream inputStream = CLManager.class.getResourceAsStream(file);
+        assert inputStream != null: "Resource " + file + " not available";
+        BufferedReader r = new BufferedReader(new InputStreamReader(inputStream));
         StringBuilder b = new StringBuilder();
         String line;
         try {

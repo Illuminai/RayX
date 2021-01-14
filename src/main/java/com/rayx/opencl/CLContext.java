@@ -150,10 +150,6 @@ public class CLContext {
         CLManager.putProgramFromFile(this, null,
                 "clcode/default/headers/matrixmath.h",
                 COMPILE_OPTIONS);
-        //mandelbrot.h
-        CLManager.putProgramFromFile(this, null,
-                "clcode/default/headers/mandelbrot.h",
-                COMPILE_OPTIONS);
         //shapes.h
         CLManager.putProgramFromFile(this,
                 new String[]{
@@ -180,12 +176,6 @@ public class CLContext {
                         "clcode/default/headers/matrixmath.h"
                 },
                 "clcode/default/implementation/matrixmath.cl",
-                COMPILE_OPTIONS);
-        //mandelbrot.cl
-        CLManager.putProgramFromFile(this, new String[]{
-                        "clcode/default/headers/mandelbrot.h"
-                },
-                "clcode/default/implementation/mandelbrot.cl",
                 COMPILE_OPTIONS);
         //shapes.cl
         CLManager.putProgramFromFile(this,

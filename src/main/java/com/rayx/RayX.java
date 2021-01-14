@@ -69,18 +69,6 @@ public class RayX {
 
         test(context);
 
-        CLManager.putProgramFromFile(context, new String[]{
-                        "clcode/default/headers/mandelbrot.h"
-                },
-                "clcode/main.cl",
-                "-D ITERATIONS=200");
-        CLManager.putExecutableProgram(context, new String[] {
-                "clcode/default/implementation/mandelbrot.cl",
-                "clcode/main.cl",
-        },"testProgram");
-        CLManager.putKernel(context, "testKernel",
-                "testKernel", "testProgram");
-
         System.out.println("Kernel: " + (System.currentTimeMillis() - t));
         return context;
     }
@@ -99,8 +87,7 @@ public class RayX {
 
     static void freeAll() {
         long t = System.currentTimeMillis();
-
-        context.destroyKernel("testKernel");
+        //TODO destroy default kernels
         context.destroy();
         System.out.println("Destroy: " + (System.currentTimeMillis() - t));
     }

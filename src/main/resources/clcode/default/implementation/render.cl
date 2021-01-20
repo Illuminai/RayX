@@ -21,12 +21,11 @@ __kernel void render(  __write_only image2d_t resultImage,
         return;
     }
 
-    #define MAX 4
-    struct ray_t rays[MAX];
-    struct intersection_t inters[MAX];
+    struct ray_t rays[MAX_RAY_BOUNCES];
+    struct intersection_t inters[MAX_RAY_BOUNCES];
 
     rays[0] = getRay(u, v, cameraPosition.xyz, cameraRotation.xyz, cameraFOV);
-    for(int i = 0; i < MAX; i++) {
+    for(int i = 0; i < MAX_RAY_BOUNCES; i++) {
         inters[i] = (struct intersection_t) {
                 (__global struct shape_t*)0,
                 (float3){0,0,0},
@@ -35,13 +34,13 @@ __kernel void render(  __write_only image2d_t resultImage,
     }
     int i;
     float lumen;
-    for(i = 0; i < MAX; i++) {
+    for(i = 0; i < MAX_RAY_BOUNCES; i++) {
         traceRay(&rays[i], globalNumShapes, globalShapes, &inters[i]);
         if(inters[i].obj == 0) {
             goto finished;
         }
 
-        if(i != MAX - 1) {
+        if(i != MAX_RAY_BOUNCES - 1) {
             rays[i + 1] = (struct ray_t) {inters[i].point, reflectionRayDirection(rays[i].direction, inters[i].normal)};
             rays[i + 1].origin += 2 * EPSILON * rays[i+1].direction;
         }
@@ -58,8 +57,8 @@ __kernel void render(  __write_only image2d_t resultImage,
     float4 color = getTypeColor(inters[i].obj->type);
 
     for(int j = i; j >= 0; j--) {
-        color *= (float).5;
-        color += (float).5 * getTypeColor(inters[j].obj->type);
+        color *= (float).2;
+        color += (float).8 * getTypeColor(inters[j].obj->type);
         lumen += inters[j].obj->lumen;
         lumen *= 1 / (1 + inters[j].d);
     }
@@ -101,11 +100,14 @@ void traceRay(  struct ray_t* ray,
                 __global struct shape_t* allShapes,
                 struct intersection_t* inter) {
     struct intersection_t tmp;
+    double maxD = 10;
     for(int i = 0; i < numShapes; i++) {
-        if((allShapes[i].flags & FLAG_SHOULD_RENDER) && firstIntersectionWithShape(ray, &allShapes[i], &tmp)) {
+        if((allShapes[i].flags & FLAG_SHOULD_RENDER) &&
+            firstIntersectionWithShape(ray, &allShapes[i], &tmp, maxD)) {
             if(inter->obj != 0) {
-                if(tmp.d < inter->d) {
+                if(dot(tmp.normal, ray->direction) < 0 && tmp.d < inter->d) {
                     *inter = tmp;
+                    maxD = tmp.d;
                 }
             } else {
                 *inter = tmp;
@@ -114,7 +116,9 @@ void traceRay(  struct ray_t* ray,
     }
 }
 
-bool firstIntersectionWithShape(struct ray_t* ray, __global struct shape_t* shape, struct intersection_t* inter) {
+bool firstIntersectionWithShape(struct ray_t* ray,
+    __global struct shape_t* shape, struct intersection_t* inter,
+    double maxD) {
     inter->obj = shape;
     switch(shape->type) {
         case SPHERE_RTC:
@@ -126,14 +130,14 @@ bool firstIntersectionWithShape(struct ray_t* ray, __global struct shape_t* shap
         case BOX_SDF:
         case UNION_SDF:
         case INTERSECTION_SDF:
-            return firstIntersectionWithSDF(ray, shape, inter);
+            return firstIntersectionWithSDF(ray, shape, inter, maxD);
         default:
             inter->obj = 0;
             return false;
     }
 }
 
-bool firstIntersectionWithSDF(struct ray_t* pRay, __global struct shape_t* shape, struct intersection_t * inter) {
+bool firstIntersectionWithSDF(struct ray_t* pRay, __global struct shape_t* shape, struct intersection_t * inter, double maxD) {
     struct ray_t ray = (struct ray_t){pRay->origin - shape->position, pRay->direction};
 
     ray.origin = matrixTimesVector(shape->rotationMatrix, ray.origin);
@@ -153,7 +157,7 @@ bool firstIntersectionWithSDF(struct ray_t* pRay, __global struct shape_t* shape
             inter->normal = sdfNormal(ray.origin + ray.direction * d, oneStepSDF, shape);
             inter->normal = matrixTimesVector(shape->inverseRotationMatrix, inter->normal);
             return true;
-        } else if (dist > 10) {//TODO max distance
+        } else if (dist > maxD) {//TODO max distance
             return false;
         }
         d += dist;

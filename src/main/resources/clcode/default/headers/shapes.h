@@ -1,7 +1,7 @@
 #ifndef __HEADER_SHAPES_H
 #define __HEADER_SHAPES_H
 
-#include<clcode/default/headers/matrixmath.h>
+#include<clcode/default/headers/math.h>
 
 struct shape_t {
     long type;

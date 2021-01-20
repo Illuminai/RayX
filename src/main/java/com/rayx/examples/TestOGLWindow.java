@@ -60,7 +60,7 @@ public class TestOGLWindow extends OpenGLWindow {
     private long lastPrint = 0;
     private int frames;
 
-    private Consumer<Integer> callback;
+    private Consumer<Integer> callback, keyCallback;
 
     private ImGuiImplGlfw imGuiImplGlfw;
     private ImGuiImplGl3 imGuiImplGl3;
@@ -194,6 +194,9 @@ public class TestOGLWindow extends OpenGLWindow {
                 System.out.println("Key 'D' repeated");
             }
         }
+        if(action == GLFW.GLFW_PRESS || action == GLFW.GLFW_REPEAT) {
+            keyCallback.accept(key);
+        }
     }
 
     @Override
@@ -237,5 +240,9 @@ public class TestOGLWindow extends OpenGLWindow {
 
     public void setCallback(Consumer<Integer> callback) {
         this.callback = callback;
+    }
+
+    public void setKeyCallback(Consumer<Integer> keyCallback) {
+        this.keyCallback = keyCallback;
     }
 }

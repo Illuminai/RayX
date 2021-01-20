@@ -146,48 +146,48 @@ public class CLContext {
     public void initialize() {
         //From least dependent to most dependent
         //----------- H E A D E R S -----------
-        //matrixmath.h
+        //math.h
         CLManager.putProgramFromFile(this, null,
-                "clcode/default/headers/matrixmath.h",
+                "clcode/default/headers/math.h",
                 COMPILE_OPTIONS);
         //shapes.h
         CLManager.putProgramFromFile(this,
                 new String[]{
-                        "clcode/default/headers/matrixmath.h"
+                        "clcode/default/headers/math.h"
                 },
                 "clcode/default/headers/shapes.h",
                 COMPILE_OPTIONS);
         //java_to_cl.h
         CLManager.putProgramFromFile(this,
                 new String[]{"clcode/default/headers/shapes.h",
-                        "clcode/default/headers/matrixmath.h"},
+                        "clcode/default/headers/math.h"},
                 "clcode/default/headers/java_to_cl.h",
                 COMPILE_OPTIONS);
         //render.h
         CLManager.putProgramFromFile(this,
                 new String[]{"clcode/default/headers/shapes.h",
-                        "clcode/default/headers/matrixmath.h"},
+                        "clcode/default/headers/math.h"},
                 "clcode/default/headers/render.h",
                 COMPILE_OPTIONS);
 
         //----------- C O D E -----------
-        //matrixmath.cl
+        //math.cl
         CLManager.putProgramFromFile(this, new String[]{
-                        "clcode/default/headers/matrixmath.h"
+                        "clcode/default/headers/math.h"
                 },
-                "clcode/default/implementation/matrixmath.cl",
+                "clcode/default/implementation/math.cl",
                 COMPILE_OPTIONS);
         //shapes.cl
         CLManager.putProgramFromFile(this,
                 new String[]{"clcode/default/headers/shapes.h",
-                        "clcode/default/headers/matrixmath.h"},
+                        "clcode/default/headers/math.h"},
                 "clcode/default/implementation/shapes.cl",
                 COMPILE_OPTIONS);
 
         //java_to_cl.cl
         CLManager.putProgramFromFile(this,
                 new String[]{
-                        "clcode/default/headers/matrixmath.h",
+                        "clcode/default/headers/math.h",
                         "clcode/default/headers/java_to_cl.h",
                         "clcode/default/headers/shapes.h"},
                 "clcode/default/implementation/java_to_cl.cl",
@@ -196,7 +196,7 @@ public class CLContext {
         CLManager.putProgramFromFile(this,
                 new String[]{"clcode/default/headers/render.h",
                         "clcode/default/headers/shapes.h",
-                        "clcode/default/headers/matrixmath.h"},
+                        "clcode/default/headers/math.h"},
                 "clcode/default/implementation/render.cl",
                 COMPILE_OPTIONS);
 
@@ -204,12 +204,12 @@ public class CLContext {
         CLManager.putExecutableProgram(this,
                 new String[]{
                         "clcode/default/implementation/java_to_cl.cl",
-                        "clcode/default/implementation/matrixmath.cl"
+                        "clcode/default/implementation/math.cl"
                 },
                 "javaToCLProgram");
         CLManager.putExecutableProgram(this,
                 new String[]{
-                        "clcode/default/implementation/matrixmath.cl",
+                        "clcode/default/implementation/math.cl",
                         "clcode/default/implementation/render.cl"
                 },
                 "renderProgram");

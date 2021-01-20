@@ -7,8 +7,7 @@ import com.rayx.opencl.CLContext;
 import com.rayx.opencl.CLManager;
 import com.rayx.shape.*;
 
-import java.util.ArrayList;
-
+import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opencl.CL22.*;
 
 public class RayX {
@@ -52,6 +51,36 @@ public class RayX {
 
             scene.render(context, texture, t == 0);
             t += Math.PI / 50;
+        });
+
+        window.setKeyCallback((key) -> {
+            switch (key) {
+                case GLFW_KEY_A:
+                    scene.move(0,-.01f,0); break;
+                case GLFW_KEY_D:
+                    scene.move(0,.01f,0); break;
+                case GLFW_KEY_W:
+                    scene.move(.01f,0,0); break;
+                case GLFW_KEY_S:
+                    scene.move(-.01f,0,0); break;
+                case GLFW_KEY_LEFT_SHIFT:
+                    scene.move(0,0,-0.01f); break;
+                case GLFW_KEY_SPACE:
+                    scene.move(0,0,0.01f); break;
+
+                case GLFW_KEY_J:
+                    scene.turn(0,0,-(float) (Math.PI/10)); break;
+                case GLFW_KEY_L:
+                    scene.turn(0,0,(float) (Math.PI/10)); break;
+                case GLFW_KEY_K:
+                    scene.turn(0, -(float) (Math.PI/10),0); break;
+                case GLFW_KEY_I:
+                    scene.turn(0, (float) (Math.PI/10),0); break;
+                case GLFW_KEY_U:
+                    scene.turn((float) (Math.PI/10),0,0); break;
+                case GLFW_KEY_O:
+                    scene.turn(-(float) (Math.PI/10),0,0); break;
+            }
         });
 
         manager.startManager();

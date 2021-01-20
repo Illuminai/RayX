@@ -1,7 +1,9 @@
 #ifndef __HEADER_RENDER_H
 #define __HEADER_RENDER_H
 #include<clcode/default/headers/shapes.h>
-#include<clcode/default/headers/matrixmath.h>
+#include<clcode/default/headers/math.h>
+
+#define MAX_RAY_BOUNCES 5
 
 /** Make sure that direction is always normalized!*/
 struct ray_t {
@@ -41,13 +43,13 @@ void traceRay(struct ray_t* ray, int numShapes,
             __global struct shape_t* allShapes, struct intersection_t* inter);
 
 // Returns true if there is an intersection
-bool firstIntersectionWithShape(struct ray_t* ray, __global struct shape_t* shape, struct intersection_t* inter);
+bool firstIntersectionWithShape(struct ray_t* ray, __global struct shape_t* shape, struct intersection_t* inter, double maxD);
 
 bool firstIntersectionWithSphere(struct ray_t* ray, __global struct shape_t* sphere, struct intersection_t* inter);
 
 bool firstIntersectionWithPlane(struct ray_t* ray, __global struct shape_t* shape, struct intersection_t * intersection);
 
-bool firstIntersectionWithSDF(struct ray_t* ray, __global struct shape_t* shape, struct intersection_t * intersection);
+bool firstIntersectionWithSDF(struct ray_t* ray, __global struct shape_t* shape, struct intersection_t * intersection, double maxD);
 
 float torusSDF(float3 point, __global struct torusSDF_t* torus);
 

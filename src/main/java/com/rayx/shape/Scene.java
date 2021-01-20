@@ -14,6 +14,9 @@ import static org.lwjgl.opencl.CL10.CL_MEM_READ_WRITE;
 public class Scene {
     private final ArrayList<Shape> visibleObjects, allObjects;
     private final String shapesIdentifier, shapesDataPrefix;
+    private Vector3d cameraPos, cameraRot;
+    private float cameraFOV;
+
     private int currentId;
 
     public Scene() {
@@ -21,6 +24,10 @@ public class Scene {
         this.allObjects = new ArrayList<>();
         shapesIdentifier = "shapes" + hashCode();
         shapesDataPrefix = "shapesData" + hashCode();
+        //TODO default camera position
+        this.cameraPos = new Vector3d(-.2,0,0);
+        this.cameraRot = new Vector3d(0,0,0);
+        cameraFOV = 1;
     }
 
     public void add(Shape s) {
@@ -40,15 +47,22 @@ public class Scene {
         }
 
         CLManager.runRenderKernel(context, glTexture,
-                new float[]{-.2f, 0, 0},
-                new float[]{0, 0, 0},
-                1,
+                new float[]{cameraPos.getX(), cameraPos.getY(), cameraPos.getZ()},
+                new float[]{cameraRot.getX(), cameraRot.getY(), cameraRot.getZ()},
+                cameraFOV,
                 allObjects.size(),
                 shapesIdentifier,
                 shapesDataPrefix
         );
     }
 
+    public void move(float amountX, float amountY, float amountZ) {
+        cameraPos = new Vector3d(cameraPos.getX() + amountX, cameraPos.getY() + amountY, cameraPos.getZ() + amountZ);
+    }
+
+    public void turn(float amountX, float amountY, float amountZ) {
+         cameraRot = new Vector3d(cameraRot.getX() + amountX, cameraRot.getY() + amountY, cameraRot.getZ() + amountZ);
+    }
     private void addToAllObjects(Shape shape) {
         shape.getSubShapes().forEach(this::addToAllObjects);
 
@@ -142,11 +156,11 @@ public class Scene {
             deleteRenderMemory(context);
             clearVisibleObjects();
 
-            exhibition(t / 10);
+            exhibition(t);
         }
 
         private void exhibition(double t) {
-            float lumen = .1f;
+            float lumen = 1f;
             PlaneRTC bottom = new PlaneRTC(new Vector3d(0,0,-.3),new Vector3d(0,0,.3).normalized());
             bottom.setLumen(lumen);
             add(bottom);
@@ -178,7 +192,7 @@ public class Scene {
                     new BoxSDF(new Vector3d(0,0,0), new Vector3d(0,0,0), new Vector3d(.03,.03,.03))));
             SphereRTC p;
             add(p = new SphereRTC(0,-.1f,-.1f,.03f));
-            p.setLumen(10);
+            p.setLumen(1);
             add(new BoxSDF(
                     new Vector3d(0,0,-.1),
                     new Vector3d(0,t,t),

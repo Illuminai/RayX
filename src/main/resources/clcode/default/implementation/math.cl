@@ -1,4 +1,4 @@
-#include<clcode/default/headers/matrixmath.h>
+#include<clcode/default/headers/math.h>
 
 struct matrix3x3 matrixProduct(struct matrix3x3 a, struct matrix3x3 b) {
     return (struct matrix3x3){

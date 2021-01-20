@@ -1,4 +1,4 @@
-#include<clcode/default/headers/matrixmath.h>
+#include<clcode/default/headers/math.h>
 #include<clcode/default/headers/java_to_cl.h>
 
 __kernel void getShapeSizes(int numShapes,

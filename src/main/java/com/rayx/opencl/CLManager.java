@@ -1,6 +1,7 @@
 package com.rayx.opencl;
 
 import com.rayx.RayX;
+import com.rayx.opencl.exceptions.*;
 import com.rayx.shape.Shape;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opencl.CL12GL;
@@ -38,6 +39,7 @@ public class CLManager {
     private static final MemoryStack internalMemoryStack;
 
     static {
+        //TODO Better MemoryStack?
         internalMemoryStack = MemoryStack.create(1024 * 1024 * 1024);
     }
 
@@ -72,10 +74,10 @@ public class CLManager {
 
             IntBuffer error = stack.mallocInt(1);
             long context = CL22.clCreateContext(PointerBuffer.create(properties), device, null, 0, error);
-            checkForError(error);
+            checkForError(ErrorType.CONTEXT_CREATION, error);
 
             long commandQueue = CL22.clCreateCommandQueue(context, device, 0, error);
-            checkForError(error);
+            checkForError(ErrorType.COMMAND_QUEUE_CREATION, error);
 
             return new CLContext(device, context, commandQueue);
         }
@@ -91,7 +93,7 @@ public class CLManager {
             assert !sourceFile.startsWith("/") : "Files have to start without slash";
             String programSourceCode = readFromFile("/" + sourceFile);
             long programPointer = CL22.clCreateProgramWithSource(context.getContext(), programSourceCode, errorBuffer);
-            checkForError(errorBuffer);
+            checkForError(ErrorType.PROGRAM, errorBuffer);
             if(dependenciesId == null) {
                 dependenciesId = new String[0];
             }
@@ -126,7 +128,7 @@ public class CLManager {
                 System.out.println("Compiling " + sourceFile);
                 System.out.println(buildInfo);
             }
-            checkForError(error);
+            checkForError(ErrorType.COMPILE, error);
             context.addProgramObject(context.new CLProgram(sourceFile, programPointer, false));
         }
     }
@@ -141,7 +143,7 @@ public class CLManager {
                     null,
                     0,
                     error);
-            checkForError(error);
+            checkForError(ErrorType.LINK, error);
 
             assert program != 0;
 
@@ -157,13 +159,14 @@ public class CLManager {
                 throw new RuntimeException("Program is not linked");
             }
             long kernel = CL22.clCreateKernel(program.getProgram(), kernelFunction, error);
-            checkForError(error);
+            checkForError(ErrorType.KERNEL_CREATION, error);
 
             CLContext.CLKernel kernelObj = context.new CLKernel(kernelId, programId, kernel);
             context.addKernelObject(kernelObj);
         }
     }
 
+    /*
     public static void putKernelAndProgramFromSource(CLContext context, String programSourceCode,
                                                      String kernelFunction, String kernelId, String programId) {
         try (MemoryStack stack = CLManager.nextStackFrame()) {
@@ -186,6 +189,7 @@ public class CLManager {
             context.addKernelObject(kernelObj);
         }
     }
+    */
 
     static void runKernelInternal(long kernel, long commandQueue, long[] globalSize, long[] localSize) {
         assert globalSize.length > 0;
@@ -201,13 +205,14 @@ public class CLManager {
             }
 
             PointerBuffer event = stack.mallocPointer(1);
-            CLManager.checkForError(CL22.clEnqueueNDRangeKernel(commandQueue, kernel,
+            CLManager.checkForError(ErrorType.KERNEL_ENQUEUE,
+                    CL22.clEnqueueNDRangeKernel(commandQueue, kernel,
                     globalSize.length, null,
                     PointerBuffer.create(globalWorkSize),
                     localSize == null ? null: PointerBuffer.create(localWorkSize),
                     null, event));
             int executionStatus = CL22.clWaitForEvents(event.get(0));
-            checkForError(executionStatus);
+            checkForError(ErrorType.KERNEL_EXECUTION, executionStatus);
         }
     }
 
@@ -217,13 +222,13 @@ public class CLManager {
             int error;
             error = CL22.clGetProgramBuildInfo(program, device, CL22.CL_PROGRAM_BUILD_LOG, (IntBuffer) null,
                     PointerBuffer.create(b));
-            checkForError(error);
+            checkForError(ErrorType.PROGRAM, error);
 
             long length = b.asLongBuffer().get();
 
             ByteBuffer message = stack.malloc((int) length);
             error = CL22.clGetProgramBuildInfo(program, device, CL22.CL_PROGRAM_BUILD_LOG, message, null);
-            checkForError(error);
+            checkForError(ErrorType.PROGRAM, error);
 
             StringBuilder builder = new StringBuilder(message.limit() - 1);
             char c;
@@ -234,20 +239,38 @@ public class CLManager {
         }
     }
 
-    public static void checkForError(int[] error) {
-        checkForError(error[0]);
+    private enum ErrorType {
+        BUFFER_CREATION, COMMAND_QUEUE_CREATION, COMPILE, CONTEXT_CREATION, LINK, PROGRAM, KERNEL_CREATION, KERNEL_EXECUTION, KERNEL_ENQUEUE, QUERY_INFO, FREE, BUFFER_READ, GL_INTEROP, KERNEL_PARAMETER
     }
 
-    public static void checkForError(int error) {
+    public static void checkForError(ErrorType type, int error) {
         if (error != CL22.CL_SUCCESS) {
-            throw new RuntimeException("OpenCL error: " + error);
+            switch (type) {
+                case BUFFER_CREATION -> throw new CLBufferCreationException(error);
+                case COMMAND_QUEUE_CREATION -> throw new CLCommandQueueCreationException(error);
+                case COMPILE -> throw new CLCompileException(error);
+                case CONTEXT_CREATION -> throw new CLContextCreationException(error);
+                case LINK -> throw new CLLinkException(error);
+                case PROGRAM -> throw new CLProgramException(error);
+                case KERNEL_CREATION -> throw new CLKernelCreationException(error);
+                case KERNEL_EXECUTION -> throw new CLKernelExecutionException(error);
+                case KERNEL_ENQUEUE -> throw new CLKernelEnqueueException(error);
+                case QUERY_INFO -> throw new CLQueryInfoException(error);
+                case FREE -> throw new CLFreeException(error);
+                case BUFFER_READ -> throw new CLBufferReadException(error);
+                case GL_INTEROP -> throw new CLGLInteropException(error);
+                case KERNEL_PARAMETER -> throw new CLKernelParameterException(error);
+                default -> throw new RuntimeException("Unknown error type: " + type + " Error: " + error);
+            }
         }
     }
 
-    public static void checkForError(IntBuffer error) {
-        if (error.get(0) != CL22.CL_SUCCESS) {
-            throw new RuntimeException("OpenCL error: " + error.get(0));
-        }
+    public static void checkForError(ErrorType type, int[] error) {
+        checkForError(type, error[0]);
+    }
+
+    public static void checkForError(ErrorType type, IntBuffer error) {
+        checkForError(type, error.get(0));
     }
 
     public static Object queryPlatformInfo(long platform, int info) {
@@ -255,11 +278,11 @@ public class CLManager {
             int error;
             PointerBuffer length = stack.mallocPointer(1);
             error = CL22.clGetPlatformInfo(platform, info, (long[]) null, length);
-            checkForError(error);
+            checkForError(ErrorType.QUERY_INFO, error);
 
             ByteBuffer rawInfo = stack.malloc((int)length.get(0));
             error = CL22.clGetPlatformInfo(platform, info, rawInfo, null);
-            checkForError(error);
+            checkForError(ErrorType.QUERY_INFO, error);
 
             return switch (info) {
                 case CL22.CL_PLATFORM_NAME, CL22.CL_PLATFORM_VERSION, CL22.CL_PLATFORM_VENDOR,
@@ -275,11 +298,11 @@ public class CLManager {
             int error;
             PointerBuffer length = stack.mallocPointer(1);
             error = CL22.clGetDeviceInfo(device, info, (long[]) null, length);
-            checkForError(error);
+            checkForError(ErrorType.QUERY_INFO, error);
 
             ByteBuffer rawInfo = stack.malloc((int)length.get(0));
             error = CL22.clGetDeviceInfo(device, info, rawInfo, null);
-            checkForError(error);
+            checkForError(ErrorType.QUERY_INFO, error);
 
             return switch (info) {
                 case CL22.CL_DEVICE_BUILT_IN_KERNELS, CL22.CL_DEVICE_VERSION,
@@ -353,11 +376,11 @@ public class CLManager {
                 int error;
                 int[] amount = new int[]{-1};
                 error = CL22.clGetDeviceIDs(p, CL22.CL_DEVICE_TYPE_ALL, null, amount);
-                checkForError(error);
+                checkForError(ErrorType.QUERY_INFO, error);
 
                 PointerBuffer bufferDevices = stack.mallocPointer(amount[0]);
                 error = CL22.clGetDeviceIDs(p, CL22.CL_DEVICE_TYPE_ALL, bufferDevices, (int[]) null);
-                checkForError(error);
+                checkForError(ErrorType.QUERY_INFO, error);
 
                 while (bufferDevices.hasRemaining()) {
                     devices.add(bufferDevices.get());
@@ -371,11 +394,11 @@ public class CLManager {
         try (MemoryStack stack = CLManager.nextStackFrame()) {
             IntBuffer amount = stack.mallocInt(1);
             int error = CL22.clGetPlatformIDs(null, amount);
-            checkForError(error);
+            checkForError(ErrorType.QUERY_INFO, error);
 
             PointerBuffer bufferPlatforms = stack.mallocPointer(amount.get(0));
             error = CL22.clGetPlatformIDs(bufferPlatforms, (IntBuffer) null);
-            checkForError(error);
+            checkForError(ErrorType.QUERY_INFO, error);
             ArrayList<Long> platforms = new ArrayList<>(bufferPlatforms.remaining());
             while(bufferPlatforms.hasRemaining()) {
                 platforms.add(bufferPlatforms.get());
@@ -428,11 +451,11 @@ public class CLManager {
                 //No CL-GL interop
                 int[] numDevices = new int[1];
                 int error = CL22.clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, null, numDevices);
-                checkForError(error);
+                checkForError(ErrorType.QUERY_INFO, error);
                 ByteBuffer b = stack.malloc(numDevices[0] * Long.BYTES);
 
                 error = CL22.clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, PointerBuffer.create(b), (int[]) null);
-                checkForError(error);
+                checkForError(ErrorType.QUERY_INFO, error);
                 devices = b.asLongBuffer();
             } else {
                 //Check extension:
@@ -444,12 +467,12 @@ public class CLManager {
                     ByteBuffer bytes = stack.malloc(Long.BYTES);
                     int error = KHRGLSharing.clGetGLContextInfoKHR(PointerBuffer.create(byteProp),
                             onlyCurrentGLDevice ? CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR : CL_DEVICES_FOR_GL_CONTEXT_KHR, (ByteBuffer) null, PointerBuffer.create(bytes));
-                    checkForError(error);
+                    checkForError(ErrorType.QUERY_INFO, error);
 
                     ByteBuffer value = stack.malloc((int) bytes.asLongBuffer().get(0));
                     error = KHRGLSharing.clGetGLContextInfoKHR(PointerBuffer.create(byteProp), onlyCurrentGLDevice ? CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR :
                             CL_DEVICES_FOR_GL_CONTEXT_KHR, value, null);
-                    checkForError(error);
+                    checkForError(ErrorType.QUERY_INFO, error);
                     devices = value.asLongBuffer();
                 }
             }
@@ -467,7 +490,7 @@ public class CLManager {
         int[] error = new int[1];
         long pointer = CL12GL.clCreateFromGLTexture(context.getContext(), flags, textureType,
                 0, texture, error);
-        checkForError(error);
+        checkForError(ErrorType.BUFFER_CREATION, error);
         context.addMemoryObject(id, context.new CLMemoryObject(pointer, -1));
     }
 
@@ -479,17 +502,9 @@ public class CLManager {
                     flags | CL_MEM_COPY_HOST_PTR,
                     src,
                     error);
-            checkForError(error);
+            checkForError(ErrorType.BUFFER_CREATION, error);
             context.addMemoryObject(id, context.new CLMemoryObject(memory, src.remaining()));
         }
-    }
-
-    public static void setCameraSettings() {
-
-    }
-
-    public static void transferShapesToRAM(CLContext context, String shapesIdentifier, String shapeDataPrefix, List<Shape> shapes) {
-
     }
 
     /** This function prints the shapes which are allocated on the GPU
@@ -652,7 +667,7 @@ public class CLManager {
         try (MemoryStack stack = CLManager.nextStackFrame()) {
             IntBuffer error = stack.mallocInt(1);
             long memory = CL22.clCreateBuffer(context.getContext(), flags, bytesToAllocate, error);
-            checkForError(error);
+            checkForError(ErrorType.BUFFER_CREATION, error);
             context.addMemoryObject(id, context.new CLMemoryObject(memory, bytesToAllocate));
         }
     }
@@ -660,53 +675,75 @@ public class CLManager {
     public static void allocateMemory(CLContext context, long flags, int[] source, String id) {
         int[] error = new int[1];
         long memory = CL22.clCreateBuffer(context.getContext(), flags | CL_MEM_COPY_HOST_PTR, source, error);
-        checkForError(error);
+        checkForError(ErrorType.BUFFER_CREATION, error);
         context.addMemoryObject(id, context.new CLMemoryObject(memory, (long) source.length * Integer.BYTES));
     }
 
     public static void allocateMemory(CLContext context, long flags, float[] source, String id) {
         int[] error = new int[1];
         long memory = CL22.clCreateBuffer(context.getContext(), flags | CL_MEM_COPY_HOST_PTR, source, error);
-        checkForError(error);
+        checkForError(ErrorType.BUFFER_CREATION, error);
         context.addMemoryObject(id, context.new CLMemoryObject(memory, (long) source.length * Float.BYTES));
     }
 
     static void freeCommandQueueInternal(long queue) {
         assert queue != 0;
-        checkForError(CL22.clReleaseCommandQueue(queue));
+        checkForError(ErrorType.FREE, CL22.clReleaseCommandQueue(queue));
     }
 
     static void freeMemoryInternal(long pointer) {
         assert pointer != 0;
-        checkForError(CL22.clReleaseMemObject(pointer));
+        checkForError(ErrorType.FREE, CL22.clReleaseMemObject(pointer));
     }
 
     static void destroyContextInternal(CLContext context) {
         assert context.getContext() != 0;
-        checkForError(CL22.clReleaseContext(context.getContext()));
+        checkForError(ErrorType.FREE, CL22.clReleaseContext(context.getContext()));
     }
 
     static void destroyCLProgramInternal(long program) {
         assert program != 0;
-        checkForError(CL22.clReleaseProgram(program));
+        checkForError(ErrorType.FREE, CL22.clReleaseProgram(program));
     }
 
     static void destroyCLKernelInternal(long kernel) {
         assert kernel != 0;
-        checkForError(CL22.clReleaseKernel(kernel));
+        checkForError(ErrorType.FREE, CL22.clReleaseKernel(kernel));
     }
 
     static void readMemoryInternal(long commandQueue, long pointer, ByteBuffer buffer) {
         int error = CL22.clEnqueueReadBuffer(commandQueue, pointer, true,
                 0, buffer, null, null);
-        checkForError(error);
+        checkForError(ErrorType.BUFFER_READ, error);
     }
 
     static void acquireFromGLInternal(long commandQueue, long memoryObject) {
-        checkForError(CL12GL.clEnqueueAcquireGLObjects(commandQueue, memoryObject, null, null));
+        checkForError(ErrorType.GL_INTEROP, CL12GL.clEnqueueAcquireGLObjects(commandQueue, memoryObject, null, null));
     }
 
     static void releaseFromGLInternal(long commandQueue, long memoryObject) {
-        checkForError(CL12GL.clEnqueueReleaseGLObjects(commandQueue, memoryObject, null, null));
+        checkForError(ErrorType.GL_INTEROP, CL12GL.clEnqueueReleaseGLObjects(commandQueue, memoryObject, null, null));
+    }
+
+
+    static void setParameterPointerInternal(CLContext context, long kernel, int index, String memoryObject) {
+        long pointer = context.getMemoryObject(memoryObject).getPointer();
+        int error = CL22.clSetKernelArg1p(kernel, index, pointer);
+        checkForError(ErrorType.KERNEL_PARAMETER, error);
+    }
+
+    static void setParameter1iInternal(long kernel, int index, int value) {
+        int error = CL22.clSetKernelArg1i(kernel, index, value);
+        checkForError(ErrorType.KERNEL_PARAMETER, error);
+    }
+
+    static void setParameter4fInternal(long kernel, int index, float d0, float d1, float d2, float d3) {
+        int error = CL22.clSetKernelArg4f(kernel, index, d0, d1, d2, d3);
+        checkForError(ErrorType.KERNEL_PARAMETER, error);
+    }
+
+    static void setParameter1fInternal(long kernel, int index, float d0) {
+        int error = CL22.clSetKernelArg1f(kernel, index, d0);
+        checkForError(ErrorType.KERNEL_PARAMETER, error);
     }
 }

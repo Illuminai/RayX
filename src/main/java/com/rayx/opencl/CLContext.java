@@ -356,29 +356,19 @@ public class CLContext {
         }
 
         public void setParameterPointer(int index, String memoryObject) {
-            long pointer = CLContext.this.getMemoryObject(memoryObject).getPointer();
-            int error = CL22.clSetKernelArg1p(kernel, index, pointer);
-            CLManager.checkForError(error);
+            CLManager.setParameterPointerInternal(CLContext.this, kernel, index, memoryObject);
         }
 
         public void setParameter1i(int index, int value) {
-            int error = CL22.clSetKernelArg1i(kernel, index, value);
-            CLManager.checkForError(error);
+            CLManager.setParameter1iInternal(kernel, index, value);
         }
 
         public void setParameter4f(int index, float d0, float d1, float d2, float d3) {
-            int error = CL22.clSetKernelArg4f(kernel, index, d0, d1, d2, d3);
-            CLManager.checkForError(error);
+            CLManager.setParameter4fInternal(kernel, index, d0, d1, d2, d3);
         }
 
         public void setParameter1f(int index, float d0) {
-            int error = CL22.clSetKernelArg1f(kernel, index, d0);
-            CLManager.checkForError(error);
-        }
-
-        public void setParameter2d(int index, double d0, double d1) {
-            int error = CL22.clSetKernelArg2d(kernel, index, d0, d1);
-            CLManager.checkForError(error);
+            CLManager.setParameter1fInternal(kernel, index, d0);
         }
 
         public void run(long[] globalWorkSize, long[] localWorkSize) {

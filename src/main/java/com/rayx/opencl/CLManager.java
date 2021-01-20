@@ -133,16 +133,18 @@ public class CLManager {
 
     public static void putExecutableProgram(CLContext context, String[] programIds, String programName) {
         try (MemoryStack stack = CLManager.nextStackFrame()) {
-            //int j; //Uncomment this to crash JVM on windows
+            IntBuffer error = stack.mallocInt(1);
             long program = CL22.clLinkProgram(context.getContext(),
                     stack.pointers(context.getDevice()),
                     "",
                     stack.pointers(Arrays.stream(programIds).mapToLong(u -> context.getProgramObject(u).getProgram()).toArray()),
                     null,
-                    0);
-            if(program == 0) {
-                throw new RuntimeException("CL: Linking failed");
-            }
+                    0,
+                    error);
+            checkForError(error);
+
+            assert program != 0;
+
             context.addProgramObject(context.new CLProgram(programName, program, true));
         }
     }

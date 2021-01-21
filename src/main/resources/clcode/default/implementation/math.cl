@@ -34,12 +34,35 @@ struct matrix3x3 rotationMatrix(numf alpha, numf beta, numf gamma) {
         }};
 }
 
-struct matrix3x3 reverseRotationMatrix(numf gamma, numf beta, numf alpha) {
-    return (struct matrix3x3){{
-                (numf3){cos(beta) * cos(gamma), cos(gamma) * sin(alpha) * sin(beta) + cos(alpha) * sin(gamma), -cos(alpha) * cos(gamma) * sin(beta) + sin(alpha) * sin(gamma)},
-                (numf3){-cos(beta) * sin(gamma), cos(alpha) * cos(gamma) - sin(alpha) * sin(beta) * sin(gamma), cos(gamma) * sin(alpha) + cos(alpha) * sin(beta) * sin(gamma)},
-                (numf3){sin(beta), -cos(beta) * sin(alpha), cos(alpha) * cos(beta)}
-            }};
+struct matrix3x3 inverse(struct matrix3x3 m) {
+    numf invDet = 1 / determinant(m);
+    struct matrix3x3 tmp = (struct matrix3x3) {
+        (numf3){
+            -m.r[1].z * m.r[2].y + m.r[1].y * m.r[2].z,
+            m.r[0].z * m.r[2].y - m.r[0].y * m.r[2].z,
+             -m.r[0].z * m.r[1].y + m.r[0].y * m.r[1].z},
+             (numf3) {m.r[1].z * m.r[2].x - m.r[1].x * m.r[2].z,
+             -m.r[0].z * m.r[2].x + m.r[0].x * m.r[2].z,
+          m.r[0].z * m.r[1].x - m.r[0].x * m.r[1].z},
+           (numf3) {-m.r[1].y * m.r[2].x + m.r[1].x * m.r[2].y,
+          m.r[0].y * m.r[2].x - m.r[0].x * m.r[2].y,
+          -m.r[0].y * m.r[1].x + m.r[0].x * m.r[1].y}};
+    return (struct matrix3x3) {
+        invDet * tmp.r[0],
+        invDet * tmp.r[1],
+        invDet * tmp.r[2]
+    };
+}
+
+numf determinant(struct matrix3x3 m) {
+    return m.r[0].x * m.r[1].y * m.r[2].z +
+           m.r[0].y * m.r[1].z * m.r[2].x +
+           m.r[0].z * m.r[1].x * m.r[2].y -
+           (
+           m.r[0].z * m.r[1].y * m.r[2].x +
+           m.r[0].x * m.r[1].z * m.r[2].y +
+           m.r[0].y * m.r[1].x * m.r[2].z
+           );
 }
 
 struct matrix3x3 rotationMatrixX(numf alpha) {

@@ -522,21 +522,37 @@ public class CLManager {
                 ByteBuffer shapesData = stack.malloc((int) pureShapes.getSize());
                 pureShapes.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.SHAPE);
-                System.out.println(structSize);
                 int k = 0;
                 while(shapesData.hasRemaining()) {
-                    System.out.println( shapesData.getLong() + " " +
+                    System.out.println(
                             shapesData.getLong() + " " +
                             shapesData.getLong() + " " +
+                            shapesData.getLong() + " " +
+
+                            shapesData.getFloat() + " " +
+                            shapesData.getFloat() + " " +
+
                             shapesData.getFloat() + " " +
                             shapesData.getFloat() + " " +
                             shapesData.getFloat() + " " +
                             shapesData.getFloat() + " " +
-                            shapesData.getLong() + " " +
-                            shapesData.getLong() + " " +
-                            shapesData.getLong() + " " +
-                            shapesData.getLong() + " " +
-                            shapesData.getLong() + " ");
+                            shapesData.getFloat() + " " +
+                            shapesData.getFloat() + " " +
+                            shapesData.getFloat() + " " +
+                            shapesData.getFloat() + " "
+                            );
+
+                    for(int i = 0; i < 2; i++) {
+                        for (int ii = 0; ii < 3; ii++) {
+                            System.out.println("\t" +
+                                    shapesData.getFloat() + " " +
+                                    shapesData.getFloat() + " " +
+                                    shapesData.getFloat());
+                            shapesData.getFloat(); //Discard one filler float
+                        }
+                        System.out.println();
+                    }
+
                     k++;
                     shapesData.position(k * structSize);
                 }

@@ -39,9 +39,9 @@ __kernel void putShapesInMemory(int numShapes,
                 __global struct unionSDF_t* dataUnionSDF,
                 __global struct intersectionSDF_t* dataIntersectionSDF) {
     for(int i = 0; i < numShapes; i++) {
-        for(int k = 0; k < sizeof(struct shape_t) / sizeof(long); k++) {
-            __global long* tmp= (__global long*)&shapes[i];
-            tmp[k] = -12;
+        for(int k = 0; k < sizeof(struct shape_t) / sizeof(float); k++) {
+            __global float* tmp= (__global float*)&shapes[i];
+            tmp[k] = -101.101;
         }
         long shape = getNextLong(inputData); inputData += sizeof(long);
         long id = getNextLong(inputData); inputData += sizeof(long);
@@ -50,9 +50,10 @@ __kernel void putShapesInMemory(int numShapes,
         numf lumen = getNextFloat(inputData); inputData += sizeof(float);
         numf3 position = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
         numf3 rotation = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
+        struct matrix3x3 rotMatrix = rotationMatrix(rotation.x, rotation.y, rotation.z);
         shapes[i] = (struct shape_t){shape, id, shouldRender, maxRad, lumen, position, rotation,
-                        rotationMatrix(rotation.x, rotation.y, rotation.z),
-                        reverseRotationMatrix(rotation.z, rotation.y, rotation.x),
+                        rotMatrix,
+                        inverse(rotMatrix),
                     0};
         if(shape == SPHERE_RTC) {
             shapes[i].shape = dataSphere;

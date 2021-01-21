@@ -22,7 +22,9 @@ numf3 matrixTimesVector(struct matrix3x3 m, numf3 vector);
 
 struct matrix3x3 rotationMatrix(numf alpha, numf beta, numf gamma);
 
-struct matrix3x3 reverseRotationMatrix(numf gamma, numf beta, numf alpha);
+struct matrix3x3 inverse(struct matrix3x3 m);
+
+numf determinant(struct matrix3x3 m);
 
 struct matrix3x3 rotationMatrixX(numf alpha);
 

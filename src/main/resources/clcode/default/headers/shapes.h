@@ -7,26 +7,26 @@ struct shape_t {
     long type;
     long id;
     long flags;
-    float maxRadius;
-    float lumen;
-    float3 position;
-    float3 rotation;
+    numf maxRadius;
+    numf lumen;
+    numf3 position;
+    numf3 rotation;
     struct matrix3x3 rotationMatrix;
     struct matrix3x3 inverseRotationMatrix;
     __global void* shape;
 };
 
 struct sphereRTC_t {
-    float radius;
+    numf radius;
 };
 
 struct torusSDF_t {
-    float radiusSmall;
-    float radiusBig;
+    numf radiusSmall;
+    numf radiusBig;
 };
 
 struct planeRTC_t {
-    float3 normal;
+    numf3 normal;
 };
 
 struct subtractionSDF_t {
@@ -35,7 +35,7 @@ struct subtractionSDF_t {
 };
 
 struct boxSDF_t {
-    float3 dimensions;
+    numf3 dimensions;
 };
 
 struct unionSDF_t {

@@ -46,10 +46,10 @@ __kernel void putShapesInMemory(int numShapes,
         long shape = getNextLong(inputData); inputData += sizeof(long);
         long id = getNextLong(inputData); inputData += sizeof(long);
         long shouldRender = getNextLong(inputData); inputData += sizeof(long);
-        float maxRad = getNextFloat(inputData); inputData += sizeof(float);
-        float lumen = getNextFloat(inputData); inputData += sizeof(float);
-        float3 position = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
-        float3 rotation = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
+        numf maxRad = getNextFloat(inputData); inputData += sizeof(float);
+        numf lumen = getNextFloat(inputData); inputData += sizeof(float);
+        numf3 position = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
+        numf3 rotation = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
         shapes[i] = (struct shape_t){shape, id, shouldRender, maxRad, lumen, position, rotation,
                         rotationMatrix(rotation.x, rotation.y, rotation.z),
                         reverseRotationMatrix(rotation.z, rotation.y, rotation.x),
@@ -92,8 +92,8 @@ __kernel void putShapesInMemory(int numShapes,
     }
 }
 
-float3 getNextFloat3(__global char* data) {
-    return (float3){
+numf3 getNextFloat3(__global char* data) {
+    return (numf3){
         getNextFloat(data),
         getNextFloat(data + sizeof(float)),
         getNextFloat(data + 2 * sizeof(float))
@@ -110,7 +110,7 @@ long getNextLong(__global char* data) {
     }
     return res;
 }
-float getNextFloat(__global char* data) {
+numf getNextFloat(__global char* data) {
     float res;
     char* pointer = (char*)&res;
     for(int k = 0; k < sizeof(float); k++) {
@@ -118,5 +118,5 @@ float getNextFloat(__global char* data) {
         pointer++;
         data++;
     }
-    return res;
+    return (numf)res;
 }

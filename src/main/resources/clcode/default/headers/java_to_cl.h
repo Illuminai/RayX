@@ -17,9 +17,9 @@ __kernel void putShapesInMemory(int numShapes,
                 __global struct unionSDF_t* dataUnionSDF,
                 __global struct intersectionSDF_t* dataIntersectionSDF);
 
-float getNextFloat(__global char* data);
+numf getNextFloat(__global char* data);
 
-float3 getNextFloat3(__global char* data);
+numf3 getNextFloat3(__global char* data);
 
 long getNextLong(__global char* data);
 #endif

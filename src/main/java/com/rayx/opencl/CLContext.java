@@ -203,12 +203,14 @@ public class CLContext {
         //----------- E X E C U T A B L E - P R O G R A M S -----------
         CLManager.putExecutableProgram(this,
                 new String[]{
+                        "clcode/default/implementation/shapes.cl",
                         "clcode/default/implementation/java_to_cl.cl",
                         "clcode/default/implementation/math.cl"
                 },
                 "javaToCLProgram");
         CLManager.putExecutableProgram(this,
                 new String[]{
+                        "clcode/default/implementation/shapes.cl",
                         "clcode/default/implementation/math.cl",
                         "clcode/default/implementation/render.cl"
                 },

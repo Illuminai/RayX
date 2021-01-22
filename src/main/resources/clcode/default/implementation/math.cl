@@ -22,35 +22,39 @@ numf3 matrixTimesVector(struct matrix3x3 m, numf3 v) {
     };
 }
 
-struct matrix3x3 rotationMatrix(numf alpha, numf beta, numf gamma) {
+struct matrix3x3 rotationMatrix(numf3 angles) {
+    numf2 x = (numf2){cos(angles.x), sin(angles.x)};
+    numf2 y = (numf2){cos(angles.y), sin(angles.y)};
+    numf2 z = (numf2){cos(angles.z), sin(angles.z)};
+
     return (struct matrix3x3){{
-            (numf3){cos(beta) * cos(gamma), - cos(beta) * sin(gamma), sin(beta)},
-            (numf3){cos(gamma) * sin(alpha) * sin(beta) + cos(alpha) * sin(gamma),
-                      cos(alpha) * cos(gamma) - sin(alpha) * sin(beta) * sin(gamma),
-                      -cos(beta) * sin(alpha)},
-            (numf3){-cos(alpha) * cos(gamma) * sin(beta) + sin(alpha) * sin(gamma),
-                      cos(gamma) * sin(alpha) + cos(alpha) * sin(beta) * sin(gamma),
-                      cos(alpha) * cos(beta)}
+            (numf3){y.x * z.x, - y.x * z.y, y.y},
+            (numf3){z.x * x.y * y.y + x.x * z.y,
+                      x.x * z.x - x.y * y.y * z.y,
+                      -y.x * x.y},
+            (numf3){-x.x * z.x * y.y + x.y * z.y,
+                      z.x * x.y + x.x * y.y * z.y,
+                      x.x * y.x}
         }};
 }
 
 struct matrix3x3 inverse(struct matrix3x3 m) {
     numf invDet = 1 / determinant(m);
-    struct matrix3x3 tmp = (struct matrix3x3) {
-        (numf3){
-            -m.r[1].z * m.r[2].y + m.r[1].y * m.r[2].z,
-            m.r[0].z * m.r[2].y - m.r[0].y * m.r[2].z,
-             -m.r[0].z * m.r[1].y + m.r[0].y * m.r[1].z},
-             (numf3) {m.r[1].z * m.r[2].x - m.r[1].x * m.r[2].z,
-             -m.r[0].z * m.r[2].x + m.r[0].x * m.r[2].z,
-          m.r[0].z * m.r[1].x - m.r[0].x * m.r[1].z},
-           (numf3) {-m.r[1].y * m.r[2].x + m.r[1].x * m.r[2].y,
-          m.r[0].y * m.r[2].x - m.r[0].x * m.r[2].y,
-          -m.r[0].y * m.r[1].x + m.r[0].x * m.r[1].y}};
     return (struct matrix3x3) {
-        invDet * tmp.r[0],
-        invDet * tmp.r[1],
-        invDet * tmp.r[2]
+        {
+            invDet * (numf3){
+                -m.r[1].z * m.r[2].y + m.r[1].y * m.r[2].z,
+                m.r[0].z * m.r[2].y - m.r[0].y * m.r[2].z,
+                -m.r[0].z * m.r[1].y + m.r[0].y * m.r[1].z},
+            invDet * (numf3) {
+                m.r[1].z * m.r[2].x - m.r[1].x * m.r[2].z,
+                -m.r[0].z * m.r[2].x + m.r[0].x * m.r[2].z,
+                m.r[0].z * m.r[1].x - m.r[0].x * m.r[1].z},
+            invDet * (numf3) {
+                -m.r[1].y * m.r[2].x + m.r[1].x * m.r[2].y,
+                m.r[0].y * m.r[2].x - m.r[0].x * m.r[2].y,
+                -m.r[0].y * m.r[1].x + m.r[0].x * m.r[1].y}
+        }
     };
 }
 

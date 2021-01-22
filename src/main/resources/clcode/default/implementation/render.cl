@@ -86,8 +86,7 @@ float4 getTypeColor(int type) {
 }
 
 struct ray_t getRay(numf u, numf v, numf3 camPos, numf3 camRot, numf camFOV) {
-    struct matrix3x3 rotMat = rotationMatrix(camRot.x,
-                                                camRot.y, camRot.z);
+    struct matrix3x3 rotMat = rotationMatrix(camRot);
         numf3 viewDirection = matrixTimesVector(rotMat, (numf3){camFOV,0,0});
         numf3 cameraRight = matrixTimesVector(rotMat, (numf3){0,1,0});
         numf3 cameraUp = matrixTimesVector(rotMat, (numf3){0,0,1});

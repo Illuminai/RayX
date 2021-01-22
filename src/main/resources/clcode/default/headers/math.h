@@ -20,7 +20,7 @@ struct matrix3x3 matrixProduct(struct matrix3x3 a, struct matrix3x3 b);
 
 numf3 matrixTimesVector(struct matrix3x3 m, numf3 vector);
 
-struct matrix3x3 rotationMatrix(numf alpha, numf beta, numf gamma);
+struct matrix3x3 rotationMatrix(numf3 angles);
 
 struct matrix3x3 inverse(struct matrix3x3 m);
 

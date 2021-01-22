@@ -50,7 +50,7 @@ __kernel void putShapesInMemory(int numShapes,
         numf lumen = getNextFloat(inputData); inputData += sizeof(float);
         numf3 position = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
         numf3 rotation = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
-        struct matrix3x3 rotMatrix = rotationMatrix(rotation.x, rotation.y, rotation.z);
+        struct matrix3x3 rotMatrix = rotationMatrix(rotation);
         shapes[i] = (struct shape_t){shape, id, shouldRender, maxRad, lumen, position, rotation,
                         rotMatrix,
                         inverse(rotMatrix),

@@ -627,7 +627,7 @@ public class CLManager {
 
     public static void runRenderKernel(CLContext context, int glTex, float[] cameraPos,
                                        float[] cameraRot, float cameraFOV,
-                                       int numShapes, String shapesMemObj, String shapeDataPrefix) {
+                                       int numShapes, String shapesMemObj, String shapeDataPrefix, int width, int height) {
         glFinish();
         CLContext.CLKernel kernel = context.getKernelObject(CLContext.KERNEL_RENDER);
         CLManager.createCLFromGLTexture(context, CL_MEM_WRITE_ONLY, GL_TEXTURE_2D, glTex, "texture");
@@ -640,7 +640,7 @@ public class CLManager {
         kernel.setParameterPointer(5, shapesMemObj);
 
         //TODO make image size dynamic
-        kernel.run(new long[]{RayX.IMG_WID, RayX.IMG_HEI}, null);
+        kernel.run(new long[]{width, height}, null);
         context.getMemoryObject("texture").releaseFromGL();
         context.freeMemoryObject("texture");
     }

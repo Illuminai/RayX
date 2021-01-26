@@ -5,18 +5,23 @@ import com.rayx.glfw.OpenGLWindow;
 import com.rayx.opengl.Shader;
 import com.rayx.opengl.ShaderProgram;
 import com.rayx.opengl.ShaderType;
-import imgui.ImFontAtlas;
-import imgui.ImGui;
-import imgui.ImGuiIO;
-import imgui.ImGuiStyle;
-import imgui.flag.ImGuiCol;
-import imgui.flag.ImGuiConfigFlags;
+import com.rayx.win.DecorationProperties;
+import com.rayx.win.DecorationWindowProc;
+import imgui.*;
+import imgui.flag.*;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
+import imgui.type.ImBoolean;
+import imgui.type.ImInt;
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.glfw.GLFWNativeWin32;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 import static org.lwjgl.opengl.GL11.*;
@@ -24,8 +29,7 @@ import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
-import static org.lwjgl.opengl.GL30.glBindVertexArray;
-import static org.lwjgl.opengl.GL30.glGenVertexArrays;
+import static org.lwjgl.opengl.GL30.*;
 
 public class TestOGLWindow extends OpenGLWindow {
 
@@ -56,14 +60,17 @@ public class TestOGLWindow extends OpenGLWindow {
     }
 
     private int texture;
-    private int VAO, EBO, VBO;
+    private int previewTexture;
+    private int VAO, EBO, VBO, FBO;
     private long lastPrint = 0;
     private int frames;
 
-    private Consumer<Integer> callback;
+    private Consumer<Integer[]> renderCallback;
 
     private ImGuiImplGlfw imGuiImplGlfw;
     private ImGuiImplGl3 imGuiImplGl3;
+
+    private int dockspace;
 
     public TestOGLWindow(int width, int height, String title) {
         super(width, height, title);
@@ -102,6 +109,23 @@ public class TestOGLWindow extends OpenGLWindow {
 
         makeTex();
 
+        previewTexture = glGenTextures();
+        glBindTexture(GL_TEXTURE_2D, previewTexture);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2048, 2048,
+                0, GL_RGB, GL_UNSIGNED_BYTE, (ByteBuffer) null);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        FBO = glGenFramebuffers();
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, previewTexture, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
         glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
 
         imGuiImplGlfw = new ImGuiImplGlfw();
@@ -109,6 +133,8 @@ public class TestOGLWindow extends OpenGLWindow {
 
         initImGui();
     }
+
+    private DecorationWindowProc proc;
 
     private void initImGui() {
         ImGui.createContext();
@@ -121,42 +147,154 @@ public class TestOGLWindow extends OpenGLWindow {
         io.setConfigViewportsNoTaskBarIcon(true);
 
         final ImFontAtlas fontAtlas = io.getFonts();
-        fontAtlas.addFontDefault();
+        //fontAtlas.addFontDefault();
+        //fontAtlas.addFontFromMemoryTTF(loadFromResources("Karla.ttf"), 14.0f);
+        fontAtlas.addFontFromFileTTF("C:\\Windows\\Fonts\\Verdana.ttf", 13.0f);
+        ImGuiFreeType.buildFontAtlas(fontAtlas);
+
+
+        ImGuiStyle style = ImGui.getStyle();
+        //style.setColor(ImGuiCol.TabActive, 0,119, 200, 255);
 
         if (io.hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {
-            final ImGuiStyle style = ImGui.getStyle();
             style.setWindowRounding(0.0f);
             style.setColor(ImGuiCol.WindowBg, ImGui.getColorU32(ImGuiCol.WindowBg, 1));
         }
 
         imGuiImplGlfw.init(getWindow(), true);
         imGuiImplGl3.init("#version 450");
-
-
     }
+
+    private boolean first = false;
+
+    private int frameWidth;
+    private int frameHeight;
 
     @Override
     public void onRender() {
+
+        if (!first) {
+            proc = new DecorationWindowProc();
+            long hwndPointer = GLFWNativeWin32.glfwGetWin32Window(getWindow());
+            proc.init(hwndPointer);
+            first = true;
+            show();
+        }
+
         glClearColor(0, 1, 1, 1);
         glClear(GL_COLOR_BUFFER_BIT);
-
-        callback.accept(texture);
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glBindVertexArray(VAO);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
+/*
         imGuiImplGlfw.newFrame();
         ImGui.newFrame();
 
-        ImGui.begin("Test");
+        ImGuiViewport viewport = ImGui.getMainViewport();
+        ImGui.setNextWindowPos(viewport.getPosX(), viewport.getPosY());
+        ImGui.setNextWindowSize(viewport.getSizeX(), viewport.getSizeY());
+        ImGui.setNextWindowViewport(viewport.getID());
 
-        ImGui.button("Hallo");
+        int windowFlags = ImGuiWindowFlags.MenuBar
+                | ImGuiWindowFlags.NoDocking
+                | ImGuiWindowFlags.NoTitleBar
+                | ImGuiWindowFlags.NoCollapse
+                | ImGuiWindowFlags.NoResize
+                | ImGuiWindowFlags.NoMove
+                | ImGuiWindowFlags.NoBringToFrontOnFocus
+                | ImGuiWindowFlags.NoNavFocus
+                | ImGuiWindowFlags.NoBackground;
 
+        ImGui.pushStyleVar(ImGuiStyleVar.WindowRounding, 0);
+        ImGui.pushStyleVar(ImGuiStyleVar.WindowBorderSize, 0);
+        ImGui.pushStyleVar(ImGuiStyleVar.WindowPadding, 0, 0);
+        ImGui.begin("Dock", windowFlags);
+        ImGui.popStyleVar(3);
+
+        if (imgui.internal.ImGui.dockBuilderGetNode(ImGui.getID("MainDockspace")) == null) {
+            dockspace = ImGui.getID("MainDockspace");
+
+            imgui.internal.ImGui.dockBuilderRemoveNode(dockspace);
+            imgui.internal.ImGui.dockBuilderAddNode(dockspace);
+
+            ImInt dockspaceId = new ImInt(dockspace);
+            int sidebar = imgui.internal.ImGui.dockBuilderSplitNode(dockspaceId.get(), ImGuiDir.Left, 0.20f, null, dockspaceId);
+            int bottomBar = imgui.internal.ImGui.dockBuilderSplitNode(dockspaceId.get(), ImGuiDir.Down, 0.20f, null, dockspaceId);
+
+            imgui.internal.ImGui.dockBuilderDockWindow("Scene", sidebar);
+            imgui.internal.ImGui.dockBuilderDockWindow("Log Output", bottomBar);
+            imgui.internal.ImGui.dockBuilderDockWindow("Viewport", dockspaceId.get());
+            imgui.internal.ImGui.dockBuilderFinish(dockspace);
+        }
+        int dockFlags = ImGuiDockNodeFlags.PassthruCentralNode
+                | imgui.internal.flag.ImGuiDockNodeFlags.NoWindowMenuButton
+                | imgui.internal.flag.ImGuiDockNodeFlags.NoCloseButton;
+        ImGui.dockSpace(ImGui.getID("MainDockspace"), 0, 0, dockFlags);
         ImGui.end();
+
+
+        if (ImGui.beginMainMenuBar()) {
+            if (ImGui.beginMenu("File")) {
+                if (ImGui.menuItem("Exit")) {
+                    System.exit(0);
+                }
+                ImGui.endMenu();
+            }
+            if (ImGui.beginMenu("Edit")) {
+                if (ImGui.menuItem("Test")) {
+                    System.out.println("Test");
+                }
+                ImGui.endMenu();
+            }
+            if(ImGui.menuItem("Test")){
+                System.out.println("OOF");
+            }
+            ImGui.endMainMenuBar();
+        }
+
+        {
+            ImGui.begin("Log Output");
+            ImGui.text("Test test");
+            ImGui.end();
+        }
+
+        {
+            ImGui.pushStyleVar(ImGuiStyleVar.WindowPadding, 0, 0);
+            ImGui.begin("Viewport");
+            ImGui.popStyleVar();
+
+
+            if ((ImGui.getContentRegionAvailX() != frameWidth || ImGui.getContentRegionAvailY() != frameHeight)) {
+                    recreateTexture((int) ImGui.getContentRegionAvailX(), (int) ImGui.getContentRegionAvailY());
+
+            }
+            frameWidth = (int) ImGui.getContentRegionAvailX();
+            frameHeight = (int) ImGui.getContentRegionAvailY();
+
+            glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+
+            glViewport(0, 0, frameWidth, frameHeight);
+            renderCallback.accept(new Integer[]{texture, frameWidth, frameHeight});
+
+            glClearColor(0, 1, 0, 1);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
+            glBindTexture(GL_TEXTURE_2D, texture);
+            glBindVertexArray(VAO);
+
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+            ImGui.image(previewTexture, frameWidth, frameHeight, 0, 1, 1, 0);
+
+            ImGui.end();
+        }
+
+        {
+            ImGui.begin("Scene");
+            ImGui.end();
+        }
+
+        //ImGui.showDemoWindow();
+        //ImGui.showMetricsWindow();
 
         ImGui.render();
 
@@ -174,7 +312,7 @@ public class TestOGLWindow extends OpenGLWindow {
             System.out.println("FPS: " + frames);
             frames = 0;
             lastPrint = System.currentTimeMillis();
-        }
+        }*/
     }
 
     @Override
@@ -216,6 +354,45 @@ public class TestOGLWindow extends OpenGLWindow {
         return program;
     }
 
+    private void recreateTexture(int width, int height) {
+
+
+        if (texture != 0) {
+
+            glDeleteTextures(texture);
+        }
+        texture = glGenTextures();
+
+        glBindTexture(GL_TEXTURE_2D, texture);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height,
+                0, GL_BGR, GL_UNSIGNED_BYTE, (ByteBuffer) null);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+
+        if (previewTexture != 0) {
+            glDeleteTextures(previewTexture);
+        }
+        previewTexture = glGenTextures();
+
+        glBindTexture(GL_TEXTURE_2D, previewTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height,
+                0, GL_RGB, GL_UNSIGNED_BYTE, (ByteBuffer) null);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, previewTexture, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
 
     private void makeTex() {
         if (texture != 0) {
@@ -225,7 +402,7 @@ public class TestOGLWindow extends OpenGLWindow {
 
         glBindTexture(GL_TEXTURE_2D, texture);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, RayX.IMG_WID, RayX.IMG_HEI,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 2000, 2000,
                 0, GL_BGR, GL_UNSIGNED_BYTE, (ByteBuffer) null);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -235,7 +412,24 @@ public class TestOGLWindow extends OpenGLWindow {
     }
 
 
-    public void setCallback(Consumer<Integer> callback) {
-        this.callback = callback;
+    public void setCallback(Consumer<Integer[]> renderCallback) {
+        this.renderCallback = renderCallback;
+    }
+
+    private byte[] loadFromResources(final String fileName) {
+        try (InputStream is = Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream(fileName));
+             ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+
+            final byte[] data = new byte[16384];
+
+            int nRead;
+            while ((nRead = is.read(data, 0, data.length)) != -1) {
+                buffer.write(data, 0, nRead);
+            }
+
+            return buffer.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

@@ -31,7 +31,7 @@ public class Scene {
         return visibleObjects.remove(s);
     }
 
-    public void render(CLContext context, int glTexture, boolean debug) {
+    public void render(CLContext context, int glTexture, boolean debug, int width, int height) {
         transferShapesToRAM(context);
 
         if(debug) {
@@ -45,7 +45,8 @@ public class Scene {
                 1,
                 allObjects.size(),
                 shapesIdentifier,
-                shapesDataPrefix
+                shapesDataPrefix,
+                width, height
         );
     }
 

@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import static org.lwjgl.opencl.CL22.*;
 
 public class RayX {
-    public static final int IMG_WID = 1000, IMG_HEI = 1000;
     static CLContext context;
     static final Scene.DemoScene scene;
 
@@ -25,7 +24,7 @@ public class RayX {
     public static void main(String[] args) {
         WindowManager manager = WindowManager.getInstance();
 
-        TestOGLWindow window = new TestOGLWindow(1000, 1000, "Test");
+        TestOGLWindow window = new TestOGLWindow(1600, 900, "Test");
         manager.addWindow(window);
 
         manager.setSwapInterval(0);
@@ -50,7 +49,7 @@ public class RayX {
 
             scene.set(context, t);
 
-            scene.render(context, texture, t == 0);
+            scene.render(context, texture[0], t == 0, texture[1], texture[2]);
             t += Math.PI / 50;
         });
 

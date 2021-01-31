@@ -306,9 +306,12 @@ public class CLManager {
 
             return switch (info) {
                 case CL22.CL_DEVICE_BUILT_IN_KERNELS, CL22.CL_DEVICE_VERSION,
-                        CL22.CL_DEVICE_NAME, CL22.CL_DEVICE_EXTENSIONS -> byteBufferToString(rawInfo);
-                case CL22.CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, CL22.CL_DEVICE_MAX_WORK_GROUP_SIZE -> byteBufferToULong(rawInfo);
-                case CL22.CL_DEVICE_MAX_COMPUTE_UNITS, CL22.CL_DEVICE_MAX_CLOCK_FREQUENCY -> byteBufferToUInt(rawInfo);
+                        CL22.CL_DEVICE_NAME, CL22.CL_DEVICE_EXTENSIONS ->
+                        byteBufferToString(rawInfo);
+                case CL22.CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, CL22.CL_DEVICE_MAX_WORK_GROUP_SIZE ->
+                        byteBufferToULong(rawInfo);
+                case CL22.CL_DEVICE_MAX_COMPUTE_UNITS, CL22.CL_DEVICE_MAX_CLOCK_FREQUENCY ->
+                        byteBufferToUInt(rawInfo);
                 case CL22.CL_DEVICE_TYPE -> byteBufferToDeviceType(rawInfo);
                 case CL22.CL_DEVICE_PLATFORM -> byteBufferToLong(rawInfo);
                 default -> throw new IllegalArgumentException("Unsupported device info: "+ info);
@@ -693,6 +696,13 @@ public class CLManager {
         long memory = CL22.clCreateBuffer(context.getContext(), flags | CL_MEM_COPY_HOST_PTR, source, error);
         checkForError(ErrorType.BUFFER_CREATION, error);
         context.addMemoryObject(id, context.new CLMemoryObject(memory, (long) source.length * Integer.BYTES));
+    }
+
+    public static void allocateMemory(CLContext context, long flags, double[] source, String id) {
+        int[] error = new int[1];
+        long memory = CL22.clCreateBuffer(context.getContext(), flags | CL_MEM_COPY_HOST_PTR, source, error);
+        checkForError(ErrorType.BUFFER_CREATION, error);
+        context.addMemoryObject(id, context.new CLMemoryObject(memory, (long) source.length * Double.BYTES));
     }
 
     public static void allocateMemory(CLContext context, long flags, float[] source, String id) {

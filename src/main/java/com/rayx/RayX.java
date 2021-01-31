@@ -94,7 +94,9 @@ public class RayX {
 
         System.out.println("Context: " + (System.currentTimeMillis() - t));
         t = System.currentTimeMillis();
+
         context.initialize();
+        context.runBenchmarks();
 
         test(context);
 
@@ -111,7 +113,6 @@ public class RayX {
         System.out.println("Box struct: " + context.getStructSize(Shape.BOX_SDF));
         System.out.println("Union struct: " + context.getStructSize(Shape.UNION_SDF));
         System.out.println("Intersection struct: " + context.getStructSize(Shape.INTERSECTION_SDF));
-
     }
 
     static void freeAll() {

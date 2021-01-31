@@ -2,17 +2,20 @@ package com.rayx.opencl;
 
 import com.rayx.shape.Shape;
 import org.lwjgl.BufferUtils;
-import org.lwjgl.opencl.CL22;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.Random;
 
-import static org.lwjgl.opencl.CL10.*;
+import static org.lwjgl.opencl.CL10.CL_MEM_READ_ONLY;
+import static org.lwjgl.opencl.CL10.CL_MEM_WRITE_ONLY;
 
 public class CLContext {
     public static final String KERNEL_GET_STRUCT_SIZE = "defaultKernelGetStructSize",
             KERNEL_FILL_BUFFER_DATA = "defaultKernelFillDataBuffer",
-            KERNEL_RENDER = "defaultKernelRender";
+            KERNEL_RENDER = "defaultKernelRender",
+            KERNEL_BENCHMARK_DOUBLE = "defaultKernelBenchmarkDouble",
+            KERNEL_BENCHMARK_FLOAT = "defaultKernelBenchmarkFloat";
 
     public static final String COMPILE_OPTIONS =
             " -cl-fast-relaxed-math " +
@@ -144,6 +147,8 @@ public class CLContext {
     }
 
     public void initialize() {
+        createBenchmarks();
+
         //From least dependent to most dependent
         //----------- H E A D E R S -----------
         //math.h
@@ -228,6 +233,90 @@ public class CLContext {
                 KERNEL_RENDER, "renderProgram");
         //----------- I N I T I A L I Z E -----------
         getStructSizes();
+    }
+
+    public void createBenchmarks() {
+        CLManager.putProgramFromFile(this, null,
+                "clcode/default/headers/benchmark.h",
+                COMPILE_OPTIONS);
+        CLManager.putProgramFromFile(this,
+                new String[]{"clcode/default/headers/benchmark.h"},
+                "clcode/default/implementation/benchmark.cl",
+                COMPILE_OPTIONS);
+
+        CLManager.putExecutableProgram(this,
+                new String[]{
+                        "clcode/default/implementation/benchmark.cl"
+                },
+                "benchmarkProgram");
+
+        CLManager.putKernel(this, "testPerformanceDouble",
+                KERNEL_BENCHMARK_DOUBLE, "benchmarkProgram");
+        CLManager.putKernel(this, "testPerformanceFloat",
+                KERNEL_BENCHMARK_FLOAT, "benchmarkProgram");
+    }
+
+    public void runBenchmarks() {
+        System.out.println("Running benchmarks...");
+        final int amount = 20000;
+
+        double[] vals = new Random(1).doubles(4 * amount).toArray();
+
+        float[] f = new float[vals.length];
+        for(int i = 0; i < f.length; i++) {
+            f[i] = (float) vals[i];
+        }
+
+        CLManager.allocateMemory(this, CL_MEM_READ_ONLY, vals, "benchmarkDoubleIn");
+        CLManager.allocateMemory(this, CL_MEM_READ_ONLY, f, "benchmarkFloatIn");
+        CLManager.allocateMemory(this, CL_MEM_WRITE_ONLY,
+                amount * Double.BYTES, "benchmarkDoubleOut");
+        CLManager.allocateMemory(this, CL_MEM_WRITE_ONLY,
+                amount * Float.BYTES, "benchmarkFloatOut");
+
+        CLKernel dKern = getKernelObject(KERNEL_BENCHMARK_DOUBLE);
+        dKern.setParameterPointer(0, "benchmarkDoubleIn");
+        dKern.setParameterPointer(1, "benchmarkDoubleOut");
+        dKern.setParameter1i(2, amount);
+
+        CLKernel fKern = getKernelObject(KERNEL_BENCHMARK_FLOAT);
+        fKern.setParameterPointer(0, "benchmarkFloatIn");
+        fKern.setParameterPointer(1, "benchmarkFloatOut");
+        fKern.setParameter1i(2, amount);
+
+        dKern.run(new long[]{1}, null);
+        fKern.run(new long[]{1}, null);
+
+        long t = System.currentTimeMillis();
+        dKern.run(new long[]{amount}, null);
+        System.out.println("Double: " + (System.currentTimeMillis() - t));
+        /*{
+            ByteBuffer dbuffer =
+                    BufferUtils.createByteBuffer(amount * Double.BYTES);
+            this.getMemoryObject("benchmarkDoubleOut").getValue(dbuffer);
+            double[] dres = new double[amount];
+            System.out.println("Double input : " + Arrays.toString(f));
+            dbuffer.asDoubleBuffer().get(dres);
+            System.out.println("Double result: " + Arrays.toString(dres));
+        }*/
+
+        t = System.currentTimeMillis();
+        fKern.run(new long[]{amount}, null);
+        System.out.println("Float : " + (System.currentTimeMillis() - t));
+        /*{
+            ByteBuffer fbuffer =
+                    BufferUtils.createByteBuffer(amount * Float.BYTES);
+            this.getMemoryObject("benchmarkFloatOut").getValue(fbuffer);
+            float[] fres = new float[amount];
+            System.out.println("Float input : " + Arrays.toString(f));
+            fbuffer.asFloatBuffer().get(fres);
+            System.out.println("Float result: " + Arrays.toString(fres));
+        }*/
+
+        freeMemoryObject("benchmarkDoubleIn");
+        freeMemoryObject("benchmarkDoubleOut");
+        freeMemoryObject("benchmarkFloatIn");
+        freeMemoryObject("benchmarkFloatOut");
     }
 
     private void getStructSizes() {

@@ -13,11 +13,7 @@ import static org.lwjgl.opencl.CL22.*;
 
 public class RayX {
     static CLContext context;
-    static final Scene.DemoScene scene;
 
-    static {
-        scene = new Scene.DemoScene();
-    }
 
     static double t = 0;
 
@@ -27,16 +23,17 @@ public class RayX {
         TestOGLWindow window = new TestOGLWindow(1600, 900, "Test");
         manager.addWindow(window);
 
-        manager.setSwapInterval(0);
+        manager.setSwapInterval(1);
 
-        loop: for(long platform: CLManager.queryPlatforms()) {
+        loop:
+        for (long platform : CLManager.queryPlatforms()) {
             System.out.println("-----------------------------------------------------");
             System.out.println("Name      : " + CLManager.queryPlatformInfo(platform, CL_PLATFORM_NAME));
             System.out.println("Version   : " + CLManager.queryPlatformInfo(platform, CL_PLATFORM_VERSION));
             System.out.println("Profile   : " + CLManager.queryPlatformInfo(platform, CL_PLATFORM_PROFILE));
             System.out.println("Extensions: " + CLManager.queryPlatformInfo(platform, CL_PLATFORM_EXTENSIONS));
             System.out.println("Device(s) :");
-            for(long device: CLManager.queryDevicesForPlatform(platform, window.getWindow(), false)) {
+            for (long device : CLManager.queryDevicesForPlatform(platform, window.getWindow(), false)) {
                 printDevice(device, "\t");
                 context = treatDevice(window, device);
                 System.out.println("--------------");
@@ -44,12 +41,13 @@ public class RayX {
             }
         }
 
-        window.setCallback((texture) -> {
+        window.setCallback((objs) -> {
+            Scene.DemoScene scene = (Scene.DemoScene) objs[3];
             scene.deleteRenderMemory(context);
 
             scene.set(context, t);
 
-            scene.render(context, texture[0], t == 0, texture[1], texture[2]);
+            scene.render(context, (int) objs[0], (boolean) objs[5], (Camera) objs[4], (int) objs[1], (int) objs[2]);
             t += Math.PI / 50;
         });
 
@@ -113,10 +111,10 @@ public class RayX {
 
     static void printAllDevicesAndPlatforms() {
         System.out.println("Available Platforms:");
-        for(long plat: CLManager.queryPlatforms()) {
+        for (long plat : CLManager.queryPlatforms()) {
             System.out.println("\t" + plat);
         }
-        for(long device: CLManager.getDevices()) {
+        for (long device : CLManager.getDevices()) {
             printDevice(device, "\t");
         }
     }

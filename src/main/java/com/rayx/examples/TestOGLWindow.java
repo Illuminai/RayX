@@ -5,13 +5,16 @@ import com.rayx.glfw.OpenGLWindow;
 import com.rayx.opengl.Shader;
 import com.rayx.opengl.ShaderProgram;
 import com.rayx.opengl.ShaderType;
-import com.rayx.win.DecorationProperties;
-import com.rayx.win.DecorationWindowProc;
+import com.rayx.shape.Camera;
+import com.rayx.shape.Matrix3x3;
+import com.rayx.shape.Scene;
+import com.rayx.shape.Vector3d;
 import imgui.*;
 import imgui.flag.*;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
 import imgui.type.ImBoolean;
+import imgui.type.ImFloat;
 import imgui.type.ImInt;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWNativeWin32;
@@ -23,6 +26,7 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
@@ -65,15 +69,22 @@ public class TestOGLWindow extends OpenGLWindow {
     private long lastPrint = 0;
     private int frames;
 
-    private Consumer<Integer[]> renderCallback;
+    private Consumer<Object[]> renderCallback;
 
     private ImGuiImplGlfw imGuiImplGlfw;
     private ImGuiImplGl3 imGuiImplGl3;
 
     private int dockspace;
 
+    private Scene.DemoScene scene;
+
+    private Camera camera;
+
     public TestOGLWindow(int width, int height, String title) {
         super(width, height, title);
+
+        scene = new Scene.DemoScene();
+        camera = new Camera(new Vector3d(-.2f, 0, 0), new Vector3d(0, 0, 0), 1);
 
         ShaderProgram program = createProgram();
         program.useProgram();
@@ -134,8 +145,6 @@ public class TestOGLWindow extends OpenGLWindow {
         initImGui();
     }
 
-    private DecorationWindowProc proc;
-
     private void initImGui() {
         ImGui.createContext();
 
@@ -165,27 +174,29 @@ public class TestOGLWindow extends OpenGLWindow {
         imGuiImplGl3.init("#version 450");
     }
 
-    private boolean first = false;
-
     private int frameWidth;
     private int frameHeight;
+
+    private boolean debugViewport;
+
+    private boolean first = true;
+    private ImInt selectedSceneItem = new ImInt();
 
     @Override
     public void onRender() {
 
-        if (!first) {
-            proc = new DecorationWindowProc();
-            long hwndPointer = GLFWNativeWin32.glfwGetWin32Window(getWindow());
-            proc.init(hwndPointer);
-            first = true;
+        if (first) {
             show();
+            first = false;
         }
 
         glClearColor(0, 1, 1, 1);
         glClear(GL_COLOR_BUFFER_BIT);
-/*
+
         imGuiImplGlfw.newFrame();
         ImGui.newFrame();
+
+        ImGuiIO io = ImGui.getIO();
 
         ImGuiViewport viewport = ImGui.getMainViewport();
         ImGui.setNextWindowPos(viewport.getPosX(), viewport.getPosY());
@@ -200,7 +211,8 @@ public class TestOGLWindow extends OpenGLWindow {
                 | ImGuiWindowFlags.NoMove
                 | ImGuiWindowFlags.NoBringToFrontOnFocus
                 | ImGuiWindowFlags.NoNavFocus
-                | ImGuiWindowFlags.NoBackground;
+                | ImGuiWindowFlags.NoBackground
+                | ImGuiWindowFlags.NoDocking;
 
         ImGui.pushStyleVar(ImGuiStyleVar.WindowRounding, 0);
         ImGui.pushStyleVar(ImGuiStyleVar.WindowBorderSize, 0);
@@ -239,12 +251,8 @@ public class TestOGLWindow extends OpenGLWindow {
             }
             if (ImGui.beginMenu("Edit")) {
                 if (ImGui.menuItem("Test")) {
-                    System.out.println("Test");
                 }
                 ImGui.endMenu();
-            }
-            if(ImGui.menuItem("Test")){
-                System.out.println("OOF");
             }
             ImGui.endMainMenuBar();
         }
@@ -262,7 +270,7 @@ public class TestOGLWindow extends OpenGLWindow {
 
 
             if ((ImGui.getContentRegionAvailX() != frameWidth || ImGui.getContentRegionAvailY() != frameHeight)) {
-                    recreateTexture((int) ImGui.getContentRegionAvailX(), (int) ImGui.getContentRegionAvailY());
+                recreateTexture((int) ImGui.getContentRegionAvailX(), (int) ImGui.getContentRegionAvailY());
 
             }
             frameWidth = (int) ImGui.getContentRegionAvailX();
@@ -271,7 +279,7 @@ public class TestOGLWindow extends OpenGLWindow {
             glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 
             glViewport(0, 0, frameWidth, frameHeight);
-            renderCallback.accept(new Integer[]{texture, frameWidth, frameHeight});
+            renderCallback.accept(new Object[]{texture, frameWidth, frameHeight, scene, camera, debugViewport});
 
             glClearColor(0, 1, 0, 1);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
@@ -282,14 +290,53 @@ public class TestOGLWindow extends OpenGLWindow {
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-
             ImGui.image(previewTexture, frameWidth, frameHeight, 0, 1, 1, 0);
+
+            if (ImGui.isItemHovered() && io.getMouseWheel() != 0) {
+                double factor = io.getMouseWheel() * 0.05 /*stepSize*/;
+
+                // TODO: Rotationsmatrix
+                Matrix3x3 rotation = Matrix3x3.createRotationMatrix(camera.getRotation());
+
+                Vector3d direction = rotation.transformed(new Vector3d(1, 0, 0).normalized());
+
+                camera.setPosition(camera.getPosition().add(direction.scale(factor)));
+
+                System.out.println("Debug Mouse: " + io.getMouseWheel());
+            }
 
             ImGui.end();
         }
 
         {
             ImGui.begin("Scene");
+            ImGui.text("FPS: " + frames);
+            //ImGui.listBox("List", selectedSceneItem, scene.getAllObjects().stream().map(shape -> "" + shape.getName()).toArray(String[]::new), scene.getAllObjects().size());
+
+            float[] positions = new float[]{
+                    camera.getPosition().getX(),
+                    camera.getPosition().getY(),
+                    camera.getPosition().getZ()
+            };
+
+            if (ImGui.dragFloat3("Position", positions, 0.01f)) {
+                camera.setPosition(new Vector3d(positions[0], positions[1], positions[2]));
+            }
+
+            float[] rotations = new float[]{
+                    camera.getRotation().getX(),
+                    camera.getRotation().getY(),
+                    camera.getRotation().getZ()
+            };
+
+            if (ImGui.dragFloat3("Rotation", rotations, 0.01f)) {
+                camera.setRotation(new Vector3d(rotations[0], rotations[1], rotations[2]));
+            }
+
+            if(ImGui.checkbox("Debug Preview", debugViewport)){
+                debugViewport = !debugViewport;
+            }
+
             ImGui.end();
         }
 
@@ -309,10 +356,9 @@ public class TestOGLWindow extends OpenGLWindow {
 
         frames++;
         if (System.currentTimeMillis() - lastPrint > 1000) {
-            System.out.println("FPS: " + frames);
             frames = 0;
             lastPrint = System.currentTimeMillis();
-        }*/
+        }
     }
 
     @Override
@@ -412,7 +458,7 @@ public class TestOGLWindow extends OpenGLWindow {
     }
 
 
-    public void setCallback(Consumer<Integer[]> renderCallback) {
+    public void setCallback(Consumer<Object[]> renderCallback) {
         this.renderCallback = renderCallback;
     }
 

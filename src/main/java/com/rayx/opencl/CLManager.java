@@ -1,6 +1,7 @@
 package com.rayx.opencl;
 
 import com.rayx.RayX;
+import com.rayx.shape.Camera;
 import com.rayx.shape.Shape;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opencl.CL12GL;
@@ -625,21 +626,22 @@ public class CLManager {
         }
     }
 
-    public static void runRenderKernel(CLContext context, int glTex, float[] cameraPos,
-                                       float[] cameraRot, float cameraFOV,
-                                       int numShapes, String shapesMemObj, String shapeDataPrefix, int width, int height) {
+    public static void runRenderKernel(CLContext context, int glTex, Camera camera,
+                                       int numShapes, String shapesMemObj, String shapeDataPrefix, int width, int height, boolean debug) {
         glFinish();
         CLContext.CLKernel kernel = context.getKernelObject(CLContext.KERNEL_RENDER);
         CLManager.createCLFromGLTexture(context, CL_MEM_WRITE_ONLY, GL_TEXTURE_2D, glTex, "texture");
         context.getMemoryObject("texture").acquireFromGL();
         kernel.setParameterPointer(0, "texture");
-        kernel.setParameter4f(1, cameraPos[0], cameraPos[1], cameraPos[2],0);
-        kernel.setParameter4f(2, cameraRot[0], cameraRot[1], cameraRot[2],0);
-        kernel.setParameter1f(3, cameraFOV);
+        kernel.setParameter4f(1, camera.getPosition().getX(), camera.getPosition().getY(), camera.getPosition().getZ(),0);
+        kernel.setParameter4f(2, camera.getRotation().getX(), camera.getRotation().getY(), camera.getRotation().getZ(),0);
+        kernel.setParameter1f(3, camera.getFov());
         kernel.setParameter1i(4, numShapes);
-        kernel.setParameterPointer(5, shapesMemObj);
+        kernel.setParameter1f(5, (float)width);
+        kernel.setParameter1f(6, (float)height);
+        kernel.setParameter1i(7, debug ? 1 : 0);
+        kernel.setParameterPointer(8, shapesMemObj);
 
-        //TODO make image size dynamic
         kernel.run(new long[]{width, height}, null);
         context.getMemoryObject("texture").releaseFromGL();
         context.freeMemoryObject("texture");

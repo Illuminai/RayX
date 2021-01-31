@@ -30,8 +30,10 @@ __kernel void render(  __write_only image2d_t resultImage,
                        float4 cameraPosition,
                        float4 cameraRotation,
                        float cameraFOV,
-                       int globalNumShapes,
+                       int globalNumShapes, float height, float width, int debug,
                        __global struct shape_t * globalShapes);
+
+float4 getDebugColor(struct intersection_t inter);
 
 float4 getTypeColor(int type);
 

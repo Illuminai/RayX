@@ -12,22 +12,23 @@ import static org.lwjgl.opencl.CL10.*;
 public class CLContext {
     public static final String KERNEL_GET_STRUCT_SIZE = "defaultKernelGetStructSize",
             KERNEL_FILL_BUFFER_DATA = "defaultKernelFillDataBuffer",
-            KERNEL_RENDER = "defaultKernelRender";
+            KERNEL_RENDER = "defaultKernelRender",
+            KERNEL_RENDER_DEBUG = "defaultKernelRenderDebug";
 
     public static final String COMPILE_OPTIONS =
             " -cl-fast-relaxed-math " +
-            " -cl-kernel-arg-info " +
-            " -Werror " +
-            " -D EPSILON=((float)0.0001) " +
-            " -D FLAG_SHOULD_RENDER=" + Shape.FLAG_SHOULD_RENDER +
-            " -D SHAPE=" + Shape.SHAPE +
-            " -D SPHERE_RTC=" + Shape.SPHERE_RTC +
-            " -D TORUS_SDF=" + Shape.TORUS_SDF +
-            " -D PLANE_RTC=" + Shape.PLANE_RTC +
-            " -D SUBTRACTION_SDF=" + Shape.SUBTRACTION_SDF +
-            " -D BOX_SDF=" + Shape.BOX_SDF +
-            " -D UNION_SDF=" + Shape.UNION_SDF +
-            " -D INTERSECTION_SDF=" + Shape.INTERSECTION_SDF;
+                    " -cl-kernel-arg-info " +
+                    " -Werror " +
+                    " -D EPSILON=((float)0.0000001) " +
+                    " -D FLAG_SHOULD_RENDER=" + Shape.FLAG_SHOULD_RENDER +
+                    " -D SHAPE=" + Shape.SHAPE +
+                    " -D SPHERE_RTC=" + Shape.SPHERE_RTC +
+                    " -D TORUS_SDF=" + Shape.TORUS_SDF +
+                    " -D PLANE_RTC=" + Shape.PLANE_RTC +
+                    " -D SUBTRACTION_SDF=" + Shape.SUBTRACTION_SDF +
+                    " -D BOX_SDF=" + Shape.BOX_SDF +
+                    " -D UNION_SDF=" + Shape.UNION_SDF +
+                    " -D INTERSECTION_SDF=" + Shape.INTERSECTION_SDF;
 
     private final long device;
     private long context;
@@ -37,7 +38,9 @@ public class CLContext {
     private HashMap<String, CLMemoryObject> memoryObjects;
     private HashMap<Integer, Integer> structSizes;
 
-    /** Only {@link CLManager} should create instances */
+    /**
+     * Only {@link CLManager} should create instances
+     */
     CLContext(long device, long context, long commandQueue) {
         this.context = context;
         this.device = device;
@@ -264,7 +267,7 @@ public class CLContext {
         }
 
         assert !this.structSizes.containsValue(-1) :
-         "Struct with size -1. The kernel does not recognize a struct";
+                "Struct with size -1. The kernel does not recognize a struct";
 
         freeMemoryObject("result");
         freeMemoryObject("shapesInQuestion");
@@ -283,7 +286,7 @@ public class CLContext {
         }
 
         public void getValue(ByteBuffer destination) {
-            assert this.size == destination.remaining(): size +
+            assert this.size == destination.remaining() : size +
                     " " + destination.remaining();
             CLManager.readMemoryInternal(commandQueue, this.pointer, destination);
         }
@@ -315,12 +318,16 @@ public class CLContext {
     public class CLProgram {
         private final String programId;
         private long program;
-        /** A kernel can only be created from a program if <code>linked</code> is set to <code>true</code>*/
+        /**
+         * A kernel can only be created from a program if <code>linked</code> is set to <code>true</code>
+         */
         private final boolean linked;
 
-        /** @param programId Name of the program.
-         *                    Should be name of the file it was generated from,
-         *                    so that it may used for include directives in OpenCL C*/
+        /**
+         * @param programId Name of the program.
+         *                  Should be name of the file it was generated from,
+         *                  so that it may used for include directives in OpenCL C
+         */
         public CLProgram(String programId, long program, boolean linked) {
             this.programId = programId;
             this.program = program;

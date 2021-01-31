@@ -23,6 +23,10 @@ public class Scene {
         shapesDataPrefix = "shapesData" + hashCode();
     }
 
+    public ArrayList<Shape> getAllObjects() {
+        return allObjects;
+    }
+
     public void add(Shape s) {
         visibleObjects.add(s);
     }
@@ -31,22 +35,20 @@ public class Scene {
         return visibleObjects.remove(s);
     }
 
-    public void render(CLContext context, int glTexture, boolean debug, int width, int height) {
+    public void render(CLContext context, int glTexture, boolean debug, Camera camera, int width, int height) {
         transferShapesToRAM(context);
 
-        if(debug) {
+        /*if (debug) {
             CLManager.testPrintGPUMemory(context, shapesIdentifier,
                     shapesDataPrefix, allObjects);
-        }
+        }*/
 
         CLManager.runRenderKernel(context, glTexture,
-                new float[]{-.2f, 0, 0},
-                new float[]{0, 0, 0},
-                1,
+                camera,
                 allObjects.size(),
                 shapesIdentifier,
                 shapesDataPrefix,
-                width, height
+                width, height, debug
         );
     }
 
@@ -148,76 +150,76 @@ public class Scene {
 
         private void exhibition(double t) {
             float lumen = .1f;
-            PlaneRTC bottom = new PlaneRTC(new Vector3d(0,0,-.3),new Vector3d(0,0,.3).normalized());
+            PlaneRTC bottom = new PlaneRTC(new Vector3d(0, 0, -.3), new Vector3d(0, 0, .3).normalized());
             bottom.setLumen(lumen);
             add(bottom);
-            PlaneRTC top = new PlaneRTC(new Vector3d(0,0,.3), new Vector3d(0,0,-.3).normalized());
+            PlaneRTC top = new PlaneRTC(new Vector3d(0, 0, .3), new Vector3d(0, 0, -.3).normalized());
             top.setLumen(lumen);
             add(top);
 
-            PlaneRTC back = new PlaneRTC(new Vector3d(.3,0,0), new Vector3d(-.3,0,0).normalized());
+            PlaneRTC back = new PlaneRTC(new Vector3d(.3, 0, 0), new Vector3d(-.3, 0, 0).normalized());
             back.setLumen(lumen);
             add(back);
-            PlaneRTC front = new PlaneRTC(new Vector3d(-.3,0,0), new Vector3d(.3,0,0).normalized());
+            PlaneRTC front = new PlaneRTC(new Vector3d(-.3, 0, 0), new Vector3d(.3, 0, 0).normalized());
             front.setLumen(lumen);
             add(front);
 
-            PlaneRTC left = new PlaneRTC(new Vector3d(0,-.3,0), new Vector3d(0,.3,0).normalized());
+            PlaneRTC left = new PlaneRTC(new Vector3d(0, -.3, 0), new Vector3d(0, .3, 0).normalized());
             left.setLumen(lumen);
             add(left);
-            PlaneRTC right = new PlaneRTC(new Vector3d(0,.3,0), new Vector3d(0,-.3,0).normalized());
+            PlaneRTC right = new PlaneRTC(new Vector3d(0, .3, 0), new Vector3d(0, -.3, 0).normalized());
             right.setLumen(lumen);
             add(right);
 
-            add(new TorusSDF(new Vector3d(0, -.1, 0), new Vector3d(0, 0, 0),.005f,.03f));
+            add(new TorusSDF(new Vector3d(0, -.1, 0), new Vector3d(0, 0, 0), .005f, .03f));
 
             add(new SubtractionSDF(
-                    new Vector3d(0, -.1,.1),
-                    new Vector3d(0, 0,0),
-                    new TorusSDF( new Vector3d(-.03,0,0),
-                            new Vector3d(0, 0,0),.005f,.02f),
-                    new BoxSDF(new Vector3d(0,0,0), new Vector3d(0,0,0), new Vector3d(.03,.03,.03))));
+                    new Vector3d(0, -.1, .1),
+                    new Vector3d(0, 0, 0),
+                    new TorusSDF(new Vector3d(-.03, 0, 0),
+                            new Vector3d(0, 0, 0), .005f, .02f),
+                    new BoxSDF(new Vector3d(0, 0, 0), new Vector3d(0, 0, 0), new Vector3d(.03, .03, .03))));
             SphereRTC p;
-            add(p = new SphereRTC(0,-.1f,-.1f,.03f));
+            add(p = new SphereRTC(0, -.1f, -.1f, .03f));
             p.setLumen(10);
             add(new BoxSDF(
-                    new Vector3d(0,0,-.1),
-                    new Vector3d(0,t,t),
-                    new Vector3d(.03,.03,.03)));
+                    new Vector3d(0, 0, -.1),
+                    new Vector3d(0, t, t),
+                    new Vector3d(.03, .03, .03)));
 
             add(new UnionSDF(
-                    new Vector3d(0, 0,0),
-                    new Vector3d(0, t,0),
-                    new TorusSDF( new Vector3d(0,0,0),
-                            new Vector3d(0, 0, 0),.005f,.03f),
+                    new Vector3d(0, 0, 0),
+                    new Vector3d(0, t, 0),
+                    new TorusSDF(new Vector3d(0, 0, 0),
+                            new Vector3d(0, 0, 0), .005f, .03f),
                     new BoxSDF(
-                            new Vector3d(0,0,0),
-                            new Vector3d(0,0,0),
-                            new Vector3d(.01,.01,.01))));
+                            new Vector3d(0, 0, 0),
+                            new Vector3d(0, 0, 0),
+                            new Vector3d(.01, .01, .01))));
 
             add(new IntersectionSDF(
-                    new Vector3d(0, 0,.1),
-                    new Vector3d(0, t,0),
-                    new TorusSDF( new Vector3d(0,.03,0),
-                            new Vector3d(0, 0, 0),.01f,.03f),
+                    new Vector3d(0, 0, .1),
+                    new Vector3d(0, t, 0),
+                    new TorusSDF(new Vector3d(0, .03, 0),
+                            new Vector3d(0, 0, 0), .01f, .03f),
                     new BoxSDF(
-                            new Vector3d(0,0,0),
-                            new Vector3d(0,0,0),
-                            new Vector3d(.03,.03 + .01 * Math.sin(t),.03 + .01 * Math.sin(t)))));
+                            new Vector3d(0, 0, 0),
+                            new Vector3d(0, 0, 0),
+                            new Vector3d(.03, .03 + .01 * Math.sin(t), .03 + .01 * Math.sin(t)))));
 
             add(new SubtractionSDF(
-                    new Vector3d(0, .1,-.1),
-                    new Vector3d(0, 0,0),
+                    new Vector3d(0, .1, -.1),
+                    new Vector3d(0, 0, 0),
                     new UnionSDF(
-                            new Vector3d(-.03, 0,0),
-                            new Vector3d(t, 0,0),
-                            new TorusSDF( new Vector3d(0,0,0),
-                                    new Vector3d(0, 0, 0),.005f,.02f),
+                            new Vector3d(-.03, 0, 0),
+                            new Vector3d(t, 0, 0),
+                            new TorusSDF(new Vector3d(0, 0, 0),
+                                    new Vector3d(0, 0, 0), .005f, .02f),
                             new BoxSDF(
-                                    new Vector3d(0,0,0),
-                                    new Vector3d(0,0,0),
-                                    new Vector3d(.01,.01,.01))),
-                    new BoxSDF(new Vector3d(0,0,0), new Vector3d(0,0,0), new Vector3d(.03,.03,.03))));
+                                    new Vector3d(0, 0, 0),
+                                    new Vector3d(0, 0, 0),
+                                    new Vector3d(.01, .01, .01))),
+                    new BoxSDF(new Vector3d(0, 0, 0), new Vector3d(0, 0, 0), new Vector3d(.03, .03, .03))));
         }
     }
 }

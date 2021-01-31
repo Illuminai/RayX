@@ -15,6 +15,14 @@ public class Vector3d {
         this.z = z;
     }
 
+    public Vector3d add(Vector3d vector) {
+        return new Vector3d(x + vector.x, y + vector.y, z + vector.z);
+    }
+
+    public Vector3d scale(double scalar) {
+        return new Vector3d(x * scalar, y * scalar, z * scalar);
+    }
+
     public float getX() {
         return x;
     }

@@ -3,12 +3,18 @@
 
 #include<clcode/default/headers/math.h>
 
+struct material_t {
+    long type;
+    numf3 color;
+    numf lumen;
+};
+
 struct shape_t {
     long type;
     long id;
     long flags;
+    struct material_t material;
     numf maxRadius;
-    numf lumen;
     numf3 position;
     numf3 rotation;
     struct matrix3x3 rotationMatrix;
@@ -16,34 +22,34 @@ struct shape_t {
     __global void* shape;
 };
 
-struct sphereRTC_t {
+struct sphere_t {
     numf radius;
 };
 
-struct torusSDF_t {
+struct torus_t {
     numf radiusSmall;
     numf radiusBig;
 };
 
-struct planeRTC_t {
+struct plane_t {
     numf3 normal;
 };
 
-struct subtractionSDF_t {
+struct subtraction_t {
     __global struct shape_t* shape1;
     __global struct shape_t* shape2;
 };
 
-struct boxSDF_t {
+struct box_t {
     numf3 dimensions;
 };
 
-struct unionSDF_t {
+struct union_t {
     __global struct shape_t* shape1;
     __global struct shape_t* shape2;
 };
 
-struct intersectionSDF_t {
+struct intersection_t {
     __global struct shape_t* shape1;
     __global struct shape_t* shape2;
 };
@@ -64,20 +70,20 @@ struct oneStepSDFArgs_t {
 };
 
 /** Make sure that normal is always normalized*/
-struct intersection_t {
+struct rayIntersection_t {
     __global struct shape_t* obj;
     numf3 point;
     numf3 normal;
     numf d;
 };
 
-bool firstIntersectionWithSphere(struct ray_t* ray, __global struct shape_t* sphere, struct intersection_t* inter);
+numf sphereSDF(numf3 point, __global struct sphere_t* sphere);
 
-bool firstIntersectionWithPlane(struct ray_t* ray, __global struct shape_t* shape, struct intersection_t * intersection);
+numf torusSDF(numf3 point, __global struct torus_t* torus);
 
-numf torusSDF(numf3 point, __global struct torusSDF_t* torus);
+numf planeSDF(numf3 point, __global struct plane_t* plane);
 
-numf boxSDF(numf3 point, __global struct boxSDF_t* box);
+numf boxSDF(numf3 point, __global struct box_t* box);
 
 numf distToRay(numf3 point, struct ray_t* ray);
 

@@ -106,13 +106,13 @@ public class RayX {
 
     static void test(CLContext context) {
         System.out.println("Shape struct: " + context.getStructSize(Shape.SHAPE));
-        System.out.println("Sphere struct: " + context.getStructSize(Shape.SPHERE_RTC));
-        System.out.println("Torus struct: " + context.getStructSize(Shape.TORUS_SDF));
-        System.out.println("Plane struct: " + context.getStructSize(Shape.PLANE_RTC));
-        System.out.println("Subtraction struct: " + context.getStructSize(Shape.SUBTRACTION_SDF));
-        System.out.println("Box struct: " + context.getStructSize(Shape.BOX_SDF));
-        System.out.println("Union struct: " + context.getStructSize(Shape.UNION_SDF));
-        System.out.println("Intersection struct: " + context.getStructSize(Shape.INTERSECTION_SDF));
+        System.out.println("Sphere struct: " + context.getStructSize(Shape.SPHERE));
+        System.out.println("Torus struct: " + context.getStructSize(Shape.TORUS));
+        System.out.println("Plane struct: " + context.getStructSize(Shape.PLANE));
+        System.out.println("Subtraction struct: " + context.getStructSize(Shape.SUBTRACTION));
+        System.out.println("Box struct: " + context.getStructSize(Shape.BOX));
+        System.out.println("Union struct: " + context.getStructSize(Shape.UNION));
+        System.out.println("Intersection struct: " + context.getStructSize(Shape.INTERSECTION));
     }
 
     static void freeAll() {

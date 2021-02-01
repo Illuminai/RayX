@@ -9,13 +9,13 @@ __kernel void getShapeSizes(int numShapes,
 __kernel void putShapesInMemory(int numShapes,
                 __global char* inputData,
                 __global struct shape_t* rawShapes,
-                __global struct sphereRTC_t* dataSphere,
-                __global struct torusSDF_t* dataTorus,
-                __global struct planeRTC_t* dataPlane,
-                __global struct subtractionSDF_t* dataSubtractionSDF,
-                __global struct boxSDF_t* dataBoxSDF,
-                __global struct unionSDF_t* dataUnionSDF,
-                __global struct intersectionSDF_t* dataIntersectionSDF);
+                __global struct sphere_t* dataSphere,
+                __global struct torus_t* dataTorus,
+                __global struct plane_t* dataPlane,
+                __global struct subtraction_t* dataSubtractionSDF,
+                __global struct box_t* dataBoxSDF,
+                __global struct union_t* dataUnionSDF,
+                __global struct intersection_t* dataIntersectionSDF);
 
 numf getNextFloat(__global char* data);
 

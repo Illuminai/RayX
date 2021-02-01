@@ -2,10 +2,9 @@ package com.rayx.shape;
 
 import com.rayx.opencl.CLContext;
 import com.rayx.opencl.CLManager;
-import org.lwjgl.system.CallbackI;
+import com.rayx.shape.material.Material;
 import org.lwjgl.system.MemoryStack;
 
-import java.beans.IntrospectionException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
@@ -96,25 +95,25 @@ public class Scene {
                     (long) context.getStructSize(Shape.SHAPE) * allObjects.size(),
                     shapesIdentifier);
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    allObjects.stream().filter(u -> u.getName() == Shape.SPHERE_RTC).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    allObjects.stream().filter(u -> u.getShape() == Shape.SPHERE).mapToInt(u -> context.getStructSize(u.getShape())).sum(),
                     shapesDataPrefix + "SphereRTC");
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    allObjects.stream().filter(u -> u.getName() == Shape.TORUS_SDF).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    allObjects.stream().filter(u -> u.getShape() == Shape.TORUS).mapToInt(u -> context.getStructSize(u.getShape())).sum(),
                     shapesDataPrefix + "TorusSDF");
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    allObjects.stream().filter(u -> u.getName() == Shape.PLANE_RTC).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    allObjects.stream().filter(u -> u.getShape() == Shape.PLANE).mapToInt(u -> context.getStructSize(u.getShape())).sum(),
                     shapesDataPrefix + "PlaneRTC");
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    allObjects.stream().filter(u -> u.getName() == Shape.SUBTRACTION_SDF).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    allObjects.stream().filter(u -> u.getShape() == Shape.SUBTRACTION).mapToInt(u -> context.getStructSize(u.getShape())).sum(),
                     shapesDataPrefix + "SubtractionSDF");
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    allObjects.stream().filter(u -> u.getName() == Shape.BOX_SDF).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    allObjects.stream().filter(u -> u.getShape() == Shape.BOX).mapToInt(u -> context.getStructSize(u.getShape())).sum(),
                     shapesDataPrefix + "BoxSDF");
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    allObjects.stream().filter(u -> u.getName() == Shape.UNION_SDF).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    allObjects.stream().filter(u -> u.getShape() == Shape.UNION).mapToInt(u -> context.getStructSize(u.getShape())).sum(),
                     shapesDataPrefix + "UnionSDF");
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    allObjects.stream().filter(u -> u.getName() == Shape.INTERSECTION_SDF).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    allObjects.stream().filter(u -> u.getShape() == Shape.INTERSECTION).mapToInt(u -> context.getStructSize(u.getShape())).sum(),
                     shapesDataPrefix + "IntersectionSDF");
 
             CLContext.CLKernel kernel = context.getKernelObject(CLContext.KERNEL_FILL_BUFFER_DATA);
@@ -160,26 +159,20 @@ public class Scene {
         }
 
         private void exhibition(double t) {
-            float lumen = 1f;
-            PlaneRTC bottom = new PlaneRTC(new Vector3d(0,0,-.3),new Vector3d(0,0,.3).normalized());
-            bottom.setLumen(lumen);
+            Material material = new Material(Material.MATERIAL_REFLECTION, new Vector3d(1,0,1), 1);
+            Plane bottom = new Plane(new Vector3d(0,0,-.3), new Vector3d(0,0,.3).normalized(), material);
             add(bottom);
-            PlaneRTC top = new PlaneRTC(new Vector3d(0,0,.3), new Vector3d(0,0,-.3).normalized());
-            top.setLumen(lumen);
+            Plane top = new Plane(new Vector3d(0,0,.3), new Vector3d(0,0,-.3).normalized(), material);
             add(top);
 
-            PlaneRTC back = new PlaneRTC(new Vector3d(.3,0,0), new Vector3d(-.3,0,0).normalized());
-            back.setLumen(lumen);
+            Plane back = new Plane(new Vector3d(.3,0,0), new Vector3d(-.3,0,0).normalized(),material);
             add(back);
-            PlaneRTC front = new PlaneRTC(new Vector3d(-.3,0,0), new Vector3d(.3,0,0).normalized());
-            front.setLumen(lumen);
+            Plane front = new Plane(new Vector3d(-.3,0,0), new Vector3d(.3,0,0).normalized(),material);
             add(front);
 
-            PlaneRTC left = new PlaneRTC(new Vector3d(0,-.3,0), new Vector3d(0,.3,0).normalized());
-            left.setLumen(lumen);
+            Plane left = new Plane(new Vector3d(0,-.3,0), new Vector3d(0,.3,0).normalized(),material);
             add(left);
-            PlaneRTC right = new PlaneRTC(new Vector3d(0,.3,0), new Vector3d(0,-.3,0).normalized());
-            right.setLumen(lumen);
+            Plane right = new Plane(new Vector3d(0,.3,0), new Vector3d(0,-.3,0).normalized(),material);
             add(right);
 
             add(new TorusSDF(new Vector3d(0, -.1, 0), new Vector3d(0, 0, 0),.005f,.03f));
@@ -190,9 +183,7 @@ public class Scene {
                     new TorusSDF( new Vector3d(-.03,0,0),
                             new Vector3d(0, 0,0),.005f,.02f),
                     new BoxSDF(new Vector3d(0,0,0), new Vector3d(0,0,0), new Vector3d(.03,.03,.03))));
-            SphereRTC p;
-            add(p = new SphereRTC(0,-.1f,-.1f,.03f));
-            p.setLumen(1);
+            add(new Sphere(0,-.1f,-.1f,.03f));
             add(new BoxSDF(
                     new Vector3d(0,0,-.1),
                     new Vector3d(0,t,t),

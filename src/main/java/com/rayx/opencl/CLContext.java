@@ -24,13 +24,13 @@ public class CLContext {
             " -D EPSILON=((float)0.0001) " +
             " -D FLAG_SHOULD_RENDER=" + Shape.FLAG_SHOULD_RENDER +
             " -D SHAPE=" + Shape.SHAPE +
-            " -D SPHERE_RTC=" + Shape.SPHERE_RTC +
-            " -D TORUS_SDF=" + Shape.TORUS_SDF +
-            " -D PLANE_RTC=" + Shape.PLANE_RTC +
-            " -D SUBTRACTION_SDF=" + Shape.SUBTRACTION_SDF +
-            " -D BOX_SDF=" + Shape.BOX_SDF +
-            " -D UNION_SDF=" + Shape.UNION_SDF +
-            " -D INTERSECTION_SDF=" + Shape.INTERSECTION_SDF;
+            " -D SPHERE=" + Shape.SPHERE +
+            " -D TORUS=" + Shape.TORUS +
+            " -D PLANE=" + Shape.PLANE +
+            " -D SUBTRACTION=" + Shape.SUBTRACTION +
+            " -D BOX=" + Shape.BOX +
+            " -D UNION=" + Shape.UNION +
+            " -D INTERSECTION=" + Shape.INTERSECTION;
 
     private final long device;
     private long context;
@@ -322,13 +322,13 @@ public class CLContext {
     private void getStructSizes() {
         int[] structs = {
                 Shape.SHAPE,
-                Shape.SPHERE_RTC,
-                Shape.TORUS_SDF,
-                Shape.PLANE_RTC,
-                Shape.SUBTRACTION_SDF,
-                Shape.BOX_SDF,
-                Shape.UNION_SDF,
-                Shape.INTERSECTION_SDF
+                Shape.SPHERE,
+                Shape.TORUS,
+                Shape.PLANE,
+                Shape.SUBTRACTION,
+                Shape.BOX,
+                Shape.UNION,
+                Shape.INTERSECTION
         };
         CLContext.CLKernel kernelStruct =
                 getKernelObject(CLContext.KERNEL_GET_STRUCT_SIZE);

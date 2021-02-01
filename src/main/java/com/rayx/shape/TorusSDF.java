@@ -2,7 +2,7 @@ package com.rayx.shape;
 
 import java.nio.ByteBuffer;
 
-public class TorusSDF extends Shape implements Shape.ShapeSDF {
+public class TorusSDF extends Shape {
     private final float smallRadius, bigRadius;
 
     public TorusSDF(Vector3d position, Vector3d rotation, float smallRadius, float bigRadius) {
@@ -12,8 +12,8 @@ public class TorusSDF extends Shape implements Shape.ShapeSDF {
     }
 
     @Override
-    public int getName() {
-        return TORUS_SDF;
+    public int getShape() {
+        return TORUS;
     }
 
     @Override

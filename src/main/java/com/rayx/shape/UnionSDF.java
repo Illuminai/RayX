@@ -3,7 +3,7 @@ package com.rayx.shape;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class UnionSDF extends Shape implements Shape.ShapeSDF {
+public class UnionSDF extends Shape {
     private final Shape shape1, shape2;
 
     public UnionSDF(Vector3d position, Vector3d rotation, Shape shape1, Shape shape2) {
@@ -13,8 +13,8 @@ public class UnionSDF extends Shape implements Shape.ShapeSDF {
     }
 
     @Override
-    public int getName() {
-        return UNION_SDF;
+    public int getShape() {
+        return UNION;
     }
 
     @Override

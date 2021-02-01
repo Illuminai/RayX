@@ -3,7 +3,7 @@ package com.rayx.shape;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class SubtractionSDF extends Shape implements Shape.ShapeSDF {
+public class SubtractionSDF extends Shape {
     private final Shape shape1, shape2;
 
     public SubtractionSDF(Vector3d position, Vector3d rotation, Shape shape1, Shape shape2) {
@@ -13,8 +13,8 @@ public class SubtractionSDF extends Shape implements Shape.ShapeSDF {
     }
 
     @Override
-    public int getName() {
-        return SUBTRACTION_SDF;
+    public int getShape() {
+        return SUBTRACTION;
     }
 
     @Override

@@ -566,7 +566,7 @@ public class CLManager {
                         context.getMemoryObject(shapeDataPrefix + "SphereRTC");
                 ByteBuffer shapesData = stack.malloc((int) shapeDataSphere.getSize());
                 shapeDataSphere.getValue(shapesData);
-                int structSize = context.getStructSize(Shape.SPHERE_RTC);
+                int structSize = context.getStructSize(Shape.SPHERE);
                 while(shapesData.hasRemaining()) {
                     for(int j = 0; j < structSize / Float.BYTES; j++) {
                         System.out.print(shapesData.getFloat() +" ");
@@ -580,7 +580,7 @@ public class CLManager {
                         context.getMemoryObject(shapeDataPrefix + "TorusSDF");
                 ByteBuffer shapesData = stack.malloc((int) shapeDataTorus.getSize());
                 shapeDataTorus.getValue(shapesData);
-                int structSize = context.getStructSize(Shape.TORUS_SDF);
+                int structSize = context.getStructSize(Shape.TORUS);
                 while(shapesData.hasRemaining()) {
                     for(int j = 0; j < structSize / Float.BYTES; j++) {
                         System.out.print(shapesData.getFloat() + " ");
@@ -594,7 +594,7 @@ public class CLManager {
                         context.getMemoryObject(shapeDataPrefix + "PlaneRTC");
                 ByteBuffer shapesData = stack.malloc((int) planeData.getSize());
                 planeData.getValue(shapesData);
-                int structSize = context.getStructSize(Shape.PLANE_RTC);
+                int structSize = context.getStructSize(Shape.PLANE);
                 while(shapesData.hasRemaining()) {
                     for(int j = 0; j < structSize / Float.BYTES; j++) {
                         System.out.print(shapesData.getFloat() + " ");
@@ -608,7 +608,7 @@ public class CLManager {
                         context.getMemoryObject(shapeDataPrefix + "SubtractionSDF");
                 ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
                 subtractionData.getValue(shapesData);
-                int structSize = context.getStructSize(Shape.SUBTRACTION_SDF);
+                int structSize = context.getStructSize(Shape.SUBTRACTION);
                 while(shapesData.hasRemaining()) {
                     for(int j = 0; j < structSize / Float.BYTES; j++) {
                         System.out.print(shapesData.getFloat() + " ");
@@ -622,7 +622,7 @@ public class CLManager {
                         context.getMemoryObject(shapeDataPrefix + "BoxSDF");
                 ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
                 subtractionData.getValue(shapesData);
-                int structSize = context.getStructSize(Shape.BOX_SDF);
+                int structSize = context.getStructSize(Shape.BOX);
                 while(shapesData.hasRemaining()) {
                     for(int j = 0; j < structSize / Float.BYTES; j++) {
                         System.out.print(shapesData.getFloat() + " ");
@@ -636,7 +636,7 @@ public class CLManager {
                         context.getMemoryObject(shapeDataPrefix + "UnionSDF");
                 ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
                 subtractionData.getValue(shapesData);
-                int structSize = context.getStructSize(Shape.UNION_SDF);
+                int structSize = context.getStructSize(Shape.UNION);
                 while(shapesData.hasRemaining()) {
                     for(int j = 0; j < structSize / Float.BYTES; j++) {
                         System.out.print(shapesData.getFloat() + " ");
@@ -650,7 +650,7 @@ public class CLManager {
                         context.getMemoryObject(shapeDataPrefix + "IntersectionSDF");
                 ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
                 subtractionData.getValue(shapesData);
-                int structSize = context.getStructSize(Shape.INTERSECTION_SDF);
+                int structSize = context.getStructSize(Shape.INTERSECTION);
                 while(shapesData.hasRemaining()) {
                     for(int j = 0; j < structSize / Float.BYTES; j++) {
                         System.out.print(shapesData.getFloat() + " ");

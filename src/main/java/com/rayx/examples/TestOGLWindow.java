@@ -5,10 +5,7 @@ import com.rayx.glfw.OpenGLWindow;
 import com.rayx.opengl.Shader;
 import com.rayx.opengl.ShaderProgram;
 import com.rayx.opengl.ShaderType;
-import com.rayx.shape.Camera;
-import com.rayx.shape.Matrix3x3;
-import com.rayx.shape.Scene;
-import com.rayx.shape.Vector3d;
+import com.rayx.shape.*;
 import imgui.*;
 import imgui.flag.*;
 import imgui.gl3.ImGuiImplGl3;
@@ -157,18 +154,13 @@ public class TestOGLWindow extends OpenGLWindow {
 
         final ImFontAtlas fontAtlas = io.getFonts();
         //fontAtlas.addFontDefault();
-        //fontAtlas.addFontFromMemoryTTF(loadFromResources("Karla.ttf"), 14.0f);
+        //fontAtlas.addFontFromMemoryTTF(loadFromResources("Font.ttf"), 14.0f);
         fontAtlas.addFontFromFileTTF("C:\\Windows\\Fonts\\Verdana.ttf", 13.0f);
         ImGuiFreeType.buildFontAtlas(fontAtlas);
 
-
         ImGuiStyle style = ImGui.getStyle();
-        //style.setColor(ImGuiCol.TabActive, 0,119, 200, 255);
-
-        if (io.hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {
-            style.setWindowRounding(0.0f);
-            style.setColor(ImGuiCol.WindowBg, ImGui.getColorU32(ImGuiCol.WindowBg, 1));
-        }
+        style.setColor(ImGuiCol.TabActive, 0,119, 200, 255);
+        style.setWindowRounding(0);
 
         imGuiImplGlfw.init(getWindow(), true);
         imGuiImplGl3.init("#version 450");
@@ -311,7 +303,9 @@ public class TestOGLWindow extends OpenGLWindow {
         {
             ImGui.begin("Scene");
             ImGui.text("FPS: " + frames);
-            //ImGui.listBox("List", selectedSceneItem, scene.getAllObjects().stream().map(shape -> "" + shape.getName()).toArray(String[]::new), scene.getAllObjects().size());
+
+
+            ImGui.listBox("List", selectedSceneItem, scene.getAllObjects().stream().map(shape -> "" + shape.getClass().getName()).toArray(String[]::new), scene.getAllObjects().size());
 
             float[] positions = new float[]{
                     camera.getPosition().getX(),

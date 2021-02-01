@@ -1,15 +1,59 @@
 #include <clcode/default/headers/render.h>
 
-/*__kernel void render(__write_only image2d_t resultImage, float height,
-                     float width, float4 cameraPosition, float4 cameraRotation,
-                     float cameraFOV, int globalNumShapes,
-                     __global struct shape_t *globalShapes) {}*/
+/**
+ * Debug viewport
+ */
+__kernel void renderDebug(__write_only image2d_t resultImage, float height,
+                          float width, float4 cameraPosition,
+                          float4 cameraRotation, float cameraFOV,
+                          int globalNumShapes,
+                          __global struct shape_t *globalShapes) {
+    int2 pixCo = (int2){get_global_id(0), get_global_id(1)};
+    int w = get_image_width(resultImage);
+    int h = get_image_height(resultImage);
+
+    // float u = 2.0 * (((pixCo.x + .5) / width)F - .5);
+    // float v = -2.0 * (((pixCo.y + .5) / height) - .5);
+
+    float u = 2.0 * ((pixCo.x + 0.5) / w) - 1;
+    float v = 1 - 2.0 * ((pixCo.y + 0.5) / h);
+
+    float aspectRatio = width / height;
+    v = ((v - 0.5) * aspectRatio) + 0.5;
+
+    if (pixCo.x >= w | pixCo.y >= h) {
+        return;
+    }
+
+    struct ray_t ray;
+    struct intersection_t intersection;
+
+    intersection = (struct intersection_t){
+        (__global struct shape_t *)0, (float3){0, 0, 0}, (float3){0, 0, 0}, 0};
+
+    ray = getRay(u, v, cameraPosition.xyz, cameraRotation.xyz, cameraFOV);
+    traceRay(&ray, globalNumShapes, globalShapes, &intersection);
+
+    if (intersection.obj == 0) {
+        write_imagef(resultImage, pixCo, (float4){0, 0, 1, 1});
+        return;
+    }
+
+    float4 color = getDebugColor(intersection);
+    write_imagef(resultImage, pixCo, color);
+    return;
+}
+
+float4 getDebugColor(struct intersection_t inter) {
+    return (float4){(inter.normal.x + 1.0) * 0.5, (inter.normal.y + 1.0) * 0.5,
+                    (inter.normal.z + 1.0) * 0.5, 1.0};
+}
 
 /** Although cameraPosition/cameraRotation are 3dim, the parameter passed is
 4dim so it can be passed using clSetKernelArg4d */
-__kernel void render(__write_only image2d_t resultImage, float4 cameraPosition,
-                     float4 cameraRotation, float cameraFOV,
-                     int globalNumShapes, float height, float width, int debug,
+__kernel void render(__write_only image2d_t resultImage, float height,
+                     float width, float4 cameraPosition, float4 cameraRotation,
+                     float cameraFOV, int globalNumShapes,
                      __global struct shape_t *globalShapes) {
     int2 pixCo = (int2){get_global_id(0), get_global_id(1)};
     int w = get_image_width(resultImage);
@@ -25,30 +69,6 @@ __kernel void render(__write_only image2d_t resultImage, float4 cameraPosition,
     v = ((v - 0.5) * aspectRatio) + 0.5;
 
     if (pixCo.x >= w | pixCo.y >= h) {
-        return;
-    }
-
-    if (debug) {
-        struct ray_t rays[1];
-        struct intersection_t inters[1];
-
-        for (int i = 0; i < 1; i++) {
-            inters[i] = (struct intersection_t){(__global struct shape_t *)0,
-                                                (float3){0, 0, 0},
-                                                (float3){0, 0, 0}, 0};
-        }
-
-        rays[0] =
-            getRay(u, v, cameraPosition.xyz, cameraRotation.xyz, cameraFOV);
-        traceRay(&rays[0], globalNumShapes, globalShapes, &inters[0]);
-
-        if (inters[0].obj == 0) {
-            write_imagef(resultImage, pixCo, (float4){0, 0, 1, 1});
-            return;
-        }
-
-        float4 color = getDebugColor(inters[0]);
-        write_imagef(resultImage, pixCo, color);
         return;
     }
 
@@ -97,11 +117,6 @@ finished:
 
     float factor = atanpi(lumen) * 2;
     write_imagef(resultImage, pixCo, factor * color);
-}
-
-float4 getDebugColor(struct intersection_t inter) {
-    return (float4){(inter.normal.x + 1.0) * 0.5, (inter.normal.y + 1.0) * 0.5,
-                    (inter.normal.z + 1.0) * 0.5, 1.0};
 }
 
 float4 getTypeColor(int type) {

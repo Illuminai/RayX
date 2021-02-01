@@ -27,6 +27,10 @@ public class Scene {
         return allObjects;
     }
 
+    public ArrayList<Shape> getVisibleObjects() {
+        return visibleObjects;
+    }
+
     public void add(Shape s) {
         visibleObjects.add(s);
     }

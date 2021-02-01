@@ -227,6 +227,10 @@ public class CLContext {
         //Run renderer
         CLManager.putKernel(this, "render",
                 KERNEL_RENDER, "renderProgram");
+
+        // Debug preview
+        CLManager.putKernel(this, "renderDebug",
+                KERNEL_RENDER_DEBUG, "renderProgram");
         //----------- I N I T I A L I Z E -----------
         getStructSizes();
     }

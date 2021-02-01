@@ -7,8 +7,6 @@ import com.rayx.opencl.CLContext;
 import com.rayx.opencl.CLManager;
 import com.rayx.shape.*;
 
-import java.util.ArrayList;
-
 import static org.lwjgl.opencl.CL22.*;
 
 public class RayX {

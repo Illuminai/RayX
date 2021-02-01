@@ -33,9 +33,12 @@ import static org.lwjgl.opengl.WGL.wglGetCurrentContext;
 import static org.lwjgl.opengl.WGL.wglGetCurrentDC;
 
 public class CLManager {
-    private CLManager() {}
+    private CLManager() {
+    }
 
-    /** Should only be accessed by {@link #nextStackFrame()}*/
+    /**
+     * Should only be accessed by {@link #nextStackFrame()}
+     */
     private static final MemoryStack internalMemoryStack;
 
     static {
@@ -44,12 +47,12 @@ public class CLManager {
 
     public static String readFromFile(String file) {
         InputStream inputStream = CLManager.class.getResourceAsStream(file);
-        assert inputStream != null: "Resource " + file + " not available";
+        assert inputStream != null : "Resource " + file + " not available";
         BufferedReader r = new BufferedReader(new InputStreamReader(inputStream));
         StringBuilder b = new StringBuilder();
         String line;
         try {
-            while((line = r.readLine()) != null) {
+            while ((line = r.readLine()) != null) {
                 b.append(line);
                 b.append('\n');
             }
@@ -65,7 +68,7 @@ public class CLManager {
     }
 
     public static CLContext createContext(long device, long glfwWindow) {
-        try(MemoryStack stack = nextStackFrame()) {
+        try (MemoryStack stack = nextStackFrame()) {
             long[] propertiesPara = CLManager.createPropertiesForContext((Long)
                     CLManager.queryDeviceInfo(device, CL_DEVICE_PLATFORM), glfwWindow);
             ByteBuffer properties = stack.malloc(propertiesPara.length * Long.BYTES);
@@ -93,15 +96,15 @@ public class CLManager {
             String programSourceCode = readFromFile("/" + sourceFile);
             long programPointer = CL22.clCreateProgramWithSource(context.getContext(), programSourceCode, errorBuffer);
             checkForError(errorBuffer);
-            if(dependenciesId == null) {
+            if (dependenciesId == null) {
                 dependenciesId = new String[0];
             }
             CLContext.CLProgram[] dependencies = new CLContext.CLProgram[dependenciesId.length];
-            for(int i = 0; i < dependencies.length; i++) {
+            for (int i = 0; i < dependencies.length; i++) {
                 dependencies[i] = context.getProgramObject(dependenciesId[i]);
             }
             PointerBuffer inputHeaderNames, inputHeaderPrograms;
-            if(dependencies.length != 0) {
+            if (dependencies.length != 0) {
                 inputHeaderNames = stack.pointers(Arrays.stream(dependencies).
                         map((CLContext.CLProgram proObj) -> stack.ASCII(proObj.getProgramId())).
                         toArray(ByteBuffer[]::new));
@@ -111,7 +114,7 @@ public class CLManager {
                 inputHeaderNames = null;
                 inputHeaderPrograms = null;
             }
-            int error= CL22.clCompileProgram(
+            int error = CL22.clCompileProgram(
                     programPointer,
                     stack.pointers(context.getDevice()),
                     compileOptions,
@@ -121,7 +124,7 @@ public class CLManager {
                     0
             );
             String buildInfo = createBuildInfo(context.getDevice(), programPointer);
-            if(buildInfo.equals("")) {
+            if (buildInfo.equals("")) {
                 System.out.println("Compiled " + sourceFile);
             } else {
                 System.out.println("Compiling " + sourceFile);
@@ -141,7 +144,7 @@ public class CLManager {
                     stack.pointers(Arrays.stream(programIds).mapToLong(u -> context.getProgramObject(u).getProgram()).toArray()),
                     null,
                     0);
-            if(program == 0) {
+            if (program == 0) {
                 throw new RuntimeException("CL: Linking failed");
             }
             context.addProgramObject(context.new CLProgram(programName, program, true));
@@ -152,7 +155,7 @@ public class CLManager {
         try (MemoryStack stack = CLManager.nextStackFrame()) {
             IntBuffer error = stack.mallocInt(1);
             CLContext.CLProgram program = context.getProgramObject(programId);
-            if(!program.isLinked()) {
+            if (!program.isLinked()) {
                 throw new RuntimeException("Program is not linked");
             }
             long kernel = CL22.clCreateKernel(program.getProgram(), kernelFunction, error);
@@ -195,7 +198,7 @@ public class CLManager {
 
             globalWorkSize.asLongBuffer().put(globalSize);
 
-            if(localSize != null) {
+            if (localSize != null) {
                 localWorkSize.asLongBuffer().put(localSize);
             }
 
@@ -203,7 +206,7 @@ public class CLManager {
             CLManager.checkForError(CL22.clEnqueueNDRangeKernel(commandQueue, kernel,
                     globalSize.length, null,
                     PointerBuffer.create(globalWorkSize),
-                    localSize == null ? null: PointerBuffer.create(localWorkSize),
+                    localSize == null ? null : PointerBuffer.create(localWorkSize),
                     null, event));
             int executionStatus = CL22.clWaitForEvents(event.get(0));
             checkForError(executionStatus);
@@ -256,7 +259,7 @@ public class CLManager {
             error = CL22.clGetPlatformInfo(platform, info, (long[]) null, length);
             checkForError(error);
 
-            ByteBuffer rawInfo = stack.malloc((int)length.get(0));
+            ByteBuffer rawInfo = stack.malloc((int) length.get(0));
             error = CL22.clGetPlatformInfo(platform, info, rawInfo, null);
             checkForError(error);
 
@@ -264,7 +267,7 @@ public class CLManager {
                 case CL22.CL_PLATFORM_NAME, CL22.CL_PLATFORM_VERSION, CL22.CL_PLATFORM_VENDOR,
                         CL22.CL_PLATFORM_PROFILE, CL22.CL_PLATFORM_EXTENSIONS -> byteBufferToString(rawInfo);
                 case CL22.CL_PLATFORM_HOST_TIMER_RESOLUTION -> byteBufferToULong(rawInfo);
-                default -> throw new IllegalArgumentException("Unsupported platform info: "+ info);
+                default -> throw new IllegalArgumentException("Unsupported platform info: " + info);
             };
         }
     }
@@ -276,7 +279,7 @@ public class CLManager {
             error = CL22.clGetDeviceInfo(device, info, (long[]) null, length);
             checkForError(error);
 
-            ByteBuffer rawInfo = stack.malloc((int)length.get(0));
+            ByteBuffer rawInfo = stack.malloc((int) length.get(0));
             error = CL22.clGetDeviceInfo(device, info, rawInfo, null);
             checkForError(error);
 
@@ -287,7 +290,7 @@ public class CLManager {
                 case CL22.CL_DEVICE_MAX_COMPUTE_UNITS, CL22.CL_DEVICE_MAX_CLOCK_FREQUENCY -> byteBufferToUInt(rawInfo);
                 case CL22.CL_DEVICE_TYPE -> byteBufferToDeviceType(rawInfo);
                 case CL22.CL_DEVICE_PLATFORM -> byteBufferToLong(rawInfo);
-                default -> throw new IllegalArgumentException("Unsupported device info: "+ info);
+                default -> throw new IllegalArgumentException("Unsupported device info: " + info);
             };
         }
     }
@@ -376,7 +379,7 @@ public class CLManager {
             error = CL22.clGetPlatformIDs(bufferPlatforms, (IntBuffer) null);
             checkForError(error);
             ArrayList<Long> platforms = new ArrayList<>(bufferPlatforms.remaining());
-            while(bufferPlatforms.hasRemaining()) {
+            while (bufferPlatforms.hasRemaining()) {
                 platforms.add(bufferPlatforms.get());
             }
             return platforms;
@@ -384,7 +387,7 @@ public class CLManager {
     }
 
     public static long[] createPropertiesForContext(long platform, long glfwWindow) {
-        if(glfwWindow == 0) {
+        if (glfwWindow == 0) {
             return new long[]{
                     CL_CONTEXT_PLATFORM, platform,
                     0
@@ -411,19 +414,20 @@ public class CLManager {
         };
     }
 
-    /** @param platform must point to a valid platform
-     * @param glfwWindow if not zero, the program attempts to query CL-GL interop capable devices. This only works if the platform supports the cl_khr_gl_sharing extension.
-     *                   if it is zero, the program will query all available devices
+    /**
+     * @param platform            must point to a valid platform
+     * @param glfwWindow          if not zero, the program attempts to query CL-GL interop capable devices. This only works if the platform supports the cl_khr_gl_sharing extension.
+     *                            if it is zero, the program will query all available devices
      * @param onlyCurrentGLDevice Only used if CL-GL interop is enabled. When <code>true</code>, the program returns the device which is already used for the GL context.
      * @return A list containing all devices of a platform. If <code>glfwWindow</code> is not zero, the devices are CL-GL interop capable.
-     * */
+     */
     public static List<Long> queryDevicesForPlatform(long platform, long glfwWindow, boolean onlyCurrentGLDevice) {
         try (MemoryStack stack = CLManager.nextStackFrame()) {
             LongBuffer devices;
             long[] properties = createPropertiesForContext(platform, glfwWindow);
             ByteBuffer byteProp = stack.malloc(properties.length * Long.BYTES);
             byteProp.asLongBuffer().put(properties);
-            if(glfwWindow == 0) {
+            if (glfwWindow == 0) {
                 //No CL-GL interop
                 int[] numDevices = new int[1];
                 int error = CL22.clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, null, numDevices);
@@ -435,7 +439,7 @@ public class CLManager {
                 devices = b.asLongBuffer();
             } else {
                 //Check extension:
-                if(!((String)queryPlatformInfo(platform, CL_PLATFORM_EXTENSIONS)).contains("cl_khr_gl_sharing")) {
+                if (!((String) queryPlatformInfo(platform, CL_PLATFORM_EXTENSIONS)).contains("cl_khr_gl_sharing")) {
                     //Return empty arraylist: operation not supported
                     //clGetGLContextInfoKHR crashes the JVM if this extension is not supported
                     return new ArrayList<>(0);
@@ -454,7 +458,7 @@ public class CLManager {
             }
 
             ArrayList<Long> ret = new ArrayList<>(devices.remaining());
-            while(devices.hasRemaining()) {
+            while (devices.hasRemaining()) {
                 ret.add(devices.get());
             }
 
@@ -491,8 +495,10 @@ public class CLManager {
 
     }
 
-    /** This function prints the shapes which are allocated on the GPU
-     * Only for debugging purposes*/
+    /**
+     * This function prints the shapes which are allocated on the GPU
+     * Only for debugging purposes
+     */
     public static void testPrintGPUMemory(CLContext context, String shapesIdentifier,
                                           String shapeDataPrefix, List<Shape> testReferences) {
         try (MemoryStack stack = CLManager.nextStackFrame()) {
@@ -508,8 +514,8 @@ public class CLManager {
                 int structSize = context.getStructSize(Shape.SHAPE);
                 System.out.println(structSize);
                 int k = 0;
-                while(shapesData.hasRemaining()) {
-                    System.out.println( shapesData.getLong() + " " +
+                while (shapesData.hasRemaining()) {
+                    System.out.println(shapesData.getLong() + " " +
                             shapesData.getLong() + " " +
                             shapesData.getLong() + " " +
                             shapesData.getFloat() + " " +
@@ -532,9 +538,9 @@ public class CLManager {
                 ByteBuffer shapesData = stack.malloc((int) shapeDataSphere.getSize());
                 shapeDataSphere.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.SPHERE_RTC);
-                while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Float.BYTES; j++) {
-                        System.out.print(shapesData.getFloat() +" ");
+                while (shapesData.hasRemaining()) {
+                    for (int j = 0; j < structSize / Float.BYTES; j++) {
+                        System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();
                 }
@@ -546,8 +552,8 @@ public class CLManager {
                 ByteBuffer shapesData = stack.malloc((int) shapeDataTorus.getSize());
                 shapeDataTorus.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.TORUS_SDF);
-                while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Float.BYTES; j++) {
+                while (shapesData.hasRemaining()) {
+                    for (int j = 0; j < structSize / Float.BYTES; j++) {
                         System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();
@@ -560,8 +566,8 @@ public class CLManager {
                 ByteBuffer shapesData = stack.malloc((int) planeData.getSize());
                 planeData.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.PLANE_RTC);
-                while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Float.BYTES; j++) {
+                while (shapesData.hasRemaining()) {
+                    for (int j = 0; j < structSize / Float.BYTES; j++) {
                         System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();
@@ -574,8 +580,8 @@ public class CLManager {
                 ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
                 subtractionData.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.SUBTRACTION_SDF);
-                while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Float.BYTES; j++) {
+                while (shapesData.hasRemaining()) {
+                    for (int j = 0; j < structSize / Float.BYTES; j++) {
                         System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();
@@ -588,8 +594,8 @@ public class CLManager {
                 ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
                 subtractionData.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.BOX_SDF);
-                while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Float.BYTES; j++) {
+                while (shapesData.hasRemaining()) {
+                    for (int j = 0; j < structSize / Float.BYTES; j++) {
                         System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();
@@ -602,8 +608,8 @@ public class CLManager {
                 ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
                 subtractionData.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.UNION_SDF);
-                while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Float.BYTES; j++) {
+                while (shapesData.hasRemaining()) {
+                    for (int j = 0; j < structSize / Float.BYTES; j++) {
                         System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();
@@ -616,8 +622,8 @@ public class CLManager {
                 ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
                 subtractionData.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.INTERSECTION_SDF);
-                while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Float.BYTES; j++) {
+                while (shapesData.hasRemaining()) {
+                    for (int j = 0; j < structSize / Float.BYTES; j++) {
                         System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();
@@ -629,20 +635,30 @@ public class CLManager {
     public static void runRenderKernel(CLContext context, int glTex, Camera camera,
                                        int numShapes, String shapesMemObj, String shapeDataPrefix, int width, int height, boolean debug) {
         glFinish();
-        CLContext.CLKernel kernel = context.getKernelObject(CLContext.KERNEL_RENDER);
+
+        CLContext.CLKernel kernel;
+        if (!debug) {
+            kernel = context.getKernelObject(CLContext.KERNEL_RENDER);
+        } else {
+            kernel = context.getKernelObject(CLContext.KERNEL_RENDER_DEBUG);
+        }
+
         CLManager.createCLFromGLTexture(context, CL_MEM_WRITE_ONLY, GL_TEXTURE_2D, glTex, "texture");
         context.getMemoryObject("texture").acquireFromGL();
         kernel.setParameterPointer(0, "texture");
-        kernel.setParameter4f(1, camera.getPosition().getX(), camera.getPosition().getY(), camera.getPosition().getZ(),0);
-        kernel.setParameter4f(2, camera.getRotation().getX(), camera.getRotation().getY(), camera.getRotation().getZ(),0);
-        kernel.setParameter1f(3, camera.getFov());
-        kernel.setParameter1i(4, numShapes);
-        kernel.setParameter1f(5, (float)width);
-        kernel.setParameter1f(6, (float)height);
-        kernel.setParameter1i(7, debug ? 1 : 0);
-        kernel.setParameterPointer(8, shapesMemObj);
+
+        kernel.setParameter1f(1, (float) width);
+        kernel.setParameter1f(2, (float) height);
+
+        kernel.setParameter4f(3, camera.getPosition().getX(), camera.getPosition().getY(), camera.getPosition().getZ(), 0);
+        kernel.setParameter4f(4, camera.getRotation().getX(), camera.getRotation().getY(), camera.getRotation().getZ(), 0);
+        kernel.setParameter1f(5, camera.getFov());
+
+        kernel.setParameter1i(6, numShapes);
+        kernel.setParameterPointer(7, shapesMemObj);
 
         kernel.run(new long[]{width, height}, null);
+
         context.getMemoryObject("texture").releaseFromGL();
         context.freeMemoryObject("texture");
     }

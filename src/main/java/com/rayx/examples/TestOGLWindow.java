@@ -150,9 +150,14 @@ public class TestOGLWindow extends OpenGLWindow {
         io.setConfigViewportsNoTaskBarIcon(true);
 
         final ImFontAtlas fontAtlas = io.getFonts();
-        //fontAtlas.addFontDefault();
-        //fontAtlas.addFontFromMemoryTTF(loadFromResources("Font.ttf"), 14.0f);
-        fontAtlas.addFontFromFileTTF("C:\\Windows\\Fonts\\Verdana.ttf", 13.0f);
+        // Load custom Font
+        // TODO: Load Linux system font
+        // fontAtlas.addFontFromMemoryTTF(loadFromResources("Font.ttf"), 14.0f);
+        if(System.getProperty("os.name").toLowerCase().contains("win")){
+            fontAtlas.addFontFromFileTTF("C:\\Windows\\Fonts\\Verdana.ttf", 13.0f);
+        }else{
+            fontAtlas.addFontDefault();
+        }
         ImGuiFreeType.buildFontAtlas(fontAtlas);
 
         ImGuiStyle style = ImGui.getStyle();

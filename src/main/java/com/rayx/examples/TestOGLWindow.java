@@ -1,20 +1,19 @@
 package com.rayx.examples;
 
-import com.rayx.RayX;
 import com.rayx.glfw.OpenGLWindow;
 import com.rayx.opengl.Shader;
 import com.rayx.opengl.ShaderProgram;
 import com.rayx.opengl.ShaderType;
-import com.rayx.shape.*;
+import com.rayx.shape.Camera;
+import com.rayx.shape.Matrix3x3;
+import com.rayx.shape.Scene;
+import com.rayx.shape.Vector3d;
 import imgui.*;
 import imgui.flag.*;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
-import imgui.type.ImBoolean;
-import imgui.type.ImFloat;
 import imgui.type.ImInt;
 import org.lwjgl.glfw.GLFW;
-import org.lwjgl.glfw.GLFWNativeWin32;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -23,13 +22,11 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
-import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
+import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
 import static org.lwjgl.opengl.GL30.*;
 
 public class TestOGLWindow extends OpenGLWindow {
@@ -159,7 +156,7 @@ public class TestOGLWindow extends OpenGLWindow {
         ImGuiFreeType.buildFontAtlas(fontAtlas);
 
         ImGuiStyle style = ImGui.getStyle();
-        style.setColor(ImGuiCol.TabActive, 0,119, 200, 255);
+        style.setColor(ImGuiCol.TabActive, 0, 119, 200, 255);
         style.setWindowRounding(0);
 
         imGuiImplGlfw.init(getWindow(), true);
@@ -327,7 +324,14 @@ public class TestOGLWindow extends OpenGLWindow {
                 camera.setRotation(new Vector3d(rotations[0], rotations[1], rotations[2]));
             }
 
-            if(ImGui.checkbox("Debug Preview", debugViewport)){
+            float[] fov = new float[]{
+                    camera.getFov()
+            };
+            if (ImGui.dragFloat("FOV", fov)) {
+                camera.setFov(fov[0]);
+            }
+
+            if (ImGui.checkbox("Debug Preview", debugViewport)) {
                 debugViewport = !debugViewport;
             }
 
@@ -396,8 +400,6 @@ public class TestOGLWindow extends OpenGLWindow {
     }
 
     private void recreateTexture(int width, int height) {
-
-
         if (texture != 0) {
 
             glDeleteTextures(texture);

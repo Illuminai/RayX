@@ -39,7 +39,7 @@ public class Vector3d {
 
     public Vector3d normalized() {
         float l = length();
-        if(l != 0) {
+        if (l != 0) {
             return new Vector3d(x / l, y / l, z / l);
         } else {
             //Return null vector

@@ -8,7 +8,7 @@ import java.nio.ByteBuffer;
 public class Material implements CLTransferable {
     public static final long MATERIAL_REFLECTION = 0x1;
 
-    public static final Material DEFAULT_MATERIAL = new Material(MATERIAL_REFLECTION, new Vector3d(0,1,0), 0);
+    public static final Material DEFAULT_MATERIAL = new Material(MATERIAL_REFLECTION, new Vector3d(0, 1, 0), 0);
 
     private final long type;
     private final Vector3d color;

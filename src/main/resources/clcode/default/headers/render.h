@@ -12,7 +12,7 @@ __kernel void renderDebug(__write_only image2d_t resultImage, float height,
                           __global struct shape_t* globalShapes);
 
 struct ray_t getRay(numf u, numf v, numf3 camPos, numf3 camRot, numf camFOV);
-float4 getDebugColor(struct intersection_t inter);
+float4 getDebugColor(struct rayIntersection_t inter);
 
 __kernel void render(__write_only image2d_t resultImage, float height,
                      float width, float4 cameraPosition, float4 cameraRotation,

@@ -1,7 +1,6 @@
 package com.rayx.glfw;
 
 import org.lwjgl.glfw.GLFWErrorCallback;
-import org.lwjgl.opengl.GL;
 
 import java.util.ArrayList;
 import java.util.List;

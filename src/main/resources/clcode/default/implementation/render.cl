@@ -12,7 +12,7 @@ __kernel void renderDebug(__write_only image2d_t resultImage, float height,
     int w = get_image_width(resultImage);
     int h = get_image_height(resultImage);
 
-    // float u = 2.0 * (((pixCo.x + .5) / width)F - .5);
+    // float u = 2.0 * (((pixCo.x + .5) / width) - .5);
     // float v = -2.0 * (((pixCo.y + .5) / height) - .5);
 
     float u = 2.0 * ((pixCo.x + 0.5) / w) - 1;
@@ -26,9 +26,9 @@ __kernel void renderDebug(__write_only image2d_t resultImage, float height,
     }
 
     struct ray_t ray;
-    struct intersection_t intersection;
+    struct rayIntersection_t intersection;
 
-    intersection = (struct intersection_t){
+    intersection = (struct rayIntersection_t){
         (__global struct shape_t *)0, (float3){0, 0, 0}, (float3){0, 0, 0}, 0};
 
     ray = getRay(u, v, cameraPosition.xyz, cameraRotation.xyz, cameraFOV);
@@ -44,7 +44,7 @@ __kernel void renderDebug(__write_only image2d_t resultImage, float height,
     return;
 }
 
-float4 getDebugColor(struct intersection_t inter) {
+float4 getDebugColor(struct rayIntersection_t inter) {
     return (float4){(inter.normal.x + 1.0) * 0.5, (inter.normal.y + 1.0) * 0.5,
                     (inter.normal.z + 1.0) * 0.5, 1.0};
 }

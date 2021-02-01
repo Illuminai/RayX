@@ -6,7 +6,7 @@ public class TorusSDF extends Shape {
     private final float smallRadius, bigRadius;
 
     public TorusSDF(Vector3d position, Vector3d rotation, float smallRadius, float bigRadius) {
-        super(position, rotation,null);
+        super(position, rotation, null);
         this.smallRadius = smallRadius;
         this.bigRadius = bigRadius;
     }

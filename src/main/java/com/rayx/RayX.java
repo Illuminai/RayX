@@ -5,7 +5,9 @@ import com.rayx.glfw.OpenGLWindow;
 import com.rayx.glfw.WindowManager;
 import com.rayx.opencl.CLContext;
 import com.rayx.opencl.CLManager;
-import com.rayx.shape.*;
+import com.rayx.shape.Camera;
+import com.rayx.shape.Scene;
+import com.rayx.shape.Shape;
 
 import static org.lwjgl.opencl.CL22.*;
 

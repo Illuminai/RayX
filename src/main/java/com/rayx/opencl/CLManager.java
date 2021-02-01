@@ -1,8 +1,7 @@
 package com.rayx.opencl;
 
-import com.rayx.RayX;
-import com.rayx.shape.Camera;
 import com.rayx.opencl.exceptions.*;
+import com.rayx.shape.Camera;
 import com.rayx.shape.Shape;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opencl.CL12GL;
@@ -27,7 +26,6 @@ import java.util.List;
 import static org.lwjgl.glfw.GLFWNativeGLX.glfwGetGLXContext;
 import static org.lwjgl.opencl.CL22.*;
 import static org.lwjgl.opencl.KHRGLSharing.*;
-import static org.lwjgl.opencl.KHRGLSharing.CL_GLX_DISPLAY_KHR;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 import static org.lwjgl.opengl.GL11.glFinish;
 import static org.lwjgl.opengl.WGL.wglGetCurrentContext;
@@ -98,7 +96,7 @@ public class CLManager {
             String programSourceCode = readFromFile("/" + sourceFile);
             long programPointer = CL22.clCreateProgramWithSource(context.getContext(), programSourceCode, errorBuffer);
             checkForError(ErrorType.PROGRAM, errorBuffer);
-            if(dependenciesId == null) {
+            if (dependenciesId == null) {
                 dependenciesId = new String[0];
             }
             CLContext.CLProgram[] dependencies = new CLContext.CLProgram[dependenciesId.length];
@@ -211,10 +209,10 @@ public class CLManager {
             PointerBuffer event = stack.mallocPointer(1);
             CLManager.checkForError(ErrorType.KERNEL_ENQUEUE,
                     CL22.clEnqueueNDRangeKernel(commandQueue, kernel,
-                    globalSize.length, null,
-                    PointerBuffer.create(globalWorkSize),
-                    localSize == null ? null : PointerBuffer.create(localWorkSize),
-                    null, event));
+                            globalSize.length, null,
+                            PointerBuffer.create(globalWorkSize),
+                            localSize == null ? null : PointerBuffer.create(localWorkSize),
+                            null, event));
             int executionStatus = CL22.clWaitForEvents(event.get(0));
             checkForError(ErrorType.KERNEL_EXECUTION, executionStatus);
         }
@@ -310,12 +308,9 @@ public class CLManager {
 
             return switch (info) {
                 case CL22.CL_DEVICE_BUILT_IN_KERNELS, CL22.CL_DEVICE_VERSION,
-                        CL22.CL_DEVICE_NAME, CL22.CL_DEVICE_EXTENSIONS ->
-                        byteBufferToString(rawInfo);
-                case CL22.CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, CL22.CL_DEVICE_MAX_WORK_GROUP_SIZE ->
-                        byteBufferToULong(rawInfo);
-                case CL22.CL_DEVICE_MAX_COMPUTE_UNITS, CL22.CL_DEVICE_MAX_CLOCK_FREQUENCY ->
-                        byteBufferToUInt(rawInfo);
+                        CL22.CL_DEVICE_NAME, CL22.CL_DEVICE_EXTENSIONS -> byteBufferToString(rawInfo);
+                case CL22.CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, CL22.CL_DEVICE_MAX_WORK_GROUP_SIZE -> byteBufferToULong(rawInfo);
+                case CL22.CL_DEVICE_MAX_COMPUTE_UNITS, CL22.CL_DEVICE_MAX_CLOCK_FREQUENCY -> byteBufferToUInt(rawInfo);
                 case CL22.CL_DEVICE_TYPE -> byteBufferToDeviceType(rawInfo);
                 case CL22.CL_DEVICE_PLATFORM -> byteBufferToLong(rawInfo);
                 default -> throw new IllegalArgumentException("Unsupported device info: " + info);
@@ -515,8 +510,10 @@ public class CLManager {
         }
     }
 
-    /** This function prints the shapes which are allocated on the GPU
-     * Only for debugging purposes*/
+    /**
+     * This function prints the shapes which are allocated on the GPU
+     * Only for debugging purposes
+     */
     public static void testPrintGPUMemory(CLContext context, String shapesIdentifier,
                                           String shapeDataPrefix, List<Shape> testReferences) {
         try (MemoryStack stack = CLManager.nextStackFrame()) {
@@ -531,26 +528,26 @@ public class CLManager {
                 pureShapes.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.SHAPE);
                 int k = 0;
-                while(shapesData.hasRemaining()) {
+                while (shapesData.hasRemaining()) {
                     System.out.println(
                             shapesData.getLong() + " " +
-                            shapesData.getLong() + " " +
-                            shapesData.getLong() + " " +
+                                    shapesData.getLong() + " " +
+                                    shapesData.getLong() + " " +
 
-                            shapesData.getFloat() + " " +
-                            shapesData.getFloat() + " " +
+                                    shapesData.getFloat() + " " +
+                                    shapesData.getFloat() + " " +
 
-                            shapesData.getFloat() + " " +
-                            shapesData.getFloat() + " " +
-                            shapesData.getFloat() + " " +
-                            shapesData.getFloat() + " " +
-                            shapesData.getFloat() + " " +
-                            shapesData.getFloat() + " " +
-                            shapesData.getFloat() + " " +
-                            shapesData.getFloat() + " "
-                            );
+                                    shapesData.getFloat() + " " +
+                                    shapesData.getFloat() + " " +
+                                    shapesData.getFloat() + " " +
+                                    shapesData.getFloat() + " " +
+                                    shapesData.getFloat() + " " +
+                                    shapesData.getFloat() + " " +
+                                    shapesData.getFloat() + " " +
+                                    shapesData.getFloat() + " "
+                    );
 
-                    for(int i = 0; i < 2; i++) {
+                    for (int i = 0; i < 2; i++) {
                         for (int ii = 0; ii < 3; ii++) {
                             System.out.println("\t" +
                                     shapesData.getFloat() + " " +
@@ -572,9 +569,9 @@ public class CLManager {
                 ByteBuffer shapesData = stack.malloc((int) shapeDataSphere.getSize());
                 shapeDataSphere.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.SPHERE);
-                while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Float.BYTES; j++) {
-                        System.out.print(shapesData.getFloat() +" ");
+                while (shapesData.hasRemaining()) {
+                    for (int j = 0; j < structSize / Float.BYTES; j++) {
+                        System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();
                 }
@@ -586,8 +583,8 @@ public class CLManager {
                 ByteBuffer shapesData = stack.malloc((int) shapeDataTorus.getSize());
                 shapeDataTorus.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.TORUS);
-                while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Float.BYTES; j++) {
+                while (shapesData.hasRemaining()) {
+                    for (int j = 0; j < structSize / Float.BYTES; j++) {
                         System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();
@@ -600,8 +597,8 @@ public class CLManager {
                 ByteBuffer shapesData = stack.malloc((int) planeData.getSize());
                 planeData.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.PLANE);
-                while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Float.BYTES; j++) {
+                while (shapesData.hasRemaining()) {
+                    for (int j = 0; j < structSize / Float.BYTES; j++) {
                         System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();
@@ -614,8 +611,8 @@ public class CLManager {
                 ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
                 subtractionData.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.SUBTRACTION);
-                while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Float.BYTES; j++) {
+                while (shapesData.hasRemaining()) {
+                    for (int j = 0; j < structSize / Float.BYTES; j++) {
                         System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();
@@ -628,8 +625,8 @@ public class CLManager {
                 ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
                 subtractionData.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.BOX);
-                while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Float.BYTES; j++) {
+                while (shapesData.hasRemaining()) {
+                    for (int j = 0; j < structSize / Float.BYTES; j++) {
                         System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();
@@ -642,8 +639,8 @@ public class CLManager {
                 ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
                 subtractionData.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.UNION);
-                while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Float.BYTES; j++) {
+                while (shapesData.hasRemaining()) {
+                    for (int j = 0; j < structSize / Float.BYTES; j++) {
                         System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();
@@ -656,8 +653,8 @@ public class CLManager {
                 ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
                 subtractionData.getValue(shapesData);
                 int structSize = context.getStructSize(Shape.INTERSECTION);
-                while(shapesData.hasRemaining()) {
-                    for(int j = 0; j < structSize / Float.BYTES; j++) {
+                while (shapesData.hasRemaining()) {
+                    for (int j = 0; j < structSize / Float.BYTES; j++) {
                         System.out.print(shapesData.getFloat() + " ");
                     }
                     System.out.println();

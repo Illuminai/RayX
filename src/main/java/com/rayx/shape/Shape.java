@@ -10,21 +10,37 @@ import java.util.List;
 public abstract class Shape implements CLTransferable {
     public static final long FLAG_SHOULD_RENDER = 1 << 0;
 
-    /** Used to determine the size of shape_t */
+    /**
+     * Used to determine the size of shape_t
+     */
     public static final int SHAPE = 0x0;
-    /** A sphere, rendered using raytracing*/
+    /**
+     * A sphere, rendered using raytracing
+     */
     public static final int SPHERE = 0x1;
-    /** A torus, rendered using sdf*/
+    /**
+     * A torus, rendered using sdf
+     */
     public static final int TORUS = 0x2;
-    /** A plane, rendered using raytracing*/
+    /**
+     * A plane, rendered using raytracing
+     */
     public static final int PLANE = 0x3;
-    /** A subtraction SDF*/
+    /**
+     * A subtraction SDF
+     */
     public static final int SUBTRACTION = 0x4;
-    /** A box, render using SDF */
+    /**
+     * A box, render using SDF
+     */
     public static final int BOX = 0x5;
-    /** An union SDF */
+    /**
+     * An union SDF
+     */
     public static final int UNION = 0x6;
-    /** An intersection SDF */
+    /**
+     * An intersection SDF
+     */
     public static final int INTERSECTION = 0x7;
 
     private final Vector3d position, rotation;
@@ -54,7 +70,9 @@ public abstract class Shape implements CLTransferable {
         return position;
     }
 
-    /** Is the same for all shapes of a class*/
+    /**
+     * Is the same for all shapes of a class
+     */
     public abstract int getShape();
 
     public abstract float getMaxRadius();
@@ -68,7 +86,7 @@ public abstract class Shape implements CLTransferable {
     }
 
     public void setShouldRender(boolean shouldRender) {
-        if(shouldRender) {
+        if (shouldRender) {
             flags |= FLAG_SHOULD_RENDER;
         } else {
             flags &= ~FLAG_SHOULD_RENDER;
@@ -86,7 +104,9 @@ public abstract class Shape implements CLTransferable {
         material.writeToByteBuffer(buffer);
     }
 
-    /** Must be equal for every instance of a class */
+    /**
+     * Must be equal for every instance of a class
+     */
     public int bytesToInBuffer() {
         return Float.BYTES + 2 * Vector3d.BYTES + 3 * Long.BYTES + material.bytesToInBuffer();
     }

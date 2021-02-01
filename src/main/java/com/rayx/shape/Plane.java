@@ -8,7 +8,7 @@ public class Plane extends Shape {
     private final Vector3d normal;
 
     public Plane(Vector3d position, Vector3d normal, Material material) {
-        super(position, new Vector3d(0,0,0), material, null);
+        super(position, new Vector3d(0, 0, 0), material, null);
         this.normal = normal;
     }
 

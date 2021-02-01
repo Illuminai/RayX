@@ -20,18 +20,18 @@ public class CLContext {
 
     public static final String COMPILE_OPTIONS =
             " -cl-fast-relaxed-math " +
-            " -cl-kernel-arg-info " +
-            " -Werror " +
-            " -D EPSILON=((float)0.0001) " +
-            " -D FLAG_SHOULD_RENDER=" + Shape.FLAG_SHOULD_RENDER +
-            " -D SHAPE=" + Shape.SHAPE +
-            " -D SPHERE=" + Shape.SPHERE +
-            " -D TORUS=" + Shape.TORUS +
-            " -D PLANE=" + Shape.PLANE +
-            " -D SUBTRACTION=" + Shape.SUBTRACTION +
-            " -D BOX=" + Shape.BOX +
-            " -D UNION=" + Shape.UNION +
-            " -D INTERSECTION=" + Shape.INTERSECTION;
+                    " -cl-kernel-arg-info " +
+                    " -Werror " +
+                    " -D EPSILON=((float)0.0001) " +
+                    " -D FLAG_SHOULD_RENDER=" + Shape.FLAG_SHOULD_RENDER +
+                    " -D SHAPE=" + Shape.SHAPE +
+                    " -D SPHERE=" + Shape.SPHERE +
+                    " -D TORUS=" + Shape.TORUS +
+                    " -D PLANE=" + Shape.PLANE +
+                    " -D SUBTRACTION=" + Shape.SUBTRACTION +
+                    " -D BOX=" + Shape.BOX +
+                    " -D UNION=" + Shape.UNION +
+                    " -D INTERSECTION=" + Shape.INTERSECTION;
 
     private final long device;
     private long context;
@@ -270,7 +270,7 @@ public class CLContext {
         double[] vals = new Random(1).doubles(4 * amount).toArray();
 
         float[] f = new float[vals.length];
-        for(int i = 0; i < f.length; i++) {
+        for (int i = 0; i < f.length; i++) {
             f[i] = (float) vals[i];
         }
 

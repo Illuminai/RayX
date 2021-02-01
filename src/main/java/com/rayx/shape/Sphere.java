@@ -10,7 +10,7 @@ public class Sphere extends Shape {
     }
 
     public Sphere(Vector3d position, float radius) {
-        super(position, new Vector3d(0,0,0), null);
+        super(position, new Vector3d(0, 0, 0), null);
         this.radius = radius;
     }
 

@@ -3,7 +3,7 @@ package com.rayx.glfw;
 import org.lwjgl.opengl.GL;
 
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL20.*;
+import static org.lwjgl.opengl.GL20.glViewport;
 
 public abstract class OpenGLWindow {
 

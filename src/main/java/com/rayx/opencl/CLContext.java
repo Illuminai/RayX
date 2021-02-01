@@ -2,33 +2,36 @@ package com.rayx.opencl;
 
 import com.rayx.shape.Shape;
 import org.lwjgl.BufferUtils;
-import org.lwjgl.opencl.CL22;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.Random;
 
-import static org.lwjgl.opencl.CL10.*;
+import static org.lwjgl.opencl.CL10.CL_MEM_READ_ONLY;
+import static org.lwjgl.opencl.CL10.CL_MEM_WRITE_ONLY;
 
 public class CLContext {
     public static final String KERNEL_GET_STRUCT_SIZE = "defaultKernelGetStructSize",
             KERNEL_FILL_BUFFER_DATA = "defaultKernelFillDataBuffer",
             KERNEL_RENDER = "defaultKernelRender",
-            KERNEL_RENDER_DEBUG = "defaultKernelRenderDebug";
+            KERNEL_RENDER_DEBUG = "defaultKernelRenderDebug",
+            KERNEL_BENCHMARK_DOUBLE = "defaultKernelBenchmarkDouble",
+            KERNEL_BENCHMARK_FLOAT = "defaultKernelBenchmarkFloat";
 
     public static final String COMPILE_OPTIONS =
             " -cl-fast-relaxed-math " +
-                    " -cl-kernel-arg-info " +
-                    " -Werror " +
-                    " -D EPSILON=((float)0.0000001) " +
-                    " -D FLAG_SHOULD_RENDER=" + Shape.FLAG_SHOULD_RENDER +
-                    " -D SHAPE=" + Shape.SHAPE +
-                    " -D SPHERE_RTC=" + Shape.SPHERE_RTC +
-                    " -D TORUS_SDF=" + Shape.TORUS_SDF +
-                    " -D PLANE_RTC=" + Shape.PLANE_RTC +
-                    " -D SUBTRACTION_SDF=" + Shape.SUBTRACTION_SDF +
-                    " -D BOX_SDF=" + Shape.BOX_SDF +
-                    " -D UNION_SDF=" + Shape.UNION_SDF +
-                    " -D INTERSECTION_SDF=" + Shape.INTERSECTION_SDF;
+            " -cl-kernel-arg-info " +
+            " -Werror " +
+            " -D EPSILON=((float)0.0001) " +
+            " -D FLAG_SHOULD_RENDER=" + Shape.FLAG_SHOULD_RENDER +
+            " -D SHAPE=" + Shape.SHAPE +
+            " -D SPHERE=" + Shape.SPHERE +
+            " -D TORUS=" + Shape.TORUS +
+            " -D PLANE=" + Shape.PLANE +
+            " -D SUBTRACTION=" + Shape.SUBTRACTION +
+            " -D BOX=" + Shape.BOX +
+            " -D UNION=" + Shape.UNION +
+            " -D INTERSECTION=" + Shape.INTERSECTION;
 
     private final long device;
     private long context;
@@ -147,50 +150,52 @@ public class CLContext {
     }
 
     public void initialize() {
+        createBenchmarks();
+
         //From least dependent to most dependent
         //----------- H E A D E R S -----------
-        //matrixmath.h
+        //math.h
         CLManager.putProgramFromFile(this, null,
-                "clcode/default/headers/matrixmath.h",
+                "clcode/default/headers/math.h",
                 COMPILE_OPTIONS);
         //shapes.h
         CLManager.putProgramFromFile(this,
                 new String[]{
-                        "clcode/default/headers/matrixmath.h"
+                        "clcode/default/headers/math.h"
                 },
                 "clcode/default/headers/shapes.h",
                 COMPILE_OPTIONS);
         //java_to_cl.h
         CLManager.putProgramFromFile(this,
                 new String[]{"clcode/default/headers/shapes.h",
-                        "clcode/default/headers/matrixmath.h"},
+                        "clcode/default/headers/math.h"},
                 "clcode/default/headers/java_to_cl.h",
                 COMPILE_OPTIONS);
         //render.h
         CLManager.putProgramFromFile(this,
                 new String[]{"clcode/default/headers/shapes.h",
-                        "clcode/default/headers/matrixmath.h"},
+                        "clcode/default/headers/math.h"},
                 "clcode/default/headers/render.h",
                 COMPILE_OPTIONS);
 
         //----------- C O D E -----------
-        //matrixmath.cl
+        //math.cl
         CLManager.putProgramFromFile(this, new String[]{
-                        "clcode/default/headers/matrixmath.h"
+                        "clcode/default/headers/math.h"
                 },
-                "clcode/default/implementation/matrixmath.cl",
+                "clcode/default/implementation/math.cl",
                 COMPILE_OPTIONS);
         //shapes.cl
         CLManager.putProgramFromFile(this,
                 new String[]{"clcode/default/headers/shapes.h",
-                        "clcode/default/headers/matrixmath.h"},
+                        "clcode/default/headers/math.h"},
                 "clcode/default/implementation/shapes.cl",
                 COMPILE_OPTIONS);
 
         //java_to_cl.cl
         CLManager.putProgramFromFile(this,
                 new String[]{
-                        "clcode/default/headers/matrixmath.h",
+                        "clcode/default/headers/math.h",
                         "clcode/default/headers/java_to_cl.h",
                         "clcode/default/headers/shapes.h"},
                 "clcode/default/implementation/java_to_cl.cl",
@@ -199,20 +204,22 @@ public class CLContext {
         CLManager.putProgramFromFile(this,
                 new String[]{"clcode/default/headers/render.h",
                         "clcode/default/headers/shapes.h",
-                        "clcode/default/headers/matrixmath.h"},
+                        "clcode/default/headers/math.h"},
                 "clcode/default/implementation/render.cl",
                 COMPILE_OPTIONS);
 
         //----------- E X E C U T A B L E - P R O G R A M S -----------
         CLManager.putExecutableProgram(this,
                 new String[]{
+                        "clcode/default/implementation/shapes.cl",
                         "clcode/default/implementation/java_to_cl.cl",
-                        "clcode/default/implementation/matrixmath.cl"
+                        "clcode/default/implementation/math.cl"
                 },
                 "javaToCLProgram");
         CLManager.putExecutableProgram(this,
                 new String[]{
-                        "clcode/default/implementation/matrixmath.cl",
+                        "clcode/default/implementation/shapes.cl",
+                        "clcode/default/implementation/math.cl",
                         "clcode/default/implementation/render.cl"
                 },
                 "renderProgram");
@@ -235,16 +242,100 @@ public class CLContext {
         getStructSizes();
     }
 
+    public void createBenchmarks() {
+        CLManager.putProgramFromFile(this, null,
+                "clcode/default/headers/benchmark.h",
+                COMPILE_OPTIONS);
+        CLManager.putProgramFromFile(this,
+                new String[]{"clcode/default/headers/benchmark.h"},
+                "clcode/default/implementation/benchmark.cl",
+                COMPILE_OPTIONS);
+
+        CLManager.putExecutableProgram(this,
+                new String[]{
+                        "clcode/default/implementation/benchmark.cl"
+                },
+                "benchmarkProgram");
+
+        CLManager.putKernel(this, "testPerformanceDouble",
+                KERNEL_BENCHMARK_DOUBLE, "benchmarkProgram");
+        CLManager.putKernel(this, "testPerformanceFloat",
+                KERNEL_BENCHMARK_FLOAT, "benchmarkProgram");
+    }
+
+    public void runBenchmarks() {
+        System.out.println("Running benchmarks...");
+        final int amount = 20000;
+
+        double[] vals = new Random(1).doubles(4 * amount).toArray();
+
+        float[] f = new float[vals.length];
+        for(int i = 0; i < f.length; i++) {
+            f[i] = (float) vals[i];
+        }
+
+        CLManager.allocateMemory(this, CL_MEM_READ_ONLY, vals, "benchmarkDoubleIn");
+        CLManager.allocateMemory(this, CL_MEM_READ_ONLY, f, "benchmarkFloatIn");
+        CLManager.allocateMemory(this, CL_MEM_WRITE_ONLY,
+                amount * Double.BYTES, "benchmarkDoubleOut");
+        CLManager.allocateMemory(this, CL_MEM_WRITE_ONLY,
+                amount * Float.BYTES, "benchmarkFloatOut");
+
+        CLKernel dKern = getKernelObject(KERNEL_BENCHMARK_DOUBLE);
+        dKern.setParameterPointer(0, "benchmarkDoubleIn");
+        dKern.setParameterPointer(1, "benchmarkDoubleOut");
+        dKern.setParameter1i(2, amount);
+
+        CLKernel fKern = getKernelObject(KERNEL_BENCHMARK_FLOAT);
+        fKern.setParameterPointer(0, "benchmarkFloatIn");
+        fKern.setParameterPointer(1, "benchmarkFloatOut");
+        fKern.setParameter1i(2, amount);
+
+        dKern.run(new long[]{1}, null);
+        fKern.run(new long[]{1}, null);
+
+        long t = System.currentTimeMillis();
+        dKern.run(new long[]{amount}, null);
+        System.out.println("Double: " + (System.currentTimeMillis() - t));
+        /*{
+            ByteBuffer dbuffer =
+                    BufferUtils.createByteBuffer(amount * Double.BYTES);
+            this.getMemoryObject("benchmarkDoubleOut").getValue(dbuffer);
+            double[] dres = new double[amount];
+            System.out.println("Double input : " + Arrays.toString(f));
+            dbuffer.asDoubleBuffer().get(dres);
+            System.out.println("Double result: " + Arrays.toString(dres));
+        }*/
+
+        t = System.currentTimeMillis();
+        fKern.run(new long[]{amount}, null);
+        System.out.println("Float : " + (System.currentTimeMillis() - t));
+        /*{
+            ByteBuffer fbuffer =
+                    BufferUtils.createByteBuffer(amount * Float.BYTES);
+            this.getMemoryObject("benchmarkFloatOut").getValue(fbuffer);
+            float[] fres = new float[amount];
+            System.out.println("Float input : " + Arrays.toString(f));
+            fbuffer.asFloatBuffer().get(fres);
+            System.out.println("Float result: " + Arrays.toString(fres));
+        }*/
+
+        freeMemoryObject("benchmarkDoubleIn");
+        freeMemoryObject("benchmarkDoubleOut");
+        freeMemoryObject("benchmarkFloatIn");
+        freeMemoryObject("benchmarkFloatOut");
+    }
+
     private void getStructSizes() {
         int[] structs = {
                 Shape.SHAPE,
-                Shape.SPHERE_RTC,
-                Shape.TORUS_SDF,
-                Shape.PLANE_RTC,
-                Shape.SUBTRACTION_SDF,
-                Shape.BOX_SDF,
-                Shape.UNION_SDF,
-                Shape.INTERSECTION_SDF
+                Shape.SPHERE,
+                Shape.TORUS,
+                Shape.PLANE,
+                Shape.SUBTRACTION,
+                Shape.BOX,
+                Shape.UNION,
+                Shape.INTERSECTION
         };
         CLContext.CLKernel kernelStruct =
                 getKernelObject(CLContext.KERNEL_GET_STRUCT_SIZE);
@@ -367,29 +458,19 @@ public class CLContext {
         }
 
         public void setParameterPointer(int index, String memoryObject) {
-            long pointer = CLContext.this.getMemoryObject(memoryObject).getPointer();
-            int error = CL22.clSetKernelArg1p(kernel, index, pointer);
-            CLManager.checkForError(error);
+            CLManager.setParameterPointerInternal(CLContext.this, kernel, index, memoryObject);
         }
 
         public void setParameter1i(int index, int value) {
-            int error = CL22.clSetKernelArg1i(kernel, index, value);
-            CLManager.checkForError(error);
+            CLManager.setParameter1iInternal(kernel, index, value);
         }
 
         public void setParameter4f(int index, float d0, float d1, float d2, float d3) {
-            int error = CL22.clSetKernelArg4f(kernel, index, d0, d1, d2, d3);
-            CLManager.checkForError(error);
+            CLManager.setParameter4fInternal(kernel, index, d0, d1, d2, d3);
         }
 
         public void setParameter1f(int index, float d0) {
-            int error = CL22.clSetKernelArg1f(kernel, index, d0);
-            CLManager.checkForError(error);
-        }
-
-        public void setParameter2d(int index, double d0, double d1) {
-            int error = CL22.clSetKernelArg2d(kernel, index, d0, d1);
-            CLManager.checkForError(error);
+            CLManager.setParameter1fInternal(kernel, index, d0);
         }
 
         public void run(long[] globalWorkSize, long[] localWorkSize) {

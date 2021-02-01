@@ -2,10 +2,9 @@ package com.rayx.shape;
 
 import com.rayx.opencl.CLContext;
 import com.rayx.opencl.CLManager;
-import org.lwjgl.system.CallbackI;
+import com.rayx.shape.material.Material;
 import org.lwjgl.system.MemoryStack;
 
-import java.beans.IntrospectionException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
@@ -14,6 +13,9 @@ import static org.lwjgl.opencl.CL10.CL_MEM_READ_WRITE;
 public class Scene {
     private final ArrayList<Shape> visibleObjects, allObjects;
     private final String shapesIdentifier, shapesDataPrefix;
+    private Vector3d cameraPos, cameraRot;
+    private float cameraFOV;
+
     private int currentId;
 
     public Scene() {
@@ -21,6 +23,10 @@ public class Scene {
         this.allObjects = new ArrayList<>();
         shapesIdentifier = "shapes" + hashCode();
         shapesDataPrefix = "shapesData" + hashCode();
+        //TODO default camera position
+        this.cameraPos = new Vector3d(-.2,0,0);
+        this.cameraRot = new Vector3d(0,0,0);
+        cameraFOV = 1;
     }
 
     public ArrayList<Shape> getAllObjects() {
@@ -56,6 +62,13 @@ public class Scene {
         );
     }
 
+    public void move(float amountX, float amountY, float amountZ) {
+        cameraPos = new Vector3d(cameraPos.getX() + amountX, cameraPos.getY() + amountY, cameraPos.getZ() + amountZ);
+    }
+
+    public void turn(float amountX, float amountY, float amountZ) {
+         cameraRot = new Vector3d(cameraRot.getX() + amountX, cameraRot.getY() + amountY, cameraRot.getZ() + amountZ);
+    }
     private void addToAllObjects(Shape shape) {
         shape.getSubShapes().forEach(this::addToAllObjects);
 
@@ -89,25 +102,25 @@ public class Scene {
                     (long) context.getStructSize(Shape.SHAPE) * allObjects.size(),
                     shapesIdentifier);
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    allObjects.stream().filter(u -> u.getName() == Shape.SPHERE_RTC).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    allObjects.stream().filter(u -> u.getShape() == Shape.SPHERE).mapToInt(u -> context.getStructSize(u.getShape())).sum(),
                     shapesDataPrefix + "SphereRTC");
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    allObjects.stream().filter(u -> u.getName() == Shape.TORUS_SDF).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    allObjects.stream().filter(u -> u.getShape() == Shape.TORUS).mapToInt(u -> context.getStructSize(u.getShape())).sum(),
                     shapesDataPrefix + "TorusSDF");
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    allObjects.stream().filter(u -> u.getName() == Shape.PLANE_RTC).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    allObjects.stream().filter(u -> u.getShape() == Shape.PLANE).mapToInt(u -> context.getStructSize(u.getShape())).sum(),
                     shapesDataPrefix + "PlaneRTC");
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    allObjects.stream().filter(u -> u.getName() == Shape.SUBTRACTION_SDF).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    allObjects.stream().filter(u -> u.getShape() == Shape.SUBTRACTION).mapToInt(u -> context.getStructSize(u.getShape())).sum(),
                     shapesDataPrefix + "SubtractionSDF");
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    allObjects.stream().filter(u -> u.getName() == Shape.BOX_SDF).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    allObjects.stream().filter(u -> u.getShape() == Shape.BOX).mapToInt(u -> context.getStructSize(u.getShape())).sum(),
                     shapesDataPrefix + "BoxSDF");
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    allObjects.stream().filter(u -> u.getName() == Shape.UNION_SDF).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    allObjects.stream().filter(u -> u.getShape() == Shape.UNION).mapToInt(u -> context.getStructSize(u.getShape())).sum(),
                     shapesDataPrefix + "UnionSDF");
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
-                    allObjects.stream().filter(u -> u.getName() == Shape.INTERSECTION_SDF).mapToInt(u -> context.getStructSize(u.getName())).sum(),
+                    allObjects.stream().filter(u -> u.getShape() == Shape.INTERSECTION).mapToInt(u -> context.getStructSize(u.getShape())).sum(),
                     shapesDataPrefix + "IntersectionSDF");
 
             CLContext.CLKernel kernel = context.getKernelObject(CLContext.KERNEL_FILL_BUFFER_DATA);
@@ -149,81 +162,73 @@ public class Scene {
             deleteRenderMemory(context);
             clearVisibleObjects();
 
-            exhibition(t / 10);
+            exhibition(t);
         }
 
         private void exhibition(double t) {
-            float lumen = .1f;
-            PlaneRTC bottom = new PlaneRTC(new Vector3d(0, 0, -.3), new Vector3d(0, 0, .3).normalized());
-            bottom.setLumen(lumen);
+            Material material = new Material(Material.MATERIAL_REFLECTION, new Vector3d(1,0,1), 1);
+            Plane bottom = new Plane(new Vector3d(0,0,-.3), new Vector3d(0,0,.3).normalized(), material);
             add(bottom);
-            PlaneRTC top = new PlaneRTC(new Vector3d(0, 0, .3), new Vector3d(0, 0, -.3).normalized());
-            top.setLumen(lumen);
+            Plane top = new Plane(new Vector3d(0,0,.3), new Vector3d(0,0,-.3).normalized(), material);
             add(top);
 
-            PlaneRTC back = new PlaneRTC(new Vector3d(.3, 0, 0), new Vector3d(-.3, 0, 0).normalized());
-            back.setLumen(lumen);
+            Plane back = new Plane(new Vector3d(.3,0,0), new Vector3d(-.3,0,0).normalized(),material);
             add(back);
-            PlaneRTC front = new PlaneRTC(new Vector3d(-.3, 0, 0), new Vector3d(.3, 0, 0).normalized());
-            front.setLumen(lumen);
+            Plane front = new Plane(new Vector3d(-.3,0,0), new Vector3d(.3,0,0).normalized(),material);
             add(front);
 
-            PlaneRTC left = new PlaneRTC(new Vector3d(0, -.3, 0), new Vector3d(0, .3, 0).normalized());
-            left.setLumen(lumen);
+            Plane left = new Plane(new Vector3d(0,-.3,0), new Vector3d(0,.3,0).normalized(),material);
             add(left);
-            PlaneRTC right = new PlaneRTC(new Vector3d(0, .3, 0), new Vector3d(0, -.3, 0).normalized());
-            right.setLumen(lumen);
+            Plane right = new Plane(new Vector3d(0,.3,0), new Vector3d(0,-.3,0).normalized(),material);
             add(right);
 
-            add(new TorusSDF(new Vector3d(0, -.1, 0), new Vector3d(0, 0, 0), .005f, .03f));
+            add(new TorusSDF(new Vector3d(0, -.1, 0), new Vector3d(0, 0, 0),.005f,.03f));
 
             add(new SubtractionSDF(
-                    new Vector3d(0, -.1, .1),
-                    new Vector3d(0, 0, 0),
-                    new TorusSDF(new Vector3d(-.03, 0, 0),
-                            new Vector3d(0, 0, 0), .005f, .02f),
-                    new BoxSDF(new Vector3d(0, 0, 0), new Vector3d(0, 0, 0), new Vector3d(.03, .03, .03))));
-            SphereRTC p;
-            add(p = new SphereRTC(0, -.1f, -.1f, .03f));
-            p.setLumen(10);
+                    new Vector3d(0, -.1,.1),
+                    new Vector3d(0, 0,0),
+                    new TorusSDF( new Vector3d(-.03,0,0),
+                            new Vector3d(0, 0,0),.005f,.02f),
+                    new BoxSDF(new Vector3d(0,0,0), new Vector3d(0,0,0), new Vector3d(.03,.03,.03))));
+            add(new Sphere(0,-.1f,-.1f,.03f));
             add(new BoxSDF(
-                    new Vector3d(0, 0, -.1),
-                    new Vector3d(0, t, t),
-                    new Vector3d(.03, .03, .03)));
+                    new Vector3d(0,0,-.1),
+                    new Vector3d(0,t,t),
+                    new Vector3d(.03,.03,.03)));
 
             add(new UnionSDF(
-                    new Vector3d(0, 0, 0),
-                    new Vector3d(0, t, 0),
-                    new TorusSDF(new Vector3d(0, 0, 0),
-                            new Vector3d(0, 0, 0), .005f, .03f),
+                    new Vector3d(0, 0,0),
+                    new Vector3d(0, t,0),
+                    new TorusSDF( new Vector3d(0,0,0),
+                            new Vector3d(0, 0, 0),.005f,.03f),
                     new BoxSDF(
-                            new Vector3d(0, 0, 0),
-                            new Vector3d(0, 0, 0),
-                            new Vector3d(.01, .01, .01))));
+                            new Vector3d(0,0,0),
+                            new Vector3d(0,0,0),
+                            new Vector3d(.01,.01,.01))));
 
             add(new IntersectionSDF(
-                    new Vector3d(0, 0, .1),
-                    new Vector3d(0, t, 0),
-                    new TorusSDF(new Vector3d(0, .03, 0),
-                            new Vector3d(0, 0, 0), .01f, .03f),
+                    new Vector3d(0, 0,.1),
+                    new Vector3d(0, t,0),
+                    new TorusSDF( new Vector3d(0,.03,0),
+                            new Vector3d(0, 0, 0),.01f,.03f),
                     new BoxSDF(
-                            new Vector3d(0, 0, 0),
-                            new Vector3d(0, 0, 0),
-                            new Vector3d(.03, .03 + .01 * Math.sin(t), .03 + .01 * Math.sin(t)))));
+                            new Vector3d(0,0,0),
+                            new Vector3d(0,0,0),
+                            new Vector3d(.03,.03 + .01 * Math.sin(t),.03 + .01 * Math.sin(t)))));
 
             add(new SubtractionSDF(
-                    new Vector3d(0, .1, -.1),
-                    new Vector3d(0, 0, 0),
+                    new Vector3d(0, .1,-.1),
+                    new Vector3d(0, 0,0),
                     new UnionSDF(
-                            new Vector3d(-.03, 0, 0),
-                            new Vector3d(t, 0, 0),
-                            new TorusSDF(new Vector3d(0, 0, 0),
-                                    new Vector3d(0, 0, 0), .005f, .02f),
+                            new Vector3d(-.03, 0,0),
+                            new Vector3d(t, 0,0),
+                            new TorusSDF( new Vector3d(0,0,0),
+                                    new Vector3d(0, 0, 0),.005f,.02f),
                             new BoxSDF(
-                                    new Vector3d(0, 0, 0),
-                                    new Vector3d(0, 0, 0),
-                                    new Vector3d(.01, .01, .01))),
-                    new BoxSDF(new Vector3d(0, 0, 0), new Vector3d(0, 0, 0), new Vector3d(.03, .03, .03))));
+                                    new Vector3d(0,0,0),
+                                    new Vector3d(0,0,0),
+                                    new Vector3d(.01,.01,.01))),
+                    new BoxSDF(new Vector3d(0,0,0), new Vector3d(0,0,0), new Vector3d(.03,.03,.03))));
         }
     }
 }

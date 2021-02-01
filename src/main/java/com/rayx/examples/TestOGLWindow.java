@@ -350,6 +350,7 @@ public class TestOGLWindow extends OpenGLWindow {
 
         frames++;
         if (System.currentTimeMillis() - lastPrint > 1000) {
+            System.out.println("FPS: " + frames);
             frames = 0;
             lastPrint = System.currentTimeMillis();
         }

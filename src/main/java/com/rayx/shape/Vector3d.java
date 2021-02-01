@@ -3,6 +3,8 @@ package com.rayx.shape;
 import java.nio.ByteBuffer;
 
 public class Vector3d {
+    public static final int BYTES = 3 * Float.BYTES;
+
     private final float x, y, z;
 
     public Vector3d(double x, double y, double z) {

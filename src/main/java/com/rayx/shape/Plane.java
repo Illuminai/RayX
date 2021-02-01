@@ -1,12 +1,14 @@
 package com.rayx.shape;
 
+import com.rayx.shape.material.Material;
+
 import java.nio.ByteBuffer;
 
-public class PlaneRTC extends Shape implements Shape.ShapeRTC{
+public class Plane extends Shape {
     private final Vector3d normal;
 
-    public PlaneRTC(Vector3d position, Vector3d normal) {
-        super(position, new Vector3d(0,0,0), null);
+    public Plane(Vector3d position, Vector3d normal, Material material) {
+        super(position, new Vector3d(0,0,0), material, null);
         this.normal = normal;
     }
 
@@ -27,7 +29,7 @@ public class PlaneRTC extends Shape implements Shape.ShapeRTC{
     }
 
     @Override
-    public int getName() {
-        return PLANE_RTC;
+    public int getShape() {
+        return PLANE;
     }
 }

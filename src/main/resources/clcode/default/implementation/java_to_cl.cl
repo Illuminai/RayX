@@ -1,4 +1,4 @@
-#include<clcode/default/headers/matrixmath.h>
+#include<clcode/default/headers/math.h>
 #include<clcode/default/headers/java_to_cl.h>
 
 __kernel void getShapeSizes(int numShapes,
@@ -8,20 +8,20 @@ __kernel void getShapeSizes(int numShapes,
         int shape = shapesInQuestion[i];
         if(shape == SHAPE) {
             result[i] = sizeof(struct shape_t);
-        } else if(shape == SPHERE_RTC) {
-            result[i] = sizeof(struct sphereRTC_t);
-        } else if(shape == TORUS_SDF) {
-            result[i] = sizeof(struct torusSDF_t);
-        } else if(shape == PLANE_RTC) {
-            result[i] = sizeof(struct planeRTC_t);
-        } else if(shape == SUBTRACTION_SDF) {
-            result[i] = sizeof(struct subtractionSDF_t);
-        } else if(shape == BOX_SDF) {
-            result[i] = sizeof(struct boxSDF_t);
-        } else if(shape == UNION_SDF) {
-            result[i] = sizeof(struct unionSDF_t);
-        } else if(shape == INTERSECTION_SDF) {
-            result[i] = sizeof(struct intersectionSDF_t);
+        } else if(shape == SPHERE) {
+            result[i] = sizeof(struct sphere_t);
+        } else if(shape == TORUS) {
+            result[i] = sizeof(struct torus_t);
+        } else if(shape == PLANE) {
+            result[i] = sizeof(struct plane_t);
+        } else if(shape == SUBTRACTION) {
+            result[i] = sizeof(struct subtraction_t);
+        } else if(shape == BOX) {
+            result[i] = sizeof(struct box_t);
+        } else if(shape == UNION) {
+            result[i] = sizeof(struct union_t);
+        } else if(shape == INTERSECTION) {
+            result[i] = sizeof(struct intersection_t);
         } else {
             result[i] = -1;
         }
@@ -31,57 +31,68 @@ __kernel void getShapeSizes(int numShapes,
 __kernel void putShapesInMemory(int numShapes,
                 __global char* inputData,
                 __global struct shape_t* shapes,
-                __global struct sphereRTC_t* dataSphere,
-                __global struct torusSDF_t* dataTorus,
-                __global struct planeRTC_t* dataPlane,
-                __global struct subtractionSDF_t* dataSubtractionSDF,
-                __global struct boxSDF_t* dataBoxSDF,
-                __global struct unionSDF_t* dataUnionSDF,
-                __global struct intersectionSDF_t* dataIntersectionSDF) {
+                __global struct sphere_t* dataSphere,
+                __global struct torus_t* dataTorus,
+                __global struct plane_t* dataPlane,
+                __global struct subtraction_t* dataSubtractionSDF,
+                __global struct box_t* dataBoxSDF,
+                __global struct union_t* dataUnionSDF,
+                __global struct intersection_t* dataIntersectionSDF) {
     for(int i = 0; i < numShapes; i++) {
-        for(int k = 0; k < sizeof(struct shape_t) / sizeof(long); k++) {
-            __global long* tmp= (__global long*)&shapes[i];
-            tmp[k] = -12;
+        for(int k = 0; k < sizeof(struct shape_t) / sizeof(float); k++) {
+            __global float* tmp= (__global float*)&shapes[i];
+            tmp[k] = -101.101;
         }
         long shape = getNextLong(inputData); inputData += sizeof(long);
         long id = getNextLong(inputData); inputData += sizeof(long);
-        long shouldRender = getNextLong(inputData); inputData += sizeof(long);
-        float maxRad = getNextFloat(inputData); inputData += sizeof(float);
-        float lumen = getNextFloat(inputData); inputData += sizeof(float);
-        float3 position = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
-        float3 rotation = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
-        shapes[i] = (struct shape_t){shape, id, shouldRender, maxRad, lumen, position, rotation,
-                        rotationMatrix(rotation.x, rotation.y, rotation.z),
-                        reverseRotationMatrix(rotation.z, rotation.y, rotation.x),
+        long flags = getNextLong(inputData); inputData += sizeof(long);
+        numf maxRad = getNextFloat(inputData); inputData += sizeof(float);
+        numf3 position = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
+        numf3 rotation = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
+        //Get Material
+        long materialType = getNextLong(inputData); inputData += sizeof(long);
+        numf3 materialColor = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
+        numf materialLumen = getNextFloat(inputData); inputData += sizeof(float);
+        struct matrix3x3 rotMatrix = rotationMatrix(rotation);
+        shapes[i] = (struct shape_t){shape, id, flags,
+                        (struct material_t) {
+                            materialType,
+                            materialColor,
+                            materialLumen
+                        },
+                        maxRad,
+                        position, rotation,
+                        rotMatrix,
+                        inverse(rotMatrix),
                     0};
-        if(shape == SPHERE_RTC) {
+        if(shape == SPHERE) {
             shapes[i].shape = dataSphere;
             dataSphere->radius = getNextFloat(inputData); inputData += sizeof(float);
             dataSphere++;
-        } else if(shape == TORUS_SDF) {
+        } else if(shape == TORUS) {
             shapes[i].shape = dataTorus;
             dataTorus->radiusSmall = getNextFloat(inputData); inputData += sizeof(float);
             dataTorus->radiusBig = getNextFloat(inputData); inputData += sizeof(float);
             dataTorus++;
-        } else if (shape == PLANE_RTC) {
+        } else if (shape == PLANE) {
             shapes[i].shape = dataPlane;
             dataPlane->normal = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
             dataPlane++;
-        } else if (shape == SUBTRACTION_SDF) {
+        } else if (shape == SUBTRACTION) {
             shapes[i].shape = dataSubtractionSDF;
             dataSubtractionSDF->shape1 = shapes + getNextLong(inputData); inputData += sizeof(long);
             dataSubtractionSDF->shape2 = shapes + getNextLong(inputData); inputData += sizeof(long);
             dataSubtractionSDF++;
-        } else if (shape == BOX_SDF) {
+        } else if (shape == BOX) {
             shapes[i].shape = dataBoxSDF;
             dataBoxSDF->dimensions = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
             dataBoxSDF++;
-        } else if (shape == UNION_SDF) {
+        } else if (shape == UNION) {
             shapes[i].shape = dataUnionSDF;
             dataUnionSDF->shape1 = shapes + getNextLong(inputData); inputData += sizeof(long);
             dataUnionSDF->shape2 = shapes + getNextLong(inputData); inputData += sizeof(long);
             dataUnionSDF++;
-        } else if (shape == INTERSECTION_SDF) {
+        } else if (shape == INTERSECTION) {
             shapes[i].shape = dataIntersectionSDF;
             dataIntersectionSDF->shape1 = shapes + getNextLong(inputData); inputData += sizeof(long);
             dataIntersectionSDF->shape2 = shapes + getNextLong(inputData); inputData += sizeof(long);
@@ -92,8 +103,8 @@ __kernel void putShapesInMemory(int numShapes,
     }
 }
 
-float3 getNextFloat3(__global char* data) {
-    return (float3){
+numf3 getNextFloat3(__global char* data) {
+    return (numf3){
         getNextFloat(data),
         getNextFloat(data + sizeof(float)),
         getNextFloat(data + 2 * sizeof(float))
@@ -110,7 +121,7 @@ long getNextLong(__global char* data) {
     }
     return res;
 }
-float getNextFloat(__global char* data) {
+numf getNextFloat(__global char* data) {
     float res;
     char* pointer = (char*)&res;
     for(int k = 0; k < sizeof(float); k++) {
@@ -118,5 +129,5 @@ float getNextFloat(__global char* data) {
         pointer++;
         data++;
     }
-    return res;
+    return (numf)res;
 }

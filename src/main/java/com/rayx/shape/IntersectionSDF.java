@@ -3,7 +3,7 @@ package com.rayx.shape;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class IntersectionSDF extends Shape implements Shape.ShapeSDF {
+public class IntersectionSDF extends Shape {
     private final Shape shape1, shape2;
 
     public IntersectionSDF(Vector3d position, Vector3d rotation, Shape shape1, Shape shape2) {
@@ -13,8 +13,8 @@ public class IntersectionSDF extends Shape implements Shape.ShapeSDF {
     }
 
     @Override
-    public int getName() {
-        return INTERSECTION_SDF;
+    public int getShape() {
+        return INTERSECTION;
     }
 
     @Override

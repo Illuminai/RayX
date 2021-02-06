@@ -11,7 +11,7 @@ __kernel void renderDebug(__write_only image2d_t resultImage, float height,
                           int globalNumShapes,
                           __global struct shape_t* globalShapes);
 
-struct ray_t getRay(numf u, numf v, numf3 camPos, numf3 camRot, numf camFOV);
+struct ray_t getRay(float u, float v, float3 camPos, float3 camRot, float camFOV);
 float4 getDebugColor(struct rayIntersection_t inter);
 
 __kernel void render(__write_only image2d_t resultImage, float height,
@@ -21,20 +21,20 @@ __kernel void render(__write_only image2d_t resultImage, float height,
 
 float4 getTypeColor(int type);
 
-numf3 perfectReflectionRayDirection(numf3 direction, numf3 normal);
+float3 perfectReflectionRayDirection(float3 direction, float3 normal);
 
-struct ray_t getRay(numf u, numf v, numf3 camPos, numf3 camRot, numf camFOV);
+struct ray_t getRay(float u, float v, float3 camPos, float3 camRot, float camFOV);
 
 void traceRay(struct ray_t* ray, int numShapes,
             __global struct shape_t* allShapes, struct rayIntersection_t* inter);
 
 // Returns true if there is an intersection
-bool firstIntersectionWithShape(struct ray_t* ray, __global struct shape_t* shape, struct rayIntersection_t* inter, numf maxD);
+bool firstIntersectionWithShape(struct ray_t* ray, __global struct shape_t* shape, struct rayIntersection_t* inter, float maxD);
 
-bool firstIntersectionWithSDF(struct ray_t* ray, __global struct shape_t* shape, struct rayIntersection_t * intersection, numf maxD);
+bool firstIntersectionWithSDF(struct ray_t* ray, __global struct shape_t* shape, struct rayIntersection_t * intersection, float maxD);
 
 struct ray_t nextRayOnIntersection(struct ray_t* ray, struct rayIntersection_t* inter);
 
-numf oneStepSDF(numf3 point, __global struct shape_t* shape);
+float oneStepSDF(float3 point, __global struct shape_t* shape);
 
 #endif

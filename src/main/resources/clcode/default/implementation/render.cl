@@ -62,10 +62,10 @@ __kernel void render(__write_only image2d_t resultImage, float height,
     // float u = 2.0 * (((pixCo.x + .5) / width) - .5);
     // float v = -2.0 * (((pixCo.y + .5) / height) - .5);
 
-    numf u = 2.0 * ((pixCo.x + 0.5) / w) - 1;
-    numf v = 1 - 2.0 * ((pixCo.y + 0.5) / h);
+    float u = 2.0 * ((pixCo.x + 0.5) / w) - 1;
+    float v = 1 - 2.0 * ((pixCo.y + 0.5) / h);
 
-    numf aspectRatio = width / height;
+    float aspectRatio = width / height;
     v = ((v - 0.5) * aspectRatio) + 0.5;
 
     if (pixCo.x >= w | pixCo.y >= h) {
@@ -76,17 +76,17 @@ __kernel void render(__write_only image2d_t resultImage, float height,
     struct rayIntersection_t inters[MAX_RAY_BOUNCES];
 
     rays[0] = getRay(u, v,
-        (numf3){cameraPosition.x,cameraPosition.y,cameraPosition.z},
-        (numf3){cameraRotation.x,cameraRotation.y,cameraRotation.z}, cameraFOV);
+        (float3){cameraPosition.x,cameraPosition.y,cameraPosition.z},
+        (float3){cameraRotation.x,cameraRotation.y,cameraRotation.z}, cameraFOV);
     for(int i = 0; i < MAX_RAY_BOUNCES; i++) {
         inters[i] = (struct rayIntersection_t) {
                 (__global struct shape_t*)0,
-                (numf3){0,0,0},
-                (numf3){0,0,0},
+                (float3){0,0,0},
+                (float3){0,0,0},
                 0 };
     }
     int i;
-    numf lumen;
+    float lumen;
     for(i = 0; i < MAX_RAY_BOUNCES; i++) {
         traceRay(&rays[i], globalNumShapes, globalShapes, &inters[i]);
         if (inters[i].obj == 0) {
@@ -120,16 +120,16 @@ __kernel void render(__write_only image2d_t resultImage, float height,
 
 }
 
-numf3 perfectReflectionRayDirection(numf3 direction, numf3 normal) {
+float3 perfectReflectionRayDirection(float3 direction, float3 normal) {
     //http://paulbourke.net/geometry/reflected/
     return direction - 2 * normal * dot(direction, normal);
 }
 
-struct ray_t getRay(numf u, numf v, numf3 camPos, numf3 camRot, numf camFOV) {
+struct ray_t getRay(float u, float v, float3 camPos, float3 camRot, float camFOV) {
     struct matrix3x3 rotMat = rotationMatrix(camRot);
-        numf3 viewDirection = matrixTimesVector(rotMat, (numf3){camFOV,0,0});
-        numf3 cameraRight = matrixTimesVector(rotMat, (numf3){0,1,0});
-        numf3 cameraUp = matrixTimesVector(rotMat, (numf3){0,0,1});
+        float3 viewDirection = matrixTimesVector(rotMat, (float3){camFOV,0,0});
+        float3 cameraRight = matrixTimesVector(rotMat, (float3){0,1,0});
+        float3 cameraUp = matrixTimesVector(rotMat, (float3){0,0,1});
 
     return (struct ray_t){
         camPos, normalize(viewDirection + cameraRight * u + cameraUp * v)};
@@ -140,7 +140,7 @@ void traceRay(  struct ray_t* ray,
                 __global struct shape_t* allShapes,
                 struct rayIntersection_t* inter) {
     struct rayIntersection_t tmp;
-    numf maxD = 10;
+    float maxD = 10;
     for(int i = 0; i < numShapes; i++) {
         if((allShapes[i].flags & FLAG_SHOULD_RENDER) &&
             firstIntersectionWithShape(ray, &allShapes[i], &tmp, maxD)) {
@@ -158,12 +158,12 @@ void traceRay(  struct ray_t* ray,
 
 bool firstIntersectionWithShape(struct ray_t* ray,
     __global struct shape_t* shape, struct rayIntersection_t* inter,
-    numf maxD) {
+    float maxD) {
     inter->obj = shape;
     return firstIntersectionWithSDF(ray, shape, inter, maxD);
 }
 
-bool firstIntersectionWithSDF(struct ray_t* pRay, __global struct shape_t* shape, struct rayIntersection_t * inter, numf maxD) {
+bool firstIntersectionWithSDF(struct ray_t* pRay, __global struct shape_t* shape, struct rayIntersection_t * inter, float maxD) {
     struct ray_t ray = (struct ray_t){pRay->origin - shape->position, pRay->direction};
 
     ray.origin = matrixTimesVector(shape->rotationMatrix, ray.origin);
@@ -173,9 +173,9 @@ bool firstIntersectionWithSDF(struct ray_t* pRay, __global struct shape_t* shape
         return false;
     }
 
-    numf d = 0;
+    float d = 0;
     for(int i = 0; i < 100; i++) {
-        numf dist = fabs(oneStepSDF(ray.origin + ray.direction * d, shape));
+        float dist = fabs(oneStepSDF(ray.origin + ray.direction * d, shape));
         if(dist < EPSILON) {
             inter->point = pRay->origin + pRay->direction * d;
             inter->d = d;
@@ -203,19 +203,19 @@ struct ray_t nextRayOnIntersection(struct ray_t* oldRay, struct rayIntersection_
         }
         case MATERIAL_REFRACTION: {
             //TODO optimize
-            numf3 n1 = inter->normal;
-            numf3 r1 = oldRay->direction;
-            numf f = mat.refractionIndex;
+            float3 n1 = inter->normal;
+            float3 r1 = oldRay->direction;
+            float f = mat.refractionIndex;
             if(dot(n1, -r1) < 0) {
                 n1 = -n1;
                 f = 1 / f;
             }
-            numf alpha = acos(dot(-r1, n1));
-            numf3 k1 = n1 * cos(alpha) + r1;
-            numf delta = sin(alpha) / f;
-            numf3 n2, k2;
+            float alpha = acos(dot(-r1, n1));
+            float3 k1 = n1 * cos(alpha) + r1;
+            float delta = sin(alpha) / f;
+            float3 n2, k2;
             if(delta <= 1) {
-                numf beta = asin(delta);
+                float beta = asin(delta);
                 n2 = -n1 * cos(beta);
                 k2 = normalize(k1) * sin(beta);
             } else {
@@ -223,7 +223,7 @@ struct ray_t nextRayOnIntersection(struct ray_t* oldRay, struct rayIntersection_
                 k2 = normalize(k1) * sin(alpha);
             }
             //r2 is already normalized
-            numf3 r2 = n2 + k2;
+            float3 r2 = n2 + k2;
 
             struct ray_t ray = (struct ray_t) {inter->point, r2};
             ray.origin += 10.0f * EPSILON * n2;
@@ -232,13 +232,13 @@ struct ray_t nextRayOnIntersection(struct ray_t* oldRay, struct rayIntersection_
     }
 }
 
-numf oneStepSDF(numf3 point, __global struct shape_t* shape) {
+float oneStepSDF(float3 point, __global struct shape_t* shape) {
     int index = 0;
     // TODO define max stack size
     struct oneStepSDFArgs_t stack[10];
     stack[0] = (struct oneStepSDFArgs_t){point, shape, 0, 0, 0};
     do {
-        numf3 point = stack[index].point;
+        float3 point = stack[index].point;
         __global struct shape_t* shape = stack[index].shape;
         switch(shape->type) {
                 case SUBTRACTION: {

@@ -46,14 +46,14 @@ __kernel void putShapesInMemory(int numShapes,
         long shape = getNextLong(inputData); inputData += sizeof(long);
         long id = getNextLong(inputData); inputData += sizeof(long);
         long flags = getNextLong(inputData); inputData += sizeof(long);
-        numf maxRad = getNextFloat(inputData); inputData += sizeof(float);
-        numf3 position = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
-        numf3 rotation = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
+        float maxRad = getNextFloat(inputData); inputData += sizeof(float);
+        float3 position = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
+        float3 rotation = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
         //Get Material
         long materialType = getNextLong(inputData); inputData += sizeof(long);
-        numf3 materialColor = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
-        numf materialLumen = getNextFloat(inputData); inputData += sizeof(float);
-        numf materialRefractionIndex = getNextFloat(inputData); inputData += sizeof(float);
+        float3 materialColor = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
+        float materialLumen = getNextFloat(inputData); inputData += sizeof(float);
+        float materialRefractionIndex = getNextFloat(inputData); inputData += sizeof(float);
         struct matrix3x3 rotMatrix = rotationMatrix(rotation);
         shapes[i] = (struct shape_t){shape, id, flags,
                         (struct material_t) {
@@ -105,8 +105,8 @@ __kernel void putShapesInMemory(int numShapes,
     }
 }
 
-numf3 getNextFloat3(__global char* data) {
-    return (numf3){
+float3 getNextFloat3(__global char* data) {
+    return (float3){
         getNextFloat(data),
         getNextFloat(data + sizeof(float)),
         getNextFloat(data + 2 * sizeof(float))
@@ -123,7 +123,7 @@ long getNextLong(__global char* data) {
     }
     return res;
 }
-numf getNextFloat(__global char* data) {
+float getNextFloat(__global char* data) {
     float res;
     char* pointer = (char*)&res;
     for(int k = 0; k < sizeof(float); k++) {
@@ -131,5 +131,5 @@ numf getNextFloat(__global char* data) {
         pointer++;
         data++;
     }
-    return (numf)res;
+    return (float)res;
 }

@@ -6,8 +6,8 @@
 struct material_t {
     long type;
     float3 color;
-    numf lumen;
-    numf refractionIndex;
+    float lumen;
+    float refractionIndex;
 };
 
 struct shape_t {
@@ -15,25 +15,25 @@ struct shape_t {
     long id;
     long flags;
     struct material_t material;
-    numf maxRadius;
-    numf3 position;
-    numf3 rotation;
+    float maxRadius;
+    float3 position;
+    float3 rotation;
     struct matrix3x3 rotationMatrix;
     struct matrix3x3 inverseRotationMatrix;
     __global void* shape;
 };
 
 struct sphere_t {
-    numf radius;
+    float radius;
 };
 
 struct torus_t {
-    numf radiusSmall;
-    numf radiusBig;
+    float radiusSmall;
+    float radiusBig;
 };
 
 struct plane_t {
-    numf3 normal;
+    float3 normal;
 };
 
 struct subtraction_t {
@@ -42,7 +42,7 @@ struct subtraction_t {
 };
 
 struct box_t {
-    numf3 dimensions;
+    float3 dimensions;
 };
 
 struct union_t {
@@ -57,44 +57,44 @@ struct intersection_t {
 
 /** Make sure that direction is always normalized!*/
 struct ray_t {
-    numf3 origin;
-    numf3 direction;
+    float3 origin;
+    float3 direction;
 };
 
 //The parameter for the oneStepSDF function
 struct oneStepSDFArgs_t {
-    numf3 point;
+    float3 point;
     __global struct shape_t* shape;
-    numf d1;
-    numf d2;
+    float d1;
+    float d2;
     int status;
 };
 
 /** Make sure that normal is always normalized*/
 struct rayIntersection_t {
     __global struct shape_t* obj;
-    numf3 point;
-    numf3 normal;
-    numf d;
+    float3 point;
+    float3 normal;
+    float d;
 };
 
-numf sphereSDF(numf3 point, __global struct sphere_t* sphere);
+float sphereSDF(float3 point, __global struct sphere_t* sphere);
 
-numf torusSDF(numf3 point, __global struct torus_t* torus);
+float torusSDF(float3 point, __global struct torus_t* torus);
 
-numf planeSDF(numf3 point, __global struct plane_t* plane);
+float planeSDF(float3 point, __global struct plane_t* plane);
 
-numf boxSDF(numf3 point, __global struct box_t* box);
+float boxSDF(float3 point, __global struct box_t* box);
 
-numf distToRay(numf3 point, struct ray_t* ray);
+float distToRay(float3 point, struct ray_t* ray);
 
-numf distToOrig(struct ray_t* ray);
+float distToOrig(struct ray_t* ray);
 
 #define sdfNormal(POINT,SDFFUN,OBJ)\
-    (normalize((numf3){\
-            SDFFUN(POINT + (numf3){EPSILON,0,0}, OBJ) - SDFFUN(POINT - (numf3){EPSILON,0,0}, OBJ),\
-            SDFFUN(POINT + (numf3){0,EPSILON,0}, OBJ) - SDFFUN(POINT - (numf3){0,EPSILON,0}, OBJ),\
-            SDFFUN(POINT + (numf3){0,0,EPSILON}, OBJ) - SDFFUN(POINT - (numf3){0,0,EPSILON}, OBJ),\
+    (normalize((float3){\
+            SDFFUN(POINT + (float3){EPSILON,0,0}, OBJ) - SDFFUN(POINT - (float3){EPSILON,0,0}, OBJ),\
+            SDFFUN(POINT + (float3){0,EPSILON,0}, OBJ) - SDFFUN(POINT - (float3){0,EPSILON,0}, OBJ),\
+            SDFFUN(POINT + (float3){0,0,EPSILON}, OBJ) - SDFFUN(POINT - (float3){0,0,EPSILON}, OBJ),\
         }))
 
 #endif

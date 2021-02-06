@@ -196,12 +196,12 @@ struct ray_t nextRayOnIntersection(struct ray_t* oldRay, struct rayIntersection_
     struct material_t mat = inter->obj->material;
     switch(mat.type) {
         default:
-        case 1: {
+        case MATERIAL_REFLECTION: {
             struct ray_t ray = (struct ray_t) {inter->point, perfectReflectionRayDirection(oldRay->direction, inter->normal)};
             ray.origin += 1.1f * EPSILON * inter->normal;
             return ray;
         }
-        case 2: {
+        case MATERIAL_REFRACTION: {
             //TODO optimize
             numf3 n1 = inter->normal;
             numf3 r1 = oldRay->direction;

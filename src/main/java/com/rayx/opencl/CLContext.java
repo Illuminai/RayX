@@ -1,6 +1,7 @@
 package com.rayx.opencl;
 
 import com.rayx.shape.Shape;
+import com.rayx.shape.material.Material;
 import org.lwjgl.BufferUtils;
 
 import java.nio.ByteBuffer;
@@ -31,7 +32,9 @@ public class CLContext {
                     " -D SUBTRACTION=" + Shape.SUBTRACTION +
                     " -D BOX=" + Shape.BOX +
                     " -D UNION=" + Shape.UNION +
-                    " -D INTERSECTION=" + Shape.INTERSECTION;
+                    " -D INTERSECTION=" + Shape.INTERSECTION +
+                    " -D MATERIAL_REFLECTION=" + Material.MATERIAL_REFLECTION +
+                    " -D MATERIAL_REFRACTION=" + Material.MATERIAL_REFRACTION;
 
     private final long device;
     private long context;

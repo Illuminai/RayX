@@ -31,8 +31,3 @@ numf distToRay(numf3 point, struct ray_t* ray) {
 numf distToOrig(struct ray_t* ray) {
     return length(cross(ray->origin, ray->direction));
 }
-
-numf3 reflectionRayDirection(numf3 direction, numf3 normal) {
-    //http://paulbourke.net/geometry/reflected/
-    return direction - 2 * normal * dot(direction, normal);
-}

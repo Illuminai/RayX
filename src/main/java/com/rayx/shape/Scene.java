@@ -3,6 +3,7 @@ package com.rayx.shape;
 import com.rayx.opencl.CLContext;
 import com.rayx.opencl.CLManager;
 import com.rayx.shape.material.Material;
+import org.lwjgl.system.CallbackI;
 import org.lwjgl.system.MemoryStack;
 
 import java.nio.ByteBuffer;
@@ -167,19 +168,8 @@ public class Scene {
         }
 
         private void exhibition(double t) {
-            Material material = new Material(Material.MATERIAL_REFLECTION, new Vector3d(1, 0, 1), 1);
-            //Plane bottom = new Plane(new Vector3d(0, 0, -.3), new Vector3d(0, 0, .3).normalized(), material);
-            //add(bottom);
-            //Plane top = new Plane(new Vector3d(0, 0, .3), new Vector3d(0, 0, -.3).normalized(), material);
-            //add(top);
+            Material material = Material.reflectionMaterial(new Vector3d(0, 0, 1), 1);
 
-            //Plane back = new Plane(new Vector3d(.3, 0, 0), new Vector3d(-.3, 0, 0).normalized(), material);
-            //add(back);
-            //Plane front = new Plane(new Vector3d(-.3, 0, 0), new Vector3d(.3, 0, 0).normalized(), material);
-            //add(front);
-
-            //Plane left = new Plane(new Vector3d(0, -.3, 0), new Vector3d(0, .3, 0).normalized(), material);
-            //add(left);
             Plane right = new Plane(new Vector3d(0, .3, 0), new Vector3d(0, -.3, 0).normalized(), material);
             add(right);
 
@@ -229,6 +219,13 @@ public class Scene {
                                     new Vector3d(0, 0, 0),
                                     new Vector3d(0, 0, 0),
                                     new Vector3d(.01, .01, .01))),
+                    new BoxSDF(new Vector3d(0, 0, 0), new Vector3d(0, 0, 0), new Vector3d(.03, .03, .03))));
+
+            add(new SubtractionSDF(
+                    new Vector3d(-.1, 0, 0),
+                    new Vector3d(0, 0, 0),
+                    Material.refractionMaterial(new Vector3d(1,1,1),1, 1.5f),
+                    new Sphere(new Vector3d(.03, 0, 0), (float) (.015 * (Math.sin(t) + 1.1))),
                     new BoxSDF(new Vector3d(0, 0, 0), new Vector3d(0, 0, 0), new Vector3d(.03, .03, .03))));
         }
     }

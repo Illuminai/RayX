@@ -20,7 +20,7 @@ public class RayX {
     public static void main(String[] args) {
         WindowManager manager = WindowManager.getInstance();
 
-        TestOGLWindow window = new TestOGLWindow(1600, 900, "Test");
+        TestOGLWindow window = new TestOGLWindow(800, 600, "Test");
         manager.addWindow(window);
 
         manager.setSwapInterval(1);

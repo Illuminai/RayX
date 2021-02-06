@@ -1,5 +1,7 @@
 package com.rayx.shape;
 
+import com.rayx.shape.material.Material;
+
 import java.nio.ByteBuffer;
 
 public class Sphere extends Shape {
@@ -11,6 +13,11 @@ public class Sphere extends Shape {
 
     public Sphere(Vector3d position, float radius) {
         super(position, new Vector3d(0, 0, 0), null);
+        this.radius = radius;
+    }
+
+    public Sphere(Vector3d position, float radius, Material material) {
+        super(position, new Vector3d(0, 0, 0), material, null);
         this.radius = radius;
     }
 

@@ -21,6 +21,8 @@ __kernel void render(__write_only image2d_t resultImage, float height,
 
 float4 getTypeColor(int type);
 
+numf3 perfectReflectionRayDirection(numf3 direction, numf3 normal);
+
 struct ray_t getRay(numf u, numf v, numf3 camPos, numf3 camRot, numf camFOV);
 
 void traceRay(struct ray_t* ray, int numShapes,
@@ -30,6 +32,8 @@ void traceRay(struct ray_t* ray, int numShapes,
 bool firstIntersectionWithShape(struct ray_t* ray, __global struct shape_t* shape, struct rayIntersection_t* inter, numf maxD);
 
 bool firstIntersectionWithSDF(struct ray_t* ray, __global struct shape_t* shape, struct rayIntersection_t * intersection, numf maxD);
+
+struct ray_t nextRayOnIntersection(struct ray_t* ray, struct rayIntersection_t* inter);
 
 numf oneStepSDF(numf3 point, __global struct shape_t* shape);
 

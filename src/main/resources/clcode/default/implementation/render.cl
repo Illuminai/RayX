@@ -94,8 +94,7 @@ __kernel void render(__write_only image2d_t resultImage, float height,
         }
 
         if(i != MAX_RAY_BOUNCES - 1) {
-            rays[i + 1] = (struct ray_t) {inters[i].point, reflectionRayDirection(rays[i].direction, inters[i].normal)};
-            rays[i + 1].origin += 2 * EPSILON * rays[i+1].direction;
+            rays[i + 1] = nextRayOnIntersection(&rays[i], &inters[i]);
         }
     }
     finished:
@@ -121,6 +120,11 @@ __kernel void render(__write_only image2d_t resultImage, float height,
 
 }
 
+numf3 perfectReflectionRayDirection(numf3 direction, numf3 normal) {
+    //http://paulbourke.net/geometry/reflected/
+    return direction - 2 * normal * dot(direction, normal);
+}
+
 struct ray_t getRay(numf u, numf v, numf3 camPos, numf3 camRot, numf camFOV) {
     struct matrix3x3 rotMat = rotationMatrix(camRot);
         numf3 viewDirection = matrixTimesVector(rotMat, (numf3){camFOV,0,0});
@@ -141,7 +145,7 @@ void traceRay(  struct ray_t* ray,
         if((allShapes[i].flags & FLAG_SHOULD_RENDER) &&
             firstIntersectionWithShape(ray, &allShapes[i], &tmp, maxD)) {
             if(inter->obj != 0) {
-                if(dot(tmp.normal, ray->direction) < 0 && tmp.d < inter->d) {
+                if(tmp.d < inter->d) {
                     *inter = tmp;
                     maxD = tmp.d;
                 }
@@ -170,8 +174,8 @@ bool firstIntersectionWithSDF(struct ray_t* pRay, __global struct shape_t* shape
     }
 
     numf d = 0;
-    for(int i = 0; i < 1000; i++) {
-        numf dist = oneStepSDF(ray.origin + ray.direction * d, shape);
+    for(int i = 0; i < 100; i++) {
+        numf dist = fabs(oneStepSDF(ray.origin + ray.direction * d, shape));
         if(dist < EPSILON) {
             inter->point = pRay->origin + pRay->direction * d;
             inter->d = d;
@@ -186,6 +190,46 @@ bool firstIntersectionWithSDF(struct ray_t* pRay, __global struct shape_t* shape
     }
 
     return false;
+}
+
+struct ray_t nextRayOnIntersection(struct ray_t* oldRay, struct rayIntersection_t* inter) {
+    struct material_t mat = inter->obj->material;
+    switch(mat.type) {
+        default:
+        case 1: {
+            struct ray_t ray = (struct ray_t) {inter->point, perfectReflectionRayDirection(oldRay->direction, inter->normal)};
+            ray.origin += 1.1f * EPSILON * inter->normal;
+            return ray;
+        }
+        case 2: {
+            //TODO optimize
+            numf3 n1 = inter->normal;
+            numf3 r1 = oldRay->direction;
+            numf f = mat.refractionIndex;
+            if(dot(n1, -r1) < 0) {
+                n1 = -n1;
+                f = 1 / f;
+            }
+            numf alpha = acos(dot(-r1, n1));
+            numf3 k1 = n1 * cos(alpha) + r1;
+            numf delta = sin(alpha) / f;
+            numf3 n2, k2;
+            if(delta <= 1) {
+                numf beta = asin(delta);
+                n2 = -n1 * cos(beta);
+                k2 = normalize(k1) * sin(beta);
+            } else {
+                n2 = n1 * cos(alpha);
+                k2 = normalize(k1) * sin(alpha);
+            }
+            //r2 is already normalized
+            numf3 r2 = n2 + k2;
+
+            struct ray_t ray = (struct ray_t) {inter->point, r2};
+            ray.origin += 10.0f * EPSILON * n2;
+            return ray;
+        }
+    }
 }
 
 numf oneStepSDF(numf3 point, __global struct shape_t* shape) {

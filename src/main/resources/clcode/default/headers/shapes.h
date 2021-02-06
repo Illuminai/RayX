@@ -5,8 +5,9 @@
 
 struct material_t {
     long type;
-    numf3 color;
+    float3 color;
     numf lumen;
+    numf refractionIndex;
 };
 
 struct shape_t {
@@ -88,8 +89,6 @@ numf boxSDF(numf3 point, __global struct box_t* box);
 numf distToRay(numf3 point, struct ray_t* ray);
 
 numf distToOrig(struct ray_t* ray);
-
-numf3 reflectionRayDirection(numf3 direction, numf3 normal);
 
 #define sdfNormal(POINT,SDFFUN,OBJ)\
     (normalize((numf3){\

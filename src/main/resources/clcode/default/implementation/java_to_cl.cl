@@ -53,12 +53,14 @@ __kernel void putShapesInMemory(int numShapes,
         long materialType = getNextLong(inputData); inputData += sizeof(long);
         numf3 materialColor = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
         numf materialLumen = getNextFloat(inputData); inputData += sizeof(float);
+        numf materialRefractionIndex = getNextFloat(inputData); inputData += sizeof(float);
         struct matrix3x3 rotMatrix = rotationMatrix(rotation);
         shapes[i] = (struct shape_t){shape, id, flags,
                         (struct material_t) {
                             materialType,
                             materialColor,
-                            materialLumen
+                            materialLumen,
+                            materialRefractionIndex
                         },
                         maxRad,
                         position, rotation,

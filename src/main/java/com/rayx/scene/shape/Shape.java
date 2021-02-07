@@ -1,7 +1,8 @@
-package com.rayx.shape;
+package com.rayx.scene.shape;
 
+import com.rayx.core.math.Vector3d;
 import com.rayx.opencl.CLTransferable;
-import com.rayx.shape.material.Material;
+import com.rayx.scene.material.Material;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -43,7 +44,7 @@ public abstract class Shape implements CLTransferable {
      */
     public static final int INTERSECTION = 0x7;
 
-    private final Vector3d position, rotation;
+    private Vector3d position, rotation;
     private long id;
     private long flags;
     private final Material material;
@@ -64,6 +65,18 @@ public abstract class Shape implements CLTransferable {
         this.subShapes = subShapes == null ? new ArrayList<>(0) : subShapes;
         flags = 0;
         id = -1;
+    }
+
+    public void setPosition(Vector3d position) {
+        this.position = position;
+    }
+
+    public void setRotation(Vector3d rotation) {
+        this.rotation = rotation;
+    }
+
+    public Vector3d getRotation() {
+        return rotation;
     }
 
     public Vector3d getPosition() {

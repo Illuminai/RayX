@@ -5,9 +5,9 @@ import com.rayx.glfw.OpenGLWindow;
 import com.rayx.glfw.WindowManager;
 import com.rayx.opencl.CLContext;
 import com.rayx.opencl.CLManager;
-import com.rayx.shape.Camera;
-import com.rayx.shape.Scene;
-import com.rayx.shape.Shape;
+import com.rayx.scene.Camera;
+import com.rayx.scene.Scene;
+import com.rayx.scene.shape.Shape;
 
 import static org.lwjgl.opencl.CL22.*;
 
@@ -56,7 +56,7 @@ public class RayX {
         freeAll();
     }
 
-    static CLContext treatDevice(OpenGLWindow window, long device) {
+    public static CLContext treatDevice(OpenGLWindow window, long device) {
         long t = System.currentTimeMillis();
         CLContext context = CLManager.createContext(device, window.getWindow());
 

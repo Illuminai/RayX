@@ -35,7 +35,8 @@ public abstract class OpenGLWindow {
 
     public abstract void onRender();
 
-    public abstract void onKeyboardEvent(int key, int scancode, int action, int mods);
+    public void onKeyboardEvent(int key, int scancode, int action, int mods) {
+    }
 
     public void onResize(int width, int height) {
         glfwPollEvents();

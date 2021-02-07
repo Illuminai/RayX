@@ -1,12 +1,10 @@
 package com.rayx.opencl;
 
 import com.rayx.opencl.exceptions.*;
-import com.rayx.shape.Camera;
-import com.rayx.shape.Shape;
+import com.rayx.scene.Camera;
+import com.rayx.scene.shape.Shape;
 import org.lwjgl.PointerBuffer;
-import org.lwjgl.opencl.CL12GL;
-import org.lwjgl.opencl.CL22;
-import org.lwjgl.opencl.KHRGLSharing;
+import org.lwjgl.opencl.*;
 import org.lwjgl.opengl.CGL;
 import org.lwjgl.opengl.GLX14;
 import org.lwjgl.system.MemoryStack;

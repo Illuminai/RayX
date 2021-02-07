@@ -1,6 +1,7 @@
-package com.rayx.shape;
+package com.rayx.scene.shape;
 
-import com.rayx.shape.material.Material;
+import com.rayx.core.math.Vector3d;
+import com.rayx.scene.material.Material;
 
 import java.nio.ByteBuffer;
 

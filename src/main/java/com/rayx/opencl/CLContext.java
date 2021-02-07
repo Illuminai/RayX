@@ -1,10 +1,11 @@
 package com.rayx.opencl;
 
-import com.rayx.shape.Shape;
+import com.rayx.scene.shape.Shape;
 import org.lwjgl.BufferUtils;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 import static org.lwjgl.opencl.CL10.CL_MEM_READ_ONLY;
@@ -22,7 +23,7 @@ public class CLContext {
             " -cl-fast-relaxed-math " +
                     " -cl-kernel-arg-info " +
                     " -Werror " +
-                    " -D EPSILON=((float)0.0001) " +
+                    " -D EPSILON=((float)0.00001) " +
                     " -D FLAG_SHOULD_RENDER=" + Shape.FLAG_SHOULD_RENDER +
                     " -D SHAPE=" + Shape.SHAPE +
                     " -D SPHERE=" + Shape.SPHERE +
@@ -102,6 +103,10 @@ public class CLContext {
     public void addMemoryObject(String id, CLMemoryObject memoryObject) {
         assert !memoryObjects.containsKey(id) : "Memory object already exists: " + id;
         memoryObjects.put(id, memoryObject);
+    }
+
+    public Map<String, CLMemoryObject> getAllMemoryObjects() {
+        return memoryObjects;
     }
 
     public long getContext() {

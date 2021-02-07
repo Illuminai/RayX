@@ -1,12 +1,14 @@
-package com.rayx.shape;
+package com.rayx.scene.shape;
+
+import com.rayx.core.math.Vector3d;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class UnionSDF extends Shape {
+public class SubtractionSDF extends Shape {
     private final Shape shape1, shape2;
 
-    public UnionSDF(Vector3d position, Vector3d rotation, Shape shape1, Shape shape2) {
+    public SubtractionSDF(Vector3d position, Vector3d rotation, Shape shape1, Shape shape2) {
         super(position, rotation, Arrays.asList(shape1, shape2));
         this.shape1 = shape1;
         this.shape2 = shape2;
@@ -14,7 +16,7 @@ public class UnionSDF extends Shape {
 
     @Override
     public int getShape() {
-        return UNION;
+        return SUBTRACTION;
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.rayx.glfw;
 import org.lwjgl.glfw.GLFWErrorCallback;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -13,10 +14,13 @@ public class WindowManager {
 
     private boolean running;
 
-    private List<OpenGLWindow> windows;
+    private final List<OpenGLWindow> windows;
+
+    private final List<OpenGLWindow> newWindows;
 
     private WindowManager() {
         windows = new ArrayList<>();
+        newWindows = new ArrayList<>();
         GLFWErrorCallback.createPrint(System.err).set();
         if (!glfwInit()) {
             throw new IllegalStateException("Unable to initialize GLFW!");
@@ -39,7 +43,7 @@ public class WindowManager {
     }
 
     private void loopManager() {
-        while (running && !windows.isEmpty()) {
+        while (running && (!windows.isEmpty() || !newWindows.isEmpty())) {
             pollEvents();
 
             windows.stream()
@@ -48,7 +52,13 @@ public class WindowManager {
 
             windows.removeIf(OpenGLWindow::shouldClose);
 
-            for (OpenGLWindow window : windows) {
+            if (!newWindows.isEmpty()) {
+                windows.addAll(newWindows);
+                newWindows.clear();
+            }
+
+            for (Iterator<OpenGLWindow> i = windows.iterator(); i.hasNext(); ) {
+                OpenGLWindow window = i.next();
                 window.makeContextCurrent();
                 window.onRender();
                 window.swapBuffers();
@@ -57,7 +67,7 @@ public class WindowManager {
     }
 
     public void addWindow(OpenGLWindow window) {
-        windows.add(window);
+        newWindows.add(window);
     }
 
     public static WindowManager getInstance() {

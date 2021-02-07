@@ -1,8 +1,10 @@
-package com.rayx.shape;
+package com.rayx.scene;
 
+import com.rayx.core.math.Vector3d;
 import com.rayx.opencl.CLContext;
 import com.rayx.opencl.CLManager;
-import com.rayx.shape.material.Material;
+import com.rayx.scene.material.Material;
+import com.rayx.scene.shape.*;
 import org.lwjgl.system.MemoryStack;
 
 import java.nio.ByteBuffer;
@@ -13,8 +15,7 @@ import static org.lwjgl.opencl.CL10.CL_MEM_READ_WRITE;
 public class Scene {
     private final ArrayList<Shape> visibleObjects, allObjects;
     private final String shapesIdentifier, shapesDataPrefix;
-    private Vector3d cameraPos, cameraRot;
-    private float cameraFOV;
+    private Camera camera;
 
     private int currentId;
 
@@ -23,10 +24,19 @@ public class Scene {
         this.allObjects = new ArrayList<>();
         shapesIdentifier = "shapes" + hashCode();
         shapesDataPrefix = "shapesData" + hashCode();
-        //TODO default camera position
-        this.cameraPos = new Vector3d(-.2, 0, 0);
-        this.cameraRot = new Vector3d(0, 0, 0);
-        cameraFOV = 1;
+        camera = new Camera(
+                new Vector3d(-.2, 0, 0),
+                new Vector3d(0, 0, 0),
+                1
+        );
+    }
+
+    public Camera getCamera() {
+        return camera;
+    }
+
+    public void setCamera(Camera camera) {
+        this.camera = camera;
     }
 
     public ArrayList<Shape> getAllObjects() {
@@ -60,14 +70,6 @@ public class Scene {
                 shapesDataPrefix,
                 width, height, debug
         );
-    }
-
-    public void move(float amountX, float amountY, float amountZ) {
-        cameraPos = new Vector3d(cameraPos.getX() + amountX, cameraPos.getY() + amountY, cameraPos.getZ() + amountZ);
-    }
-
-    public void turn(float amountX, float amountY, float amountZ) {
-        cameraRot = new Vector3d(cameraRot.getX() + amountX, cameraRot.getY() + amountY, cameraRot.getZ() + amountZ);
     }
 
     private void addToAllObjects(Shape shape) {
@@ -149,27 +151,23 @@ public class Scene {
         context.freeAllMemoryObjects();
     }
 
-    public void clearVisibleObjects() {
-        visibleObjects.clear();
-    }
-
     public static class DemoScene extends Scene {
         public DemoScene() {
             super();
+            exhibition();
         }
 
         public void set(CLContext context, double t) {
             assert context != null;
-            deleteRenderMemory(context);
-            clearVisibleObjects();
+            //deleteRenderMemory(context);
 
-            exhibition(t);
+            //
         }
 
-        private void exhibition(double t) {
+        private void exhibition() {
             Material material = new Material(Material.MATERIAL_REFLECTION, new Vector3d(1, 0, 1), 1);
-            //Plane bottom = new Plane(new Vector3d(0, 0, -.3), new Vector3d(0, 0, .3).normalized(), material);
-            //add(bottom);
+            Plane bottom = new Plane(new Vector3d(0, 0, -.3), new Vector3d(0, 0, .3).normalized(), material);
+            add(bottom);
             //Plane top = new Plane(new Vector3d(0, 0, .3), new Vector3d(0, 0, -.3).normalized(), material);
             //add(top);
 
@@ -180,8 +178,8 @@ public class Scene {
 
             //Plane left = new Plane(new Vector3d(0, -.3, 0), new Vector3d(0, .3, 0).normalized(), material);
             //add(left);
-            Plane right = new Plane(new Vector3d(0, .3, 0), new Vector3d(0, -.3, 0).normalized(), material);
-            add(right);
+            //Plane right = new Plane(new Vector3d(0, .3, 0), new Vector3d(0, -.3, 0).normalized(), material);
+            //add(right);
 
             add(new TorusSDF(new Vector3d(0, -.1, 0), new Vector3d(0, 0, 0), .005f, .03f));
 
@@ -194,12 +192,12 @@ public class Scene {
             add(new Sphere(0, -.1f, -.1f, .03f));
             add(new BoxSDF(
                     new Vector3d(0, 0, -.1),
-                    new Vector3d(0, t, t),
+                    new Vector3d(0, 0, 0),
                     new Vector3d(.03, .03, .03)));
 
             add(new UnionSDF(
                     new Vector3d(0, 0, 0),
-                    new Vector3d(0, t, 0),
+                    new Vector3d(0, 0, 0),
                     new TorusSDF(new Vector3d(0, 0, 0),
                             new Vector3d(0, 0, 0), .005f, .03f),
                     new BoxSDF(
@@ -209,20 +207,20 @@ public class Scene {
 
             add(new IntersectionSDF(
                     new Vector3d(0, 0, .1),
-                    new Vector3d(0, t, 0),
+                    new Vector3d(0, 0, 0),
                     new TorusSDF(new Vector3d(0, .03, 0),
                             new Vector3d(0, 0, 0), .01f, .03f),
                     new BoxSDF(
                             new Vector3d(0, 0, 0),
                             new Vector3d(0, 0, 0),
-                            new Vector3d(.03, .03 + .01 * Math.sin(t), .03 + .01 * Math.sin(t)))));
+                            new Vector3d(.03, .03 + .01, .03 + .01))));
 
             add(new SubtractionSDF(
                     new Vector3d(0, .1, -.1),
                     new Vector3d(0, 0, 0),
                     new UnionSDF(
                             new Vector3d(-.03, 0, 0),
-                            new Vector3d(t, 0, 0),
+                            new Vector3d(0, 0, 0),
                             new TorusSDF(new Vector3d(0, 0, 0),
                                     new Vector3d(0, 0, 0), .005f, .02f),
                             new BoxSDF(

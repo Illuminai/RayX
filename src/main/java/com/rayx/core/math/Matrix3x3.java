@@ -1,4 +1,4 @@
-package com.rayx.shape;
+package com.rayx.core.math;
 
 public class Matrix3x3 {
     private final double[] content;

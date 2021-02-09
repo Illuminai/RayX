@@ -9,6 +9,8 @@ import com.rayx.opengl.ShaderProgram;
 import com.rayx.opengl.ShaderType;
 import com.rayx.scene.Scene;
 import com.rayx.scene.shape.*;
+import com.rayx.scene.shape.sdf.BoxSDF;
+import com.rayx.scene.shape.sdf.Sphere;
 import imgui.*;
 import imgui.flag.*;
 import imgui.gl3.ImGuiImplGl3;

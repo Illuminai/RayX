@@ -1,14 +1,15 @@
-package com.rayx.scene.shape;
+package com.rayx.scene.shape.sdf;
 
 import com.rayx.core.math.Vector3d;
+import com.rayx.scene.shape.Shape;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class UnionSDF extends Shape {
+public class IntersectionSDF extends Shape {
     private final Shape shape1, shape2;
 
-    public UnionSDF(Vector3d position, Vector3d rotation, Shape shape1, Shape shape2) {
+    public IntersectionSDF(Vector3d position, Vector3d rotation, Shape shape1, Shape shape2) {
         super(position, rotation, Arrays.asList(shape1, shape2));
         this.shape1 = shape1;
         this.shape2 = shape2;
@@ -16,7 +17,7 @@ public class UnionSDF extends Shape {
 
     @Override
     public int getShape() {
-        return UNION;
+        return INTERSECTION;
     }
 
     @Override

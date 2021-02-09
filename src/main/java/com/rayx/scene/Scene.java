@@ -5,6 +5,7 @@ import com.rayx.opencl.CLContext;
 import com.rayx.opencl.CLManager;
 import com.rayx.scene.material.Material;
 import com.rayx.scene.shape.*;
+import com.rayx.scene.shape.sdf.*;
 import org.lwjgl.system.MemoryStack;
 
 import java.nio.ByteBuffer;

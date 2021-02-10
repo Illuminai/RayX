@@ -32,7 +32,8 @@ public class CLContext {
                     " -D SUBTRACTION=" + Shape.SUBTRACTION +
                     " -D BOX=" + Shape.BOX +
                     " -D UNION=" + Shape.UNION +
-                    " -D INTERSECTION=" + Shape.INTERSECTION;
+                    " -D INTERSECTION=" + Shape.INTERSECTION +
+                    " -D OCTAHEDRON=" + Shape.OCTAHEDRON;
 
     private final long device;
     private long context;
@@ -340,7 +341,8 @@ public class CLContext {
                 Shape.SUBTRACTION,
                 Shape.BOX,
                 Shape.UNION,
-                Shape.INTERSECTION
+                Shape.INTERSECTION,
+                Shape.OCTAHEDRON
         };
         CLContext.CLKernel kernelStruct =
                 getKernelObject(CLContext.KERNEL_GET_STRUCT_SIZE);

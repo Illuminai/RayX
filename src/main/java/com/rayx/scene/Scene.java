@@ -126,6 +126,9 @@ public class Scene {
             CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
                     allObjects.stream().filter(u -> u.getShape() == Shape.INTERSECTION).mapToInt(u -> context.getStructSize(u.getShape())).sum(),
                     shapesDataPrefix + "IntersectionSDF");
+            CLManager.allocateMemory(context, CL_MEM_READ_WRITE,
+                    allObjects.stream().filter(u -> u.getShape() == Shape.OCTAHEDRON).mapToInt(u -> context.getStructSize(u.getShape())).sum(),
+                    shapesDataPrefix + "OctahedronSDF");
 
             CLContext.CLKernel kernel = context.getKernelObject(CLContext.KERNEL_FILL_BUFFER_DATA);
             kernel.setParameter1i(0, allObjects.size());
@@ -138,6 +141,7 @@ public class Scene {
             kernel.setParameterPointer(7, shapesDataPrefix + "BoxSDF");
             kernel.setParameterPointer(8, shapesDataPrefix + "UnionSDF");
             kernel.setParameterPointer(9, shapesDataPrefix + "IntersectionSDF");
+            kernel.setParameterPointer(10, shapesDataPrefix + "OctahedronSDF");
 
             kernel.run(new long[]{1}, null);
 
@@ -195,6 +199,11 @@ public class Scene {
                     new Vector3d(0, 0, -.1),
                     new Vector3d(0, 0, 0),
                     new Vector3d(.03, .03, .03)));
+
+            add(new OctahedronSDF(
+                    new Vector3d(0.3,0.3,0.3),
+                    0.05f
+            ));
 
             add(new UnionSDF(
                     new Vector3d(0, 0, 0),

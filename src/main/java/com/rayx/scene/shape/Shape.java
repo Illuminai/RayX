@@ -44,6 +44,8 @@ public abstract class Shape implements CLTransferable {
      */
     public static final int INTERSECTION = 0x7;
 
+    public static final int OCTAHEDRON = 0x8;
+
     private Vector3d position, rotation;
     private long id;
     private long flags;

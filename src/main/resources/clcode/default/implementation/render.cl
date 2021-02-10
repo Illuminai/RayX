@@ -310,7 +310,6 @@ numf oneStepSDF(numf3 point, __global struct shape_t* shape) {
                     stack[index].d1 = sphereSDF(point, shape->shape);
                     index--;
                     continue;
-
                 case TORUS:
                     stack[index].d1 = torusSDF(point, shape->shape);
                     index--;
@@ -321,6 +320,10 @@ numf oneStepSDF(numf3 point, __global struct shape_t* shape) {
                     continue;
                 case BOX:
                     stack[index].d1 = boxSDF(point, shape->shape);
+                    index--;
+                    continue;
+                case OCTAHEDRON:
+                    stack[index].d1 = octahedronSDF(point, shape->shape);
                     index--;
                     continue;
                 default:

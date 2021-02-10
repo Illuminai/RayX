@@ -16,7 +16,8 @@ __kernel void putShapesInMemory(int numShapes,
                 __global struct subtraction_t* dataSubtractionSDF,
                 __global struct box_t* dataBoxSDF,
                 __global struct union_t* dataUnionSDF,
-                __global struct intersection_t* dataIntersectionSDF);
+                __global struct intersection_t* dataIntersectionSDF,
+                __global struct octahedron_t* dataOctahedronSDF);
 
 numf getNextFloat(__global char* data);
 

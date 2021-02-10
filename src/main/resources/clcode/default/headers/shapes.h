@@ -54,6 +54,10 @@ struct intersection_t {
     __global struct shape_t* shape2;
 };
 
+struct octahedron_t {
+    numf size;
+};
+
 /** Make sure that direction is always normalized!*/
 struct ray_t {
     numf3 origin;
@@ -84,6 +88,8 @@ numf torusSDF(numf3 point, __global struct torus_t* torus);
 numf planeSDF(numf3 point, __global struct plane_t* plane);
 
 numf boxSDF(numf3 point, __global struct box_t* box);
+
+numf octahedronSDF(numf3 point, __global struct octahedron_t* octahedron);
 
 numf distToRay(numf3 point, struct ray_t* ray);
 

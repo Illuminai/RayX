@@ -22,10 +22,10 @@ float boxSDF(float3 point, __global struct box_t* box) {
     return length(max(q,(float3)0.0)) + min((float)max(q.x,max(q.y,q.z)),(float)0.0);
 }
 
-float octahedronSDF(numf3 point, __global struct octahedron_t* octahedron) {
-    numf3 p = fabs(point);
-    numf m = p.x + p.y + p.z - octahedron->size;
-    numf3 q;
+float octahedronSDF(float3 point, __global struct octahedron_t* octahedron) {
+    float3 p = fabs(point);
+    float m = p.x + p.y + p.z - octahedron->size;
+    float3 q;
 
     if ( 3.0*p.x < m ) {
         q = p.xyz;
@@ -38,7 +38,7 @@ float octahedronSDF(numf3 point, __global struct octahedron_t* octahedron) {
     }
 
     float k = clamp(0.5f*(q.z-q.y+octahedron->size),0.0f,octahedron->size);
-    return length((numf3){q.x,q.y-octahedron->size+k,q.z-k});
+    return length((float3){q.x,q.y-octahedron->size+k,q.z-k});
 }
 
 
@@ -46,7 +46,7 @@ float distToOrig(struct ray_t* ray) {
     return length(cross(ray->origin, ray->direction));
 }
 
-float3 reflectionRayDirection(numf3 direction, numf3 normal) {
+float3 reflectionRayDirection(float3 direction, float3 normal) {
     //http://paulbourke.net/geometry/reflected/
     return direction - 2 * normal * dot(direction, normal);
 }

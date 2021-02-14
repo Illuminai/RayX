@@ -1,5 +1,6 @@
 package com.rayx.opencl;
 
+import com.rayx.scene.material.Material;
 import com.rayx.scene.shape.Shape;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;

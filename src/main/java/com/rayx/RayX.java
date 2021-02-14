@@ -21,7 +21,7 @@ public class RayX {
         TestOGLWindow window = new TestOGLWindow(800, 600, "Test");
         manager.addWindow(window);
 
-        manager.setSwapInterval(1);
+        manager.setSwapInterval(0);
 
         loop:
         for (long platform : CLManager.queryPlatforms()) {

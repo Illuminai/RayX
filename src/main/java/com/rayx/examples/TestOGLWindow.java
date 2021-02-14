@@ -393,7 +393,7 @@ public class TestOGLWindow extends OpenGLWindow {
             float[] fov = new float[]{
                     scene.getCamera().getFov()
             };
-            if (ImGui.dragFloat("FOV", fov)) {
+            if (ImGui.dragFloat("FOV", fov, 0.01f, 0.01f, 5f)) {
                 scene.getCamera().setFov(fov[0]);
             }
 

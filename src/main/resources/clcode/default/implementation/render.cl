@@ -205,7 +205,7 @@ struct ray_t nextRayOnIntersection(struct ray_t* oldRay, struct rayIntersection_
             //TODO optimize
             float3 n1 = inter->normal;
             float3 r1 = oldRay->direction;
-            float f = mat.refractionIndex;
+            float f = mat.properties.refraction.refractionIndex;
             if(dot(n1, -r1) < 0) {
                 n1 = -n1;
                 f = 1 / f;

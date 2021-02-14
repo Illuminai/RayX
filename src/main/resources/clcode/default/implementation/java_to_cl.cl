@@ -55,12 +55,15 @@ __kernel void putShapesInMemory(int numShapes,
         float materialLumen = getNextFloat(inputData); inputData += sizeof(float);
         float materialRefractionIndex = getNextFloat(inputData); inputData += sizeof(float);
         struct matrix3x3 rotMatrix = rotationMatrix(rotation);
+        struct material_t material;
+
         shapes[i] = (struct shape_t){shape, id, flags,
                         (struct material_t) {
                             materialType,
                             materialColor,
                             materialLumen,
-                            materialRefractionIndex
+                            //Initialize just one union
+                            {.refraction = {materialRefractionIndex}}
                         },
                         maxRad,
                         position, rotation,

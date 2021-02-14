@@ -221,12 +221,14 @@ public class Scene {
                                     new Vector3d(.01, .01, .01))),
                     new BoxSDF(new Vector3d(0, 0, 0), new Vector3d(0, 0, 0), new Vector3d(.03, .03, .03))));
 
-            add(new SubtractionSDF(
+            /*add(new SubtractionSDF(
                     new Vector3d(-.1, 0, 0),
                     new Vector3d(0, 0, 0),
                     Material.refractionMaterial(new Vector3d(1,1,1),1, 1.5f),
                     new Sphere(new Vector3d(.03, 0, 0), (float) (.015 * (Math.sin(t) + 1.1))),
-                    new BoxSDF(new Vector3d(0, 0, 0), new Vector3d(0, 0, 0), new Vector3d(.03, .03, .03))));
+                    new BoxSDF(new Vector3d(0, 0, 0), new Vector3d(0, 0, 0), new Vector3d(.03, .03, .03))));*/
+            add(new Sphere(new Vector3d(-.04, 0, 0), .03f, Material.refractionMaterial(new Vector3d(1,1,1),1, (float) (Math.sin(t/10) * 0.5 + 0.6))));
+
         }
     }
 }

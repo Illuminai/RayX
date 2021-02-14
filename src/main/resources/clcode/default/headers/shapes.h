@@ -7,7 +7,13 @@ struct material_t {
     long type;
     float3 color;
     float lumen;
-    float refractionIndex;
+    union {
+        struct {
+        } reflection;
+        struct {
+            float refractionIndex;
+        } refraction;
+    } properties;
 };
 
 struct shape_t {

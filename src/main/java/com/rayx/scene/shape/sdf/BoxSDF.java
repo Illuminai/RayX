@@ -6,6 +6,7 @@ import com.rayx.scene.shape.Shape;
 import java.nio.ByteBuffer;
 
 public class BoxSDF extends Shape {
+
     private final Vector3d dimensions;
 
     public BoxSDF(Vector3d position, Vector3d rotation, Vector3d dimensions) {

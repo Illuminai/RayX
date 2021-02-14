@@ -2,6 +2,7 @@ package com.rayx.opencl;
 
 import com.rayx.scene.shape.Shape;
 import org.lwjgl.BufferUtils;
+import org.lwjgl.PointerBuffer;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -403,6 +404,11 @@ public class CLContext {
             CLManager.releaseFromGLInternal(commandQueue, pointer);
         }
 
+        public void releaseFromGL(PointerBuffer eventWaitList, PointerBuffer event) {
+            assert size == -1;
+            CLManager.releaseFromGLInternal(commandQueue, pointer, eventWaitList, event);
+        }
+
         private void delete() {
             CLManager.freeMemoryInternal(pointer);
             pointer = 0;
@@ -483,6 +489,12 @@ public class CLContext {
         public void run(long[] globalWorkSize, long[] localWorkSize) {
             CLManager.runKernelInternal(
                     kernel, commandQueue, globalWorkSize, localWorkSize
+            );
+        }
+
+        public long enqueue(long[] globalWorkSize, long[] localWorkSize, PointerBuffer eventWaitList) {
+            return CLManager.enqueueKernelInternal(
+                    kernel, commandQueue, globalWorkSize, localWorkSize, eventWaitList
             );
         }
 

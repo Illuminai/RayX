@@ -73,6 +73,23 @@ public class Scene {
         );
     }
 
+    public long enqueueRender(CLContext context, int glTexture, boolean debug, Camera camera, int width, int height) {
+        transferShapesToRAM(context);
+
+        /*if (debug) {
+            CLManager.testPrintGPUMemory(context, shapesIdentifier,
+                    shapesDataPrefix, allObjects);
+        }*/
+
+        return CLManager.enqueueRenderKernel(context, glTexture,
+                camera,
+                allObjects.size(),
+                shapesIdentifier,
+                shapesDataPrefix,
+                width, height, debug
+        );
+    }
+
     private void addToAllObjects(Shape shape) {
         shape.getSubShapes().forEach(this::addToAllObjects);
 

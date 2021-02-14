@@ -12,10 +12,8 @@ import com.rayx.scene.shape.Shape;
 import static org.lwjgl.opencl.CL22.*;
 
 public class RayX {
-    static CLContext context;
+    public static CLContext context;
 
-
-    static double t = 0;
 
     public static void main(String[] args) {
         WindowManager manager = WindowManager.getInstance();
@@ -40,16 +38,6 @@ public class RayX {
                 break loop;
             }
         }
-
-        window.setCallback((objs) -> {
-            Scene.DemoScene scene = (Scene.DemoScene) objs[3];
-            scene.deleteRenderMemory(context);
-
-            scene.set(context, t);
-
-            scene.render(context, (int) objs[0], (boolean) objs[5], (Camera) objs[4], (int) objs[1], (int) objs[2]);
-            t += Math.PI / 50;
-        });
 
         manager.startManager();
 

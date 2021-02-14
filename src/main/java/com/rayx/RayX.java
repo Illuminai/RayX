@@ -5,17 +5,15 @@ import com.rayx.glfw.OpenGLWindow;
 import com.rayx.glfw.WindowManager;
 import com.rayx.opencl.CLContext;
 import com.rayx.opencl.CLManager;
-import com.rayx.shape.Camera;
-import com.rayx.shape.Scene;
-import com.rayx.shape.Shape;
+import com.rayx.scene.Camera;
+import com.rayx.scene.Scene;
+import com.rayx.scene.shape.Shape;
 
 import static org.lwjgl.opencl.CL22.*;
 
 public class RayX {
-    static CLContext context;
+    public static CLContext context;
 
-
-    static double t = 0;
 
     public static void main(String[] args) {
         WindowManager manager = WindowManager.getInstance();
@@ -41,22 +39,12 @@ public class RayX {
             }
         }
 
-        window.setCallback((objs) -> {
-            Scene.DemoScene scene = (Scene.DemoScene) objs[3];
-            scene.deleteRenderMemory(context);
-
-            scene.set(context, t);
-
-            scene.render(context, (int) objs[0], (boolean) objs[5], (Camera) objs[4], (int) objs[1], (int) objs[2]);
-            t += Math.PI / 50;
-        });
-
         manager.startManager();
 
         freeAll();
     }
 
-    static CLContext treatDevice(OpenGLWindow window, long device) {
+    public static CLContext treatDevice(OpenGLWindow window, long device) {
         long t = System.currentTimeMillis();
         CLContext context = CLManager.createContext(device, window.getWindow());
 

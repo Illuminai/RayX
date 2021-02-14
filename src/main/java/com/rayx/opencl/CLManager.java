@@ -1,8 +1,8 @@
 package com.rayx.opencl;
 
 import com.rayx.opencl.exceptions.*;
-import com.rayx.shape.Camera;
-import com.rayx.shape.Shape;
+import com.rayx.scene.Camera;
+import com.rayx.scene.shape.Shape;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opencl.CL12GL;
 import org.lwjgl.opencl.CL22;
@@ -215,6 +215,30 @@ public class CLManager {
                             null, event));
             int executionStatus = CL22.clWaitForEvents(event.get(0));
             checkForError(ErrorType.KERNEL_EXECUTION, executionStatus);
+        }
+    }
+
+    static long enqueueKernelInternal(long kernel, long commandQueue, long[] globalSize, long[] localSize, PointerBuffer eventWaitList) {
+        assert globalSize.length > 0;
+        assert localSize == null || localSize.length == localSize.length;
+        try (MemoryStack stack = CLManager.nextStackFrame()) {
+            ByteBuffer globalWorkSize = stack.malloc(globalSize.length * Long.BYTES),
+                    localWorkSize = stack.malloc(globalSize.length * Long.BYTES);
+
+            globalWorkSize.asLongBuffer().put(globalSize);
+
+            if (localSize != null) {
+                localWorkSize.asLongBuffer().put(localSize);
+            }
+
+            PointerBuffer event = stack.mallocPointer(1);
+            CLManager.checkForError(ErrorType.KERNEL_ENQUEUE,
+                    CL22.clEnqueueNDRangeKernel(commandQueue, kernel,
+                            globalSize.length, null,
+                            PointerBuffer.create(globalWorkSize),
+                            localSize == null ? null : PointerBuffer.create(localWorkSize),
+                            eventWaitList, event));
+            return event.get(0);
         }
     }
 
@@ -694,6 +718,46 @@ public class CLManager {
         context.freeMemoryObject("texture");
     }
 
+    public static long enqueueRenderKernel(CLContext context, int glTex, Camera camera,
+                                           int numShapes, String shapesMemObj, String shapeDataPrefix, int width, int height, boolean debug) {
+        glFinish();
+
+        CLContext.CLKernel kernel;
+        if (!debug) {
+            kernel = context.getKernelObject(CLContext.KERNEL_RENDER);
+        } else {
+            kernel = context.getKernelObject(CLContext.KERNEL_RENDER_DEBUG);
+        }
+
+        CLManager.createCLFromGLTexture(context, CL_MEM_WRITE_ONLY, GL_TEXTURE_2D, glTex, "texture");
+        context.getMemoryObject("texture").acquireFromGL();
+        kernel.setParameterPointer(0, "texture");
+
+        kernel.setParameter1f(1, (float) width);
+        kernel.setParameter1f(2, (float) height);
+
+        kernel.setParameter4f(3, camera.getPosition().getX(), camera.getPosition().getY(), camera.getPosition().getZ(), 0);
+        kernel.setParameter4f(4, camera.getRotation().getX(), camera.getRotation().getY(), camera.getRotation().getZ(), 0);
+        kernel.setParameter1f(5, camera.getFov());
+
+        kernel.setParameter1i(6, numShapes);
+        kernel.setParameterPointer(7, shapesMemObj);
+
+        kernel.enqueue(new long[]{width, height}, null, null);
+
+        long event ;
+        try (MemoryStack stack = CLManager.nextStackFrame()) {
+
+            PointerBuffer eventBuffer = stack.mallocPointer(1);
+            context.getMemoryObject("texture").releaseFromGL(null, eventBuffer);
+            context.freeMemoryObject("texture");
+
+            event = eventBuffer.get(0);
+        }
+
+        return event;
+    }
+
     public static void allocateMemory(CLContext context, long flags, long bytesToAllocate, String id) {
         assert bytesToAllocate > 0;
         try (MemoryStack stack = CLManager.nextStackFrame()) {
@@ -764,6 +828,9 @@ public class CLManager {
         checkForError(ErrorType.GL_INTEROP, CL12GL.clEnqueueReleaseGLObjects(commandQueue, memoryObject, null, null));
     }
 
+    static void releaseFromGLInternal(long commandQueue, long memoryObject, PointerBuffer eventWaitList, PointerBuffer event) {
+        checkForError(ErrorType.GL_INTEROP, CL12GL.clEnqueueReleaseGLObjects(commandQueue, memoryObject, eventWaitList, event));
+    }
 
     static void setParameterPointerInternal(CLContext context, long kernel, int index, String memoryObject) {
         long pointer = context.getMemoryObject(memoryObject).getPointer();

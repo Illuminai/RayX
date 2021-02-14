@@ -1,11 +1,12 @@
 package com.rayx.opencl;
 
-import com.rayx.shape.Shape;
-import com.rayx.shape.material.Material;
+import com.rayx.scene.shape.Shape;
 import org.lwjgl.BufferUtils;
+import org.lwjgl.PointerBuffer;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 import static org.lwjgl.opencl.CL10.CL_MEM_READ_ONLY;
@@ -23,7 +24,7 @@ public class CLContext {
             " -cl-fast-relaxed-math " +
                     " -cl-kernel-arg-info " +
                     " -Werror " +
-                    " -D EPSILON=((float)0.0001) " +
+                    " -D EPSILON=((float)0.00001) " +
                     " -D FLAG_SHOULD_RENDER=" + Shape.FLAG_SHOULD_RENDER +
                     " -D SHAPE=" + Shape.SHAPE +
                     " -D SPHERE=" + Shape.SPHERE +
@@ -33,6 +34,7 @@ public class CLContext {
                     " -D BOX=" + Shape.BOX +
                     " -D UNION=" + Shape.UNION +
                     " -D INTERSECTION=" + Shape.INTERSECTION +
+                    " -D OCTAHEDRON=" + Shape.OCTAHEDRON +
                     " -D MATERIAL_REFLECTION=" + Material.MATERIAL_REFLECTION +
                     " -D MATERIAL_REFRACTION=" + Material.MATERIAL_REFRACTION;
 
@@ -105,6 +107,10 @@ public class CLContext {
     public void addMemoryObject(String id, CLMemoryObject memoryObject) {
         assert !memoryObjects.containsKey(id) : "Memory object already exists: " + id;
         memoryObjects.put(id, memoryObject);
+    }
+
+    public Map<String, CLMemoryObject> getAllMemoryObjects() {
+        return memoryObjects;
     }
 
     public long getContext() {
@@ -338,7 +344,8 @@ public class CLContext {
                 Shape.SUBTRACTION,
                 Shape.BOX,
                 Shape.UNION,
-                Shape.INTERSECTION
+                Shape.INTERSECTION,
+                Shape.OCTAHEDRON
         };
         CLContext.CLKernel kernelStruct =
                 getKernelObject(CLContext.KERNEL_GET_STRUCT_SIZE);
@@ -397,6 +404,11 @@ public class CLContext {
         public void releaseFromGL() {
             assert size == -1;
             CLManager.releaseFromGLInternal(commandQueue, pointer);
+        }
+
+        public void releaseFromGL(PointerBuffer eventWaitList, PointerBuffer event) {
+            assert size == -1;
+            CLManager.releaseFromGLInternal(commandQueue, pointer, eventWaitList, event);
         }
 
         private void delete() {
@@ -479,6 +491,12 @@ public class CLContext {
         public void run(long[] globalWorkSize, long[] localWorkSize) {
             CLManager.runKernelInternal(
                     kernel, commandQueue, globalWorkSize, localWorkSize
+            );
+        }
+
+        public long enqueue(long[] globalWorkSize, long[] localWorkSize, PointerBuffer eventWaitList) {
+            return CLManager.enqueueKernelInternal(
+                    kernel, commandQueue, globalWorkSize, localWorkSize, eventWaitList
             );
         }
 

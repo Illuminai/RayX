@@ -1,4 +1,4 @@
-package com.rayx.shape;
+package com.rayx.core.math;
 
 import java.nio.ByteBuffer;
 

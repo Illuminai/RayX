@@ -61,6 +61,10 @@ struct intersection_t {
     __global struct shape_t* shape2;
 };
 
+struct octahedron_t {
+    float size;
+};
+
 /** Make sure that direction is always normalized!*/
 struct ray_t {
     float3 origin;
@@ -92,7 +96,7 @@ float planeSDF(float3 point, __global struct plane_t* plane);
 
 float boxSDF(float3 point, __global struct box_t* box);
 
-float distToRay(float3 point, struct ray_t* ray);
+float octahedronSDF(float3 point, __global struct octahedron_t* octahedron);
 
 float distToOrig(struct ray_t* ray);
 

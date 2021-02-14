@@ -1,4 +1,6 @@
-package com.rayx.shape;
+package com.rayx.scene;
+
+import com.rayx.core.math.Vector3d;
 
 public class Camera {
 

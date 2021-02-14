@@ -22,6 +22,8 @@ __kernel void getShapeSizes(int numShapes,
             result[i] = sizeof(struct union_t);
         } else if(shape == INTERSECTION) {
             result[i] = sizeof(struct intersection_t);
+        }else if (shape == OCTAHEDRON){
+            result[i] = sizeof(struct octahedron_t);
         } else {
             result[i] = -1;
         }
@@ -37,7 +39,8 @@ __kernel void putShapesInMemory(int numShapes,
                 __global struct subtraction_t* dataSubtractionSDF,
                 __global struct box_t* dataBoxSDF,
                 __global struct union_t* dataUnionSDF,
-                __global struct intersection_t* dataIntersectionSDF) {
+                __global struct intersection_t* dataIntersectionSDF,
+                __global struct octahedron_t* dataOctahedronSDF) {
     for(int i = 0; i < numShapes; i++) {
         for(int k = 0; k < sizeof(struct shape_t) / sizeof(float); k++) {
             __global float* tmp= (__global float*)&shapes[i];
@@ -102,6 +105,10 @@ __kernel void putShapesInMemory(int numShapes,
             dataIntersectionSDF->shape1 = shapes + getNextLong(inputData); inputData += sizeof(long);
             dataIntersectionSDF->shape2 = shapes + getNextLong(inputData); inputData += sizeof(long);
             dataIntersectionSDF++;
+        }else if(shape == OCTAHEDRON){
+            shapes[i].shape = dataOctahedronSDF;
+            dataOctahedronSDF->size = getNextFloat(inputData); inputData += sizeof(float);
+            dataOctahedronSDF++;
         }else {
             //TODO notify host of error
         }

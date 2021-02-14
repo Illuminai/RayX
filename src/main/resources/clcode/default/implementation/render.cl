@@ -12,6 +12,10 @@ __kernel void renderDebug(__write_only image2d_t resultImage, float height,
     int w = get_image_width(resultImage);
     int h = get_image_height(resultImage);
 
+    if (pixCo.x >= w | pixCo.y >= h) {
+        return;
+    }
+
     // float u = 2.0 * (((pixCo.x + .5) / width) - .5);
     // float v = -2.0 * (((pixCo.y + .5) / height) - .5);
 
@@ -21,9 +25,6 @@ __kernel void renderDebug(__write_only image2d_t resultImage, float height,
     float aspectRatio = width / height;
     v = ((v - 0.5) * aspectRatio) + 0.5;
 
-    if (pixCo.x >= w | pixCo.y >= h) {
-        return;
-    }
 
     struct ray_t ray;
     struct rayIntersection_t intersection;
@@ -61,6 +62,9 @@ __kernel void render(__write_only image2d_t resultImage, float height,
 
     // float u = 2.0 * (((pixCo.x + .5) / width) - .5);
     // float v = -2.0 * (((pixCo.y + .5) / height) - .5);
+    if (pixCo.x >= w | pixCo.y >= h) {
+        return;
+    }
 
     float u = 2.0 * ((pixCo.x + 0.5) / w) - 1;
     float v = 1 - 2.0 * ((pixCo.y + 0.5) / h);
@@ -68,9 +72,7 @@ __kernel void render(__write_only image2d_t resultImage, float height,
     float aspectRatio = width / height;
     v = ((v - 0.5) * aspectRatio) + 0.5;
 
-    if (pixCo.x >= w | pixCo.y >= h) {
-        return;
-    }
+
 
     struct ray_t rays[MAX_RAY_BOUNCES];
     struct rayIntersection_t inters[MAX_RAY_BOUNCES];
@@ -364,6 +366,10 @@ float oneStepSDF(float3 point, __global struct shape_t* shape) {
                     continue;
                 case BOX:
                     stack[index].d1 = boxSDF(point, shape->shape);
+                    index--;
+                    continue;
+                case OCTAHEDRON:
+                    stack[index].d1 = octahedronSDF(point, shape->shape);
                     index--;
                     continue;
                 default:

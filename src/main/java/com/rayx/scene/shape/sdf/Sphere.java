@@ -1,11 +1,15 @@
-package com.rayx.shape;
+package com.rayx.scene.shape.sdf;
+
+import com.rayx.core.math.Vector3d;
+import com.rayx.scene.shape.Shape;
 
 import com.rayx.shape.material.Material;
 
 import java.nio.ByteBuffer;
 
 public class Sphere extends Shape {
-    private final float radius;
+
+    private float radius;
 
     public Sphere(float x, float y, float z, float radius) {
         this(new Vector3d(x, y, z), radius);
@@ -41,5 +45,13 @@ public class Sphere extends Shape {
     @Override
     public int bytesToInBuffer() {
         return super.bytesToInBuffer() + Float.BYTES;
+    }
+
+    public float getRadius() {
+        return radius;
+    }
+
+    public void setRadius(float radius) {
+        this.radius = radius;
     }
 }

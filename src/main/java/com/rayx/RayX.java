@@ -5,9 +5,8 @@ import com.rayx.glfw.OpenGLWindow;
 import com.rayx.glfw.WindowManager;
 import com.rayx.opencl.CLContext;
 import com.rayx.opencl.CLManager;
-import com.rayx.scene.Camera;
-import com.rayx.scene.Scene;
 import com.rayx.scene.shape.Shape;
+import com.rayx.scene.shape.ShapeType;
 
 import static org.lwjgl.opencl.CL22.*;
 
@@ -16,6 +15,24 @@ public class RayX {
 
 
     public static void main(String[] args) {
+        /*
+        ShapeType type = new ShapeType("testShape",1,
+                """
+                return cos(point).x; """, new ShapeType.CLField[]{
+                        new ShapeType.CLField("field1", ShapeType.CLFieldType.FLOAT),
+                        new ShapeType.CLField("field2", ShapeType.CLFieldType.FLOAT3),
+                        new ShapeType.CLField("pointerToShape", ShapeType.CLFieldType.POINTER_SHAPE)});
+
+        System.out.println("--------------------------");
+        System.out.println(type.generateStruct());
+        System.out.println("--------------------------");
+        System.out.println(type.generateCLConverter());
+        System.out.println("--------------------------");
+        System.out.println(type.generateDistanceShaderFunction());
+        System.out.println("--------------------------");
+
+        System.exit(0);
+        */
         WindowManager manager = WindowManager.getInstance();
 
         TestOGLWindow window = new TestOGLWindow(800, 600, "Test");
@@ -59,14 +76,11 @@ public class RayX {
     }
 
     static void test(CLContext context) {
-        System.out.println("Shape struct: " + context.getStructSize(Shape.SHAPE));
-        System.out.println("Sphere struct: " + context.getStructSize(Shape.SPHERE));
-        System.out.println("Torus struct: " + context.getStructSize(Shape.TORUS));
-        System.out.println("Plane struct: " + context.getStructSize(Shape.PLANE));
-        System.out.println("Subtraction struct: " + context.getStructSize(Shape.SUBTRACTION));
-        System.out.println("Box struct: " + context.getStructSize(Shape.BOX));
-        System.out.println("Union struct: " + context.getStructSize(Shape.UNION));
-        System.out.println("Intersection struct: " + context.getStructSize(Shape.INTERSECTION));
+        System.out.println("shape struct: " + context.getStructSize(-1));
+
+        for (ShapeType shape : context.getRegisteredShapes()) {
+            System.out.println(context.getTypeName(shape.getType()) + " struct: " + context.getStructSize(shape.getType()));
+        }
     }
 
     static void freeAll() {

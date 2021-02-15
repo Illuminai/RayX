@@ -87,13 +87,17 @@ public class CLManager {
 
     /***/
     public static void putProgramFromFile(CLContext context, String[] dependenciesId, String sourceFile, String compileOptions) {
+        assert !sourceFile.startsWith("/") : "Files have to start without slash";
+        String programSourceCode = readFromFile("/" + sourceFile);
+        putProgramFromString(context, dependenciesId, sourceFile, programSourceCode, compileOptions);
+    }
+
+    /***/
+    public static void putProgramFromString(CLContext context, String[] dependenciesId, String fileName, String programSourceCode, String compileOptions) {
         try (MemoryStack stack = CLManager.nextStackFrame()) {
             IntBuffer errorBuffer = stack.mallocInt(1);
-            //Files start without slash because the source file is the id of the program
-            //Because the id is also used for header includes, it cannot start with a slash
-            //The slash is attached internally
-            assert !sourceFile.startsWith("/") : "Files have to start without slash";
-            String programSourceCode = readFromFile("/" + sourceFile);
+            assert !fileName.startsWith("/") : "Files have to start without slash";
+
             long programPointer = CL22.clCreateProgramWithSource(context.getContext(), programSourceCode, errorBuffer);
             checkForError(ErrorType.PROGRAM, errorBuffer);
             if (dependenciesId == null) {
@@ -125,13 +129,13 @@ public class CLManager {
             );
             String buildInfo = createBuildInfo(context.getDevice(), programPointer);
             if (buildInfo.equals("")) {
-                System.out.println("Compiled " + sourceFile);
+                System.out.println("Compiled " + fileName);
             } else {
-                System.out.println("Compiling " + sourceFile);
+                System.out.println("Compiling " + fileName);
                 System.out.println(buildInfo);
             }
             checkForError(ErrorType.COMPILE, error);
-            context.addProgramObject(context.new CLProgram(sourceFile, programPointer, false));
+            context.addProgramObject(context.new CLProgram(fileName, programPointer, false));
         }
     }
 
@@ -541,149 +545,7 @@ public class CLManager {
     public static void testPrintGPUMemory(CLContext context, String shapesIdentifier,
                                           String shapeDataPrefix, List<Shape> testReferences) {
         try (MemoryStack stack = CLManager.nextStackFrame()) {
-            ByteBuffer shapes = stack.malloc(
-                    context.getStructSize(Shape.SHAPE) * testReferences.size());
-            context.getMemoryObject(shapesIdentifier).getValue(shapes);
-            {
-                System.out.println("ShapeData: ");
-                CLContext.CLMemoryObject pureShapes =
-                        context.getMemoryObject(shapesIdentifier);
-                ByteBuffer shapesData = stack.malloc((int) pureShapes.getSize());
-                pureShapes.getValue(shapesData);
-                int structSize = context.getStructSize(Shape.SHAPE);
-                int k = 0;
-                while (shapesData.hasRemaining()) {
-                    System.out.println(
-                            shapesData.getLong() + " " +
-                                    shapesData.getLong() + " " +
-                                    shapesData.getLong() + " " +
-
-                                    shapesData.getFloat() + " " +
-                                    shapesData.getFloat() + " " +
-
-                                    shapesData.getFloat() + " " +
-                                    shapesData.getFloat() + " " +
-                                    shapesData.getFloat() + " " +
-                                    shapesData.getFloat() + " " +
-                                    shapesData.getFloat() + " " +
-                                    shapesData.getFloat() + " " +
-                                    shapesData.getFloat() + " " +
-                                    shapesData.getFloat() + " "
-                    );
-
-                    for (int i = 0; i < 2; i++) {
-                        for (int ii = 0; ii < 3; ii++) {
-                            System.out.println("\t" +
-                                    shapesData.getFloat() + " " +
-                                    shapesData.getFloat() + " " +
-                                    shapesData.getFloat());
-                            shapesData.getFloat(); //Discard one filler float
-                        }
-                        System.out.println();
-                    }
-
-                    k++;
-                    shapesData.position(k * structSize);
-                }
-            }
-            {
-                System.out.println("SphereRTC: ");
-                CLContext.CLMemoryObject shapeDataSphere =
-                        context.getMemoryObject(shapeDataPrefix + "SphereRTC");
-                ByteBuffer shapesData = stack.malloc((int) shapeDataSphere.getSize());
-                shapeDataSphere.getValue(shapesData);
-                int structSize = context.getStructSize(Shape.SPHERE);
-                while (shapesData.hasRemaining()) {
-                    for (int j = 0; j < structSize / Float.BYTES; j++) {
-                        System.out.print(shapesData.getFloat() + " ");
-                    }
-                    System.out.println();
-                }
-            }
-            {
-                System.out.println("TorusSDF: ");
-                CLContext.CLMemoryObject shapeDataTorus =
-                        context.getMemoryObject(shapeDataPrefix + "TorusSDF");
-                ByteBuffer shapesData = stack.malloc((int) shapeDataTorus.getSize());
-                shapeDataTorus.getValue(shapesData);
-                int structSize = context.getStructSize(Shape.TORUS);
-                while (shapesData.hasRemaining()) {
-                    for (int j = 0; j < structSize / Float.BYTES; j++) {
-                        System.out.print(shapesData.getFloat() + " ");
-                    }
-                    System.out.println();
-                }
-            }
-            {
-                System.out.println("PlaneRTC: ");
-                CLContext.CLMemoryObject planeData =
-                        context.getMemoryObject(shapeDataPrefix + "PlaneRTC");
-                ByteBuffer shapesData = stack.malloc((int) planeData.getSize());
-                planeData.getValue(shapesData);
-                int structSize = context.getStructSize(Shape.PLANE);
-                while (shapesData.hasRemaining()) {
-                    for (int j = 0; j < structSize / Float.BYTES; j++) {
-                        System.out.print(shapesData.getFloat() + " ");
-                    }
-                    System.out.println();
-                }
-            }
-            {
-                System.out.println("SubtractionSDF: ");
-                CLContext.CLMemoryObject subtractionData =
-                        context.getMemoryObject(shapeDataPrefix + "SubtractionSDF");
-                ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
-                subtractionData.getValue(shapesData);
-                int structSize = context.getStructSize(Shape.SUBTRACTION);
-                while (shapesData.hasRemaining()) {
-                    for (int j = 0; j < structSize / Float.BYTES; j++) {
-                        System.out.print(shapesData.getFloat() + " ");
-                    }
-                    System.out.println();
-                }
-            }
-            {
-                System.out.println("BoxSDF: ");
-                CLContext.CLMemoryObject subtractionData =
-                        context.getMemoryObject(shapeDataPrefix + "BoxSDF");
-                ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
-                subtractionData.getValue(shapesData);
-                int structSize = context.getStructSize(Shape.BOX);
-                while (shapesData.hasRemaining()) {
-                    for (int j = 0; j < structSize / Float.BYTES; j++) {
-                        System.out.print(shapesData.getFloat() + " ");
-                    }
-                    System.out.println();
-                }
-            }
-            {
-                System.out.println("UnionSDF: ");
-                CLContext.CLMemoryObject subtractionData =
-                        context.getMemoryObject(shapeDataPrefix + "UnionSDF");
-                ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
-                subtractionData.getValue(shapesData);
-                int structSize = context.getStructSize(Shape.UNION);
-                while (shapesData.hasRemaining()) {
-                    for (int j = 0; j < structSize / Float.BYTES; j++) {
-                        System.out.print(shapesData.getFloat() + " ");
-                    }
-                    System.out.println();
-                }
-            }
-            {
-                System.out.println("IntersectionSDF: ");
-                CLContext.CLMemoryObject subtractionData =
-                        context.getMemoryObject(shapeDataPrefix + "IntersectionSDF");
-                ByteBuffer shapesData = stack.malloc((int) subtractionData.getSize());
-                subtractionData.getValue(shapesData);
-                int structSize = context.getStructSize(Shape.INTERSECTION);
-                while (shapesData.hasRemaining()) {
-                    for (int j = 0; j < structSize / Float.BYTES; j++) {
-                        System.out.print(shapesData.getFloat() + " ");
-                    }
-                    System.out.println();
-                }
-            }
+            //TODO
         }
     }
 
@@ -759,12 +621,16 @@ public class CLManager {
     }
 
     public static void allocateMemory(CLContext context, long flags, long bytesToAllocate, String id) {
-        assert bytesToAllocate > 0;
+        assert bytesToAllocate > -1;
         try (MemoryStack stack = CLManager.nextStackFrame()) {
-            IntBuffer error = stack.mallocInt(1);
-            long memory = CL22.clCreateBuffer(context.getContext(), flags, bytesToAllocate, error);
-            checkForError(ErrorType.BUFFER_CREATION, error);
-            context.addMemoryObject(id, context.new CLMemoryObject(memory, bytesToAllocate));
+            if(bytesToAllocate != 0) {
+                IntBuffer error = stack.mallocInt(1);
+                long memory = CL22.clCreateBuffer(context.getContext(), flags, bytesToAllocate, error);
+                checkForError(ErrorType.BUFFER_CREATION, error);
+                context.addMemoryObject(id, context.new CLMemoryObject(memory, bytesToAllocate));
+            } else {
+                context.addMemoryObject(id, context.new CLMemoryObject(0, bytesToAllocate));
+            }
         }
     }
 
@@ -795,8 +661,9 @@ public class CLManager {
     }
 
     static void freeMemoryInternal(long pointer) {
-        assert pointer != 0;
-        checkForError(ErrorType.FREE, CL22.clReleaseMemObject(pointer));
+        if(pointer != 0) {
+            checkForError(ErrorType.FREE, CL22.clReleaseMemObject(pointer));
+        }
     }
 
     static void destroyContextInternal(CLContext context) {

@@ -29,42 +29,6 @@ struct shape_t {
     __global void* shape;
 };
 
-struct sphere_t {
-    float radius;
-};
-
-struct torus_t {
-    float radiusSmall;
-    float radiusBig;
-};
-
-struct plane_t {
-    float3 normal;
-};
-
-struct subtraction_t {
-    __global struct shape_t* shape1;
-    __global struct shape_t* shape2;
-};
-
-struct box_t {
-    float3 dimensions;
-};
-
-struct union_t {
-    __global struct shape_t* shape1;
-    __global struct shape_t* shape2;
-};
-
-struct intersection_t {
-    __global struct shape_t* shape1;
-    __global struct shape_t* shape2;
-};
-
-struct octahedron_t {
-    float size;
-};
-
 /** Make sure that direction is always normalized!*/
 struct ray_t {
     float3 origin;
@@ -88,16 +52,6 @@ struct rayIntersection_t {
     float d;
 };
 
-float sphereSDF(float3 point, __global struct sphere_t* sphere);
-
-float torusSDF(float3 point, __global struct torus_t* torus);
-
-float planeSDF(float3 point, __global struct plane_t* plane);
-
-float boxSDF(float3 point, __global struct box_t* box);
-
-float octahedronSDF(float3 point, __global struct octahedron_t* octahedron);
-
 float distToOrig(struct ray_t* ray);
 
 #define sdfNormal(POINT,SDFFUN,OBJ)\
@@ -107,4 +61,4 @@ float distToOrig(struct ray_t* ray);
             SDFFUN(POINT + (float3){0,0,EPSILON}, OBJ) - SDFFUN(POINT - (float3){0,0,EPSILON}, OBJ),\
         }))
 
-#endif
+//#endif append when creating file!

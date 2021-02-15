@@ -11,8 +11,6 @@ import com.rayx.opengl.ShaderType;
 import com.rayx.scene.Camera;
 import com.rayx.scene.Scene;
 import com.rayx.scene.shape.Shape;
-import com.rayx.scene.shape.sdf.BoxSDF;
-import com.rayx.scene.shape.sdf.Sphere;
 import imgui.*;
 import imgui.extension.imnodes.ImNodes;
 import imgui.flag.*;
@@ -94,8 +92,6 @@ public class TestOGLWindow extends OpenGLWindow {
         renderCallback = objs -> {
             Scene.DemoScene scene = (Scene.DemoScene) objs[3];
             scene.deleteRenderMemory(RayX.context);
-
-            scene.set(RayX.context, t);
 
             //scene.render(RayX.context, (int) objs[0], (boolean) objs[5], (Camera) objs[4], (int) objs[1], (int) objs[2]);
             rendering = true;
@@ -276,10 +272,10 @@ public class TestOGLWindow extends OpenGLWindow {
             }
             if (ImGui.beginMenu("Edit")) {
                 if (ImGui.menuItem("Sphere")) {
-                    scene.add(new Sphere(new Vector3d(0, 0, 0), 0.03f));
+                    //scene.add(new Sphere(new Vector3d(0, 0, 0), 0.03f));
                 }
                 if (ImGui.menuItem("Box")) {
-                    scene.add(new BoxSDF(new Vector3d(0, 0, 0), new Vector3d(0, 0, 0), new Vector3d(0.03, 0.03, 0.03)));
+                    //scene.add(new BoxSDF(new Vector3d(0, 0, 0), new Vector3d(0, 0, 0), new Vector3d(0.03, 0.03, 0.03)));
                 }
                 ImGui.endMenu();
             }

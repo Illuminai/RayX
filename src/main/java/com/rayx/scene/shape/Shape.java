@@ -14,8 +14,7 @@ public class Shape implements CLTransferable {
     public static final long FLAG_SHOULD_RENDER = 1 << 0;
 
     private Vector3d position, rotation;
-    //TODO this may be determined when transferring in java_to_cl.cl
-    private float maxRadius;
+    private float size;
     private long id;
     private long flags;
     private final Material material;
@@ -23,13 +22,13 @@ public class Shape implements CLTransferable {
     private final ShapeType type;
     private final HashMap<String, Object> properties;
 
-    public Shape(ShapeType type, float maxRadius, Vector3d position, Vector3d rotation) {
-        this(type, maxRadius, position, rotation, Material.DEFAULT_MATERIAL);
+    public Shape(ShapeType type, Vector3d position, Vector3d rotation) {
+        this(type, 1, position, rotation, Material.DEFAULT_MATERIAL);
     }
 
-    public Shape(ShapeType type, float maxRadius, Vector3d position, Vector3d rotation, Material material) {
+    public Shape(ShapeType type, float size, Vector3d position, Vector3d rotation, Material material) {
         this.type = type;
-        this.maxRadius = maxRadius;
+        this.size = size;
         this.position = position;
         this.rotation = rotation;
         this.material = material;
@@ -56,10 +55,6 @@ public class Shape implements CLTransferable {
 
     public ShapeType getType() {
         return type;
-    }
-
-    public float getMaxRadius() {
-        return maxRadius;
     }
 
     public long getId() {
@@ -95,10 +90,10 @@ public class Shape implements CLTransferable {
         buffer.
                 putLong(getType().getType()).
                 putLong(getId()).
-                putLong(flags).
-                putFloat(getMaxRadius());
+                putLong(flags);
         position.putInByteBuffer(buffer);
         rotation.putInByteBuffer(buffer);
+        buffer.putFloat(size);
         material.writeToByteBuffer(buffer);
         for(ShapeType.CLField field: type.getFields()) {
             Object val = properties.get(field.getName());

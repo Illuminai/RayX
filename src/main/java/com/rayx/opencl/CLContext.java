@@ -1,5 +1,6 @@
 package com.rayx.opencl;
 
+import com.rayx.core.math.Vector3d;
 import com.rayx.scene.material.Material;
 import com.rayx.scene.shape.Shape;
 import com.rayx.scene.shape.ShapeType;
@@ -166,8 +167,8 @@ public class CLContext {
     private void addDefaultShapes() {
         registerShape("sphere", ShapeType.ShaderType.SHAPE,
                 """
-                return length(point) - shape->radius;
-                """, new ShapeType.CLField("radius", ShapeType.CLFieldType.FLOAT));
+                return length(point) - 1;
+                """);
         registerShape("torus",ShapeType.ShaderType.SHAPE, """
                 float2 q =
                     (float2){length(point.yz) - shape->radiusBig, point.x};
@@ -186,7 +187,7 @@ public class CLContext {
                 """, new ShapeType.CLField("dimensions", ShapeType.CLFieldType.FLOAT3));
         registerShape("octahedron", ShapeType.ShaderType.SHAPE,"""
                 float3 p = fabs(point);
-                float m = p.x + p.y + p.z - shape->size;
+                float m = p.x + p.y + p.z - 1;
                 float3 q;
                             
                 if ( 3.0*p.x < m ) {
@@ -199,9 +200,9 @@ public class CLContext {
                     return m * 0.57735027;
                 }
                             
-                float k = clamp(0.5f*(q.z-q.y+shape->size),0.0f,shape->size);
-                return length((float3){q.x,q.y-shape->size+k,q.z-k});
-                """, new ShapeType.CLField("size", ShapeType.CLFieldType.FLOAT));
+                float k = clamp(0.5f*(q.z-q.y+1.f),0.0f,1.f);
+                return length((float3){q.x,q.y-1.f+k,q.z-k});
+                """);
 
         registerShape("subtraction", ShapeType.ShaderType.BOOLEAN_OPERATOR,"""
                     return max(-d1, d2);
@@ -217,7 +218,7 @@ public class CLContext {
                 new ShapeType.CLField("shape2", ShapeType.CLFieldType.POINTER_SHAPE));
 
         registerShape("mandelbulb", ShapeType.ShaderType.SHAPE,"""
-                            float3 c = (float3) {shape->size+1,shape->size+1,shape->size+1};
+                            float3 c = (float3) {shape->phi+1,shape->phi+1,shape->phi+1};
                                            float3 orbit = point;
                                                float dz = 1;
                                     
@@ -241,7 +242,7 @@ public class CLContext {
                                                }
                                                float z = length(orbit);
                                                return 0.5*z*log(z)/dz;
-                        """, new ShapeType.CLField("size", ShapeType.CLFieldType.FLOAT));
+                        """, new ShapeType.CLField("phi", ShapeType.CLFieldType.FLOAT));
     }
 
     public void initialize() {
@@ -447,9 +448,9 @@ public class CLContext {
                         long shape = getNextLong(inputData); inputData += sizeof(long);
                         long id = getNextLong(inputData); inputData += sizeof(long);
                         long flags = getNextLong(inputData); inputData += sizeof(long);
-                        float maxRad = getNextFloat(inputData); inputData += sizeof(float);
                         float3 position = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
                         float3 rotation = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
+                        float size = getNextFloat(inputData); inputData += sizeof(float);
                         //Get Material
                         long materialType = getNextLong(inputData); inputData += sizeof(long);
                         float3 materialColor = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
@@ -466,8 +467,8 @@ public class CLContext {
                                             //Initialize just one union
                                             {.refraction = {materialRefractionIndex}}
                                         },
-                                        maxRad,
                                         position, rotation,
+                                        size,
                                         rotMatrix,
                                         inverse(rotMatrix),
                                     0};
@@ -493,12 +494,11 @@ public class CLContext {
     private void generateFileRenderCL() {
         StringBuilder code = new StringBuilder();
         code.append(CLManager.readFromFile("/clcode/default/implementation/render.cl"));
-
+        // TODO define max stack size
         code.append("""
                 
                 float oneStepSDF(float3 point, __global struct shape_t* shape) {
                     int index = 0;
-                    // TODO define max stack size
                     struct oneStepSDFArgs_t stack[10];
                     stack[0] = (struct oneStepSDFArgs_t){point, shape, 0, 0, 0};
                     do {
@@ -511,7 +511,7 @@ public class CLContext {
             switch (t.getShaderType()) {
                 case SHAPE -> {
                     code.append("                stack[index].d1 = ");
-                    code.append(t.getFunctionName()).append("(point, shape->shape);\n");
+                    code.append(t.getFunctionName()).append("(point/shape->size, shape->shape) * shape->size;\n");
                     code.append("""
                                                 index--;
                                                 continue;
@@ -530,24 +530,24 @@ public class CLContext {
                                                 index++;
                                                 stack[index] = (struct oneStepSDFArgs_t) {
                                                     matrixTimesVector(shape1->rotationMatrix,
-                                                        point - shape1->position),
+                                                        point/shape->size - shape1->position),
                                                     shape1,
                                                     0, 0, 0
                                                 };
                                                 continue;
                                             case 1:
                                                 stack[index].status = 2;
-                                                stack[index].d1 = stack[index + 1].d1;
+                                                stack[index].d1 = stack[index + 1].d1 * shape->size;
                                                 index++;
                                                 stack[index] = (struct oneStepSDFArgs_t) {
                                                     matrixTimesVector(shape2->rotationMatrix,
-                                                        point - shape2->position),
+                                                        point/shape->size - shape2->position),
                                                     shape2,
                                                     0, 0, 0
                                                 };
                                                 continue;
                                             case 2:
-                                                stack[index].d2 = stack[index + 1].d1;
+                                                stack[index].d2 = stack[index + 1].d1 * shape->size;
                                                 stack[index].d1 = """);
                     code.append(t.getFunctionName()).append("(stack[index].d1, stack[index].d2, shape->shape);\n");
                     code.append("""
@@ -572,32 +572,11 @@ public class CLContext {
 
     private void generateCLFiles() {
         generateFileShapesH();
-        System.out.println("----------------------------------------------------------");
-        //System.out.println(fileShapesH);
-        System.out.println("----------------------------------------------------------");
-
         generateFileShapesCL();
-        //System.out.println(fileShapesCL);
-        System.out.println("----------------------------------------------------------");
-
         generatePutShapesToMemoryFunctionHeader();
-        System.out.println(putShapesToMemoryFunctionHeader);
-        System.out.println("----------------------------------------------------------");
-
         generateFileJavaToClH();
-        System.out.println(fileJavaToClH);
-        System.out.println("----------------------------------------------------------");
-
         generateFileJavaToClCL();
-        System.out.println(fileJavaToClCL);
-        System.out.println("----------------------------------------------------------");
-
         generateFileRenderCL();
-        //System.out.println(fileRenderCL);
-        System.out.println("----------------------------------------------------------");
-
-
-        //System.exit(0);
     }
 
     public void createBenchmarks(String compileOptions) {

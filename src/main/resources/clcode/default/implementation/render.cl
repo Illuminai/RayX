@@ -171,10 +171,6 @@ bool firstIntersectionWithSDF(struct ray_t* pRay, __global struct shape_t* shape
     ray.origin = matrixTimesVector(shape->rotationMatrix, ray.origin);
     ray.direction = matrixTimesVector(shape->rotationMatrix, ray.direction);
 
-    if(distToOrig(&ray) > shape->maxRadius && shape->maxRadius != -1) {
-        return false;
-    }
-
     float d = 0;
     for(int i = 0; i < 100; i++) {
         float dist = fabs(oneStepSDF(ray.origin + ray.direction * d, shape));

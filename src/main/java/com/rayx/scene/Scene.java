@@ -10,6 +10,7 @@ import org.lwjgl.system.MemoryStack;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.lwjgl.opencl.CL10.CL_MEM_READ_WRITE;
@@ -153,24 +154,28 @@ public class Scene {
         }
 
         private void exhibition(CLContext context) {
+            //System.out.println(Arrays.toString(context.getRegisteredShapes().stream().map(ShapeType::getShapeName).toArray()));
+            //[sphere, torus, plane, box, octahedron, subtraction, union, intersection, mandelbulb]
+
+            if(t != 0) {
+                return;
+            }
+
             getVisibleObjects().clear();
             t += 0.01;
-            Shape backPlane = new Shape(context.getRegisteredShapes().get(2),
-                    100,
-                    new Vector3d(2, 0, 0), new Vector3d(0, 0, 0),
-                    Material.reflectionMaterial(new Vector3d(0,1,1),100)
-            );
-            backPlane.getProperties().put("normal", new Vector3d(-1,0,0));
-            add(backPlane);
-            Material material = Material.reflectionMaterial(new Vector3d(0, 0, 1), 1);
 
-            Shape bulb = new Shape(context.getRegisteredShapes().get(context.getRegisteredShapes().size() -1),
-                    100,
-                    new Vector3d(0, 0, 0), new Vector3d(0, 0, 0),
-                    material
-            );
-            bulb.getProperties().put("size", (float)Math.sin(t) * 3);
-            add(bulb);
+            Shape sphere = new Shape(context.getShapeType(0),1, new Vector3d(0,0,1),
+                    new Vector3d(0,0,0), Material.reflectionMaterial(new Vector3d(1,0,0), 1));
+
+            Shape box = new Shape(context.getShapeType(3),1, new Vector3d(0,0,0),
+                    new Vector3d(0,0,0), Material.reflectionMaterial(new Vector3d(1,0,0), 1));
+            box.getProperties().put("dimensions", new Vector3d(1,1,1));
+
+            Shape union = new Shape(context.getShapeType(6),1, new Vector3d(0,0,0),
+                    new Vector3d(0,0,0), Material.reflectionMaterial(new Vector3d(1,1,1), 1));
+            union.getProperties().put("shape1", box);
+            union.getProperties().put("shape2", sphere);
+            add(union);
         }
     }
 }

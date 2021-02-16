@@ -21,9 +21,9 @@ struct shape_t {
     long id;
     long flags;
     struct material_t material;
-    float maxRadius;
     float3 position;
     float3 rotation;
+    float size;
     struct matrix3x3 rotationMatrix;
     struct matrix3x3 inverseRotationMatrix;
     __global void* shape;

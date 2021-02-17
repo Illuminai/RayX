@@ -28,7 +28,7 @@ public class Scene {
         shapesIdentifier = "shapes" + hashCode();
         shapesDataPrefix = "shapesData" + hashCode();
         camera = new Camera(
-                new Vector3d(-.2, 0, 0),
+                new Vector3d(-2, 0, 0),
                 new Vector3d(0, 0, 0),
                 1
         );
@@ -164,12 +164,8 @@ public class Scene {
             getVisibleObjects().clear();
             t += 0.01;
 
-            Shape sphere = new Shape(context.getShapeType(0),1, new Vector3d(0,0,1),
-                    new Vector3d(0,0,0), Material.reflectionMaterial(new Vector3d(1,0,0), 1));
-
-            Shape box = new Shape(context.getShapeType(3),1, new Vector3d(0,0,0),
-                    new Vector3d(0,0,0), Material.reflectionMaterial(new Vector3d(1,0,0), 1));
-            box.getProperties().put("dimensions", new Vector3d(1,1,1));
+            Shape sphere = new Shape(context.getShapeType(0), new Vector3d(0,0,1), new Vector3d(0,0,0));
+            Shape box = new Shape(context.getShapeType(3), new Vector3d(0,0,0), new Vector3d(0,0,0)).setProperty("dimensions", new Vector3d(.5,.5,.5));
 
             Shape union = new Shape(context.getShapeType(6),1, new Vector3d(0,0,0),
                     new Vector3d(0,0,0), Material.reflectionMaterial(new Vector3d(1,1,1), 1));

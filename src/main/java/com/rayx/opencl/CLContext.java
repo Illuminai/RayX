@@ -1,6 +1,5 @@
 package com.rayx.opencl;
 
-import com.rayx.core.math.Vector3d;
 import com.rayx.scene.material.Material;
 import com.rayx.scene.shape.Shape;
 import com.rayx.scene.shape.ShapeType;
@@ -9,6 +8,8 @@ import org.lwjgl.PointerBuffer;
 
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import static org.lwjgl.opencl.CL10.CL_MEM_READ_ONLY;
 import static org.lwjgl.opencl.CL10.CL_MEM_WRITE_ONLY;
@@ -27,6 +28,8 @@ public class CLContext {
     private HashMap<String, CLKernel> kernels;
     private HashMap<String, CLProgram> programs;
     private HashMap<String, CLMemoryObject> memoryObjects;
+
+    private final List<Compilable> compilables;
 
     private String fileShapesH, fileShapesCL,
             fileJavaToClH, fileJavaToClCL, fileRenderCL;
@@ -47,6 +50,7 @@ public class CLContext {
         kernels = new HashMap<>();
         programs = new HashMap<>();
         memoryObjects = new HashMap<>();
+        compilables = new ArrayList<>();
         this.registeredShapes = new ArrayList<>();
         shapeTypeCount = 0;
 
@@ -249,7 +253,9 @@ public class CLContext {
         StringBuilder compileOptions = new StringBuilder("-cl-fast-relaxed-math " +
                 " -cl-kernel-arg-info" +
                 " -Werror" +
-                " -D EPSILON=((float)0.00001)" +
+                " -D EPSILON_INTERSECTION=((float)0.00001)" +
+                " -D EPSILON_NEW_RAY=((float)0.001)" +
+                " -D EPSILON_NORMAL=((float)0.001)" +
                 " -D FLAG_SHOULD_RENDER=" + Shape.FLAG_SHOULD_RENDER +
                 " -D SHAPE=-1" +
                 " -D MATERIAL_REFLECTION=" + Material.MATERIAL_REFLECTION +
@@ -259,73 +265,47 @@ public class CLContext {
         }
         System.out.println("Compile Options: " + compileOptions);
         generateCLFiles();
-        compileFiles(compileOptions.toString());
+        createBenchmarks(compileOptions.toString());
+        createCompilables();
+        long t = System.currentTimeMillis();
+        compile(compileOptions.toString());
+        System.out.println("Compiled: " + (System.currentTimeMillis() - t));
+        t = System.currentTimeMillis();
+        putExecutablesAndKernels();
+        System.out.println("Linking and Kernels: " + (System.currentTimeMillis() - t));
     }
 
-    private void compileFiles(String compileOptions) {
-        createBenchmarks(compileOptions);
-
+    private void createCompilables() {
         //From least dependent to most dependent
         //----------- H E A D E R S -----------
         //math.h
-        CLManager.putProgramFromFile(this, null,
-                "clcode/default/headers/math.h",
-                compileOptions);
+        this.addCompilableF("clcode/default/headers/math.h");
         //shapes.h
-        CLManager.putProgramFromString(this,
-                new String[]{
-                        "clcode/default/headers/math.h"
-                },
-                "clcode/default/headers/shapes.h",
-                fileShapesH,
-                compileOptions);
+        this.addCompilableS("clcode/default/headers/shapes.h", fileShapesH,"clcode/default/headers/math.h");
         //java_to_cl.h
-        CLManager.putProgramFromString(this,
-                new String[]{"clcode/default/headers/shapes.h",
-                        "clcode/default/headers/math.h"},
-                "clcode/default/headers/java_to_cl.h",
-                    fileJavaToClH,
-                compileOptions);
+        this.addCompilableS("clcode/default/headers/java_to_cl.h", fileJavaToClH, "clcode/default/headers/shapes.h",
+                "clcode/default/headers/math.h");
         //render.h
-        CLManager.putProgramFromFile(this,
-                new String[]{"clcode/default/headers/shapes.h",
-                        "clcode/default/headers/math.h"},
-                "clcode/default/headers/render.h",
-                compileOptions);
-
+        this.addCompilableF("clcode/default/headers/render.h", "clcode/default/headers/shapes.h",
+                "clcode/default/headers/math.h");
         //----------- C O D E -----------
         //math.cl
-        CLManager.putProgramFromFile(this, new String[]{
-                        "clcode/default/headers/math.h"
-                },
-                "clcode/default/implementation/math.cl",
-                compileOptions);
+        this.addCompilableF("clcode/default/implementation/math.cl", "clcode/default/headers/math.h");
         //shapes.cl
-        CLManager.putProgramFromString(this,
-                new String[]{"clcode/default/headers/shapes.h",
-                        "clcode/default/headers/math.h"},
-                "clcode/default/implementation/shapes.cl",
-                fileShapesCL,
-                compileOptions);
-
+        this.addCompilableS("clcode/default/implementation/shapes.cl", fileShapesCL,"clcode/default/headers/shapes.h",
+                "clcode/default/headers/math.h");
         //java_to_cl.cl
-        CLManager.putProgramFromString(this,
-                new String[]{
-                        "clcode/default/headers/math.h",
-                        "clcode/default/headers/java_to_cl.h",
-                        "clcode/default/headers/shapes.h"},
-                "clcode/default/implementation/java_to_cl.cl",
-                fileJavaToClCL,
-                compileOptions);
+        this.addCompilableS("clcode/default/implementation/java_to_cl.cl", fileJavaToClCL,"clcode/default/headers/math.h",
+                "clcode/default/headers/java_to_cl.h",
+                "clcode/default/headers/shapes.h");
         //render.cl
-        CLManager.putProgramFromString(this,
-                new String[]{"clcode/default/headers/render.h",
-                        "clcode/default/headers/shapes.h",
-                        "clcode/default/headers/math.h"},
-                "clcode/default/implementation/render.cl",
-                fileRenderCL,
-                compileOptions);
+        this.addCompilableS("clcode/default/implementation/render.cl", fileRenderCL,"clcode/default/headers/render.h",
+                "clcode/default/headers/shapes.h",
+                "clcode/default/headers/math.h");
 
+    }
+
+    private void putExecutablesAndKernels() {
         //----------- E X E C U T A B L E - P R O G R A M S -----------
         CLManager.putExecutableProgram(this,
                 new String[]{
@@ -358,6 +338,61 @@ public class CLContext {
                 KERNEL_RENDER_DEBUG, "renderProgram");
         //----------- I N I T I A L I Z E -----------
         getStructSizes();
+    }
+
+    private void compile(String compileOptions) {
+        compilables.sort(Comparator.comparingInt(Compilable::getRank));
+
+        final AtomicInteger rank = new AtomicInteger(1);
+        Compilable[] comp;
+        while((comp = compilables.stream().filter(u -> u.getRank() == rank.get()).toArray(Compilable[]::new)).length > 0) {
+            System.out.println("Rank: "+rank + ", " + Arrays.toString(Arrays.stream(comp).map(Compilable::getName).toArray(String[]::new)));
+            int expected = programs.size() + comp.length;
+            Thread[] t = Stream.of(comp).map(u -> new Thread(
+                    () -> {
+                        CLProgram program = CLManager.createProgramFromString(this, u.getDependenciesId(),
+                                u.getName(), u.getContent(), compileOptions);
+                        synchronized (programs) {
+                            programs.put(u.getName(), program);
+                        }
+                    }
+            )).toArray(Thread[]::new);
+            for (Thread thread : t) {
+                thread.start();
+            }
+            for (Thread thread : t) {
+                try {
+                    thread.join();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException();
+                }
+            }
+            if(programs.size() != expected) {
+                throw new RuntimeException("One or more programs failed to compile. Expected: " + expected + " Compiled: " + programs.size());
+            }
+            rank.incrementAndGet();
+        }
+    }
+
+    private Compilable[] compFromString(String... dependencies) {
+        Compilable[] dep = new Compilable[dependencies.length];
+        for (int i = 0; i < dependencies.length; i++) {
+            for (Compilable c : compilables) {
+                if(c.getName().equals(dependencies[i])) {
+                    dep[i] = c;
+                    break;
+                }
+            }
+        }
+        return dep;
+    }
+
+    private void addCompilableF(String file, String... dependencies) {
+        compilables.add(new Compilable(file, compFromString(dependencies)));
+    }
+
+    private void addCompilableS(String name, String source, String... dependencies) {
+        compilables.add(new Compilable(name, source, compFromString(dependencies)));
     }
 
     private void generateFileShapesH() {
@@ -511,43 +546,40 @@ public class CLContext {
             switch (t.getShaderType()) {
                 case SHAPE -> {
                     code.append("                stack[index].d1 = ");
-                    code.append(t.getFunctionName()).append("(point/shape->size, shape->shape) * shape->size;\n");
+                    code.append(t.getFunctionName()).append("(point, shape->shape);\n");
                     code.append("""
                                                 index--;
                                                 continue;
                                 """);
                 }
                 case BOOLEAN_OPERATOR -> {
-                    code.append("""
-                                        {
-                                        __global struct shape_t* shape1 =
-                                            ((__global struct intersection_t*)shape->shape)->shape1;
-                                        __global struct shape_t* shape2 =
-                                            ((__global struct intersection_t*)shape->shape)->shape2;
+                        code.append("{\n__global struct shape_t* shape1 = ((__global struct ").append(t.getStructName()).append("*)shape->shape)->shape1;\n");
+                        code.append("__global struct shape_t* shape2 = ((__global struct ").append(t.getStructName()).append("*)shape->shape)->shape2;");
+                        code.append("""
                                         switch(stack[index].status) {
                                             case 0:
                                                 stack[index].status = 1;
                                                 index++;
                                                 stack[index] = (struct oneStepSDFArgs_t) {
                                                     matrixTimesVector(shape1->rotationMatrix,
-                                                        point/shape->size - shape1->position),
+                                                        point - shape1->position) / shape1->size,
                                                     shape1,
                                                     0, 0, 0
                                                 };
                                                 continue;
                                             case 1:
                                                 stack[index].status = 2;
-                                                stack[index].d1 = stack[index + 1].d1 * shape->size;
+                                                stack[index].d1 = stack[index + 1].d1 * shape1->size;
                                                 index++;
                                                 stack[index] = (struct oneStepSDFArgs_t) {
                                                     matrixTimesVector(shape2->rotationMatrix,
-                                                        point/shape->size - shape2->position),
+                                                        point - shape2->position) / shape2->size,
                                                     shape2,
                                                     0, 0, 0
                                                 };
                                                 continue;
                                             case 2:
-                                                stack[index].d2 = stack[index + 1].d1 * shape->size;
+                                                stack[index].d2 = stack[index + 1].d1 * shape2->size;
                                                 stack[index].d1 = """);
                     code.append(t.getFunctionName()).append("(stack[index].d1, stack[index].d2, shape->shape);\n");
                     code.append("""
@@ -580,13 +612,17 @@ public class CLContext {
     }
 
     public void createBenchmarks(String compileOptions) {
-        CLManager.putProgramFromFile(this, null,
+        CLProgram benH = CLManager.createProgramFromFile(this, null,
                 "clcode/default/headers/benchmark.h",
                 compileOptions);
-        CLManager.putProgramFromFile(this,
+        programs.put("clcode/default/headers/benchmark.h", benH);
+
+        CLProgram benCL = CLManager.createProgramFromFile(this,
                 new String[]{"clcode/default/headers/benchmark.h"},
                 "clcode/default/implementation/benchmark.cl",
                 compileOptions);
+        programs.put("clcode/default/implementation/benchmark.cl", benCL);
+
 
         CLManager.putExecutableProgram(this,
                 new String[]{

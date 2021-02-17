@@ -115,17 +115,11 @@ public class Shape implements CLTransferable {
                 return false;
             }
         }
-        AtomicBoolean b1 = new AtomicBoolean(false);
-        AtomicBoolean b2 = new AtomicBoolean(false);
-        type.getFields().stream().map(ShapeType.CLField::getName).forEach((u) -> {
-            if(u.equals("shape1")) {
-                b1.set(true);
-            }
-            if(u.equals("shape2")) {
-                b2.set(true);
-            }
-        });
-        return type.getShaderType() == ShapeType.ShaderType.SHAPE || (b1.get() && b2.get());
+        return switch (type.getShaderType()) {
+            case SHAPE -> true;
+            case BOOLEAN_OPERATOR -> type.getFields().stream().anyMatch(u -> u.getName().equals("shape1"))
+                    && type.getFields().stream().anyMatch(u -> u.getName().equals("shape2"));
+        };
     }
 
     public HashMap<String, Object> getProperties() {
@@ -134,5 +128,25 @@ public class Shape implements CLTransferable {
 
     public int bytesToInBuffer() {
         return Float.BYTES + 2 * Vector3d.BYTES + 3 * Long.BYTES + material.bytesToInBuffer() + type.getTransferSize();
+    }
+
+    public Shape setProperty(String name, float val) {
+        properties.put(name, val);
+        return this;
+    }
+
+    public Shape setProperty(String name, double val) {
+        setProperty(name, (float)val);
+        return this;
+    }
+
+    public Shape setProperty(String name, Vector3d val) {
+        properties.put(name, val);
+        return this;
+    }
+
+    public Shape setProperty(String name, Shape val) {
+        properties.put(name, val);
+        return this;
     }
 }

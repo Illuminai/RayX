@@ -9,7 +9,7 @@ import java.util.Locale;
 
 public class ShapeType {
     public enum ShaderType {
-        SHAPE, BOOLEAN_OPERATOR
+        SHAPE, SHAPE_COMBINATION_OF_2, POINT_OPERATOR
     }
     
     public enum CLFieldType {
@@ -87,12 +87,14 @@ public class ShapeType {
         this.dataPointerName = "data" + capitalizedName;
         this.functionName = switch (shaderType) {
             case SHAPE -> "distanceShader" + capitalizedName;
-            case BOOLEAN_OPERATOR -> "booleanOperator"  + capitalizedName;
+            case SHAPE_COMBINATION_OF_2 -> "booleanOperator" + capitalizedName;
+            case POINT_OPERATOR -> "pointOperator" + capitalizedName;
         };
         this.functionHeader = switch (shaderType) {
             case SHAPE ->
                     "float " + functionName + "(float3 point, __global struct " +  structName + " * shape)";
-            case BOOLEAN_OPERATOR -> "float " + functionName + "(float d1, float d2, __global struct " +  structName + " * shape)";
+            case SHAPE_COMBINATION_OF_2 -> "float " + functionName + "(float d1, float d2, __global struct " +  structName + " * shape)";
+            case POINT_OPERATOR -> "float3 " + functionName + "(float3 point, __global struct " +  structName + " * shape)";
         };
     }
 

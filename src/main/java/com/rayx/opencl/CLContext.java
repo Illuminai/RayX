@@ -208,15 +208,15 @@ public class CLContext {
                 return length((float3){q.x,q.y-1.f+k,q.z-k});
                 """);
 
-        registerShape("subtraction", ShapeType.ShaderType.BOOLEAN_OPERATOR,"""
+        registerShape("subtraction", ShapeType.ShaderType.SHAPE_COMBINATION_OF_2,"""
                     return max(-d1, d2);
                 """, new ShapeType.CLField("shape1", ShapeType.CLFieldType.POINTER_SHAPE),
                 new ShapeType.CLField("shape2", ShapeType.CLFieldType.POINTER_SHAPE));
-        registerShape("union", ShapeType.ShaderType.BOOLEAN_OPERATOR,"""
+        registerShape("union", ShapeType.ShaderType.SHAPE_COMBINATION_OF_2,"""
                     return min(d1, d2);
                 """, new ShapeType.CLField("shape1", ShapeType.CLFieldType.POINTER_SHAPE),
                 new ShapeType.CLField("shape2", ShapeType.CLFieldType.POINTER_SHAPE));
-        registerShape("intersection", ShapeType.ShaderType.BOOLEAN_OPERATOR,"""
+        registerShape("intersection", ShapeType.ShaderType.SHAPE_COMBINATION_OF_2,"""
                     return max(d1, d2);
                 """, new ShapeType.CLField("shape1", ShapeType.CLFieldType.POINTER_SHAPE),
                 new ShapeType.CLField("shape2", ShapeType.CLFieldType.POINTER_SHAPE));
@@ -247,6 +247,40 @@ public class CLContext {
                                                float z = length(orbit);
                                                return 0.5*z*log(z)/dz;
                         """, new ShapeType.CLField("phi", ShapeType.CLFieldType.FLOAT));
+
+        registerShape("smoothUnion", ShapeType.ShaderType.SHAPE_COMBINATION_OF_2,"""
+                            float h = clamp( 0.5 + 0.5*(d2-d1)/shape->k, 0.0, 1.0 );
+                            return mix( d2, d1, h ) - shape->k*h*(1.0-h);
+                        """, new ShapeType.CLField("shape1", ShapeType.CLFieldType.POINTER_SHAPE),
+                new ShapeType.CLField("shape2", ShapeType.CLFieldType.POINTER_SHAPE),
+                new ShapeType.CLField("k", ShapeType.CLFieldType.FLOAT));
+        registerShape("smoothSubtraction", ShapeType.ShaderType.SHAPE_COMBINATION_OF_2,"""
+                            float h = clamp( 0.5 - 0.5*(d2+d1)/shape->k, 0.0, 1.0 );
+                            return mix( d2, -d1, h ) + shape->k*h*(1.0-h);
+                        """, new ShapeType.CLField("shape1", ShapeType.CLFieldType.POINTER_SHAPE),
+                new ShapeType.CLField("shape2", ShapeType.CLFieldType.POINTER_SHAPE),
+                new ShapeType.CLField("k", ShapeType.CLFieldType.FLOAT));
+        registerShape("smoothIntersection", ShapeType.ShaderType.SHAPE_COMBINATION_OF_2,"""
+                            float h = clamp( 0.5 - 0.5*(d2-d1)/shape->k, 0.0, 1.0 );
+                            return mix( d2, d1, h ) + shape->k*h*(1.0-h);
+                        """, new ShapeType.CLField("shape1", ShapeType.CLFieldType.POINTER_SHAPE),
+                new ShapeType.CLField("shape2", ShapeType.CLFieldType.POINTER_SHAPE),
+                new ShapeType.CLField("k", ShapeType.CLFieldType.FLOAT));
+
+        registerShape("infiniteRepetition", ShapeType.ShaderType.POINT_OPERATOR, """
+                    float3 q = fmod(point + 0.5f * shape->c, shape->c) - 0.5f * shape->c;
+                    return q;
+                """,
+                new ShapeType.CLField("shape1", ShapeType.CLFieldType.POINTER_SHAPE),
+                new ShapeType.CLField("c", ShapeType.CLFieldType.FLOAT3));
+        registerShape("finiteRepetition", ShapeType.ShaderType.POINT_OPERATOR, """
+                    float3 q = point-shape->c * clamp(round(point/shape->c),-shape->l,shape->l);
+                    return q;
+                """,
+                new ShapeType.CLField("shape1", ShapeType.CLFieldType.POINTER_SHAPE),
+                new ShapeType.CLField("c", ShapeType.CLFieldType.FLOAT3),
+                new ShapeType.CLField("l", ShapeType.CLFieldType.FLOAT3)
+                );
     }
 
     public void initialize() {
@@ -552,7 +586,7 @@ public class CLContext {
                                                 continue;
                                 """);
                 }
-                case BOOLEAN_OPERATOR -> {
+                case SHAPE_COMBINATION_OF_2 -> {
                         code.append("{\n__global struct shape_t* shape1 = ((__global struct ").append(t.getStructName()).append("*)shape->shape)->shape1;\n");
                         code.append("__global struct shape_t* shape2 = ((__global struct ").append(t.getStructName()).append("*)shape->shape)->shape2;");
                         code.append("""
@@ -588,6 +622,33 @@ public class CLContext {
                                         }}
                             """);
                 }
+                case POINT_OPERATOR -> {
+                    code.append("{\n__global struct shape_t* shape1 = ((__global struct ").append(t.getStructName()).append("*)shape->shape)->shape1;\n");
+                    code.append("""
+                                    switch(stack[index].status) {
+                                        case 0:
+                                            stack[index].status = 1;
+                                            index++;
+                                            stack[index] = (struct oneStepSDFArgs_t) {
+                                                matrixTimesVector(shape1->rotationMatrix,
+                                                    point - shape1->position) / shape1->size,
+                                                shape1,
+                                                0, 0, 0
+                                            };
+                                            stack[index].point = 
+                            """);
+                    code.append(t.getFunctionName()).append("(stack[index].point, shape->shape);\n");
+                    code.append("""
+                                            continue;
+                                        case 1:
+                                            stack[index].d1 = stack[index + 1].d1 * shape1->size;
+                                            index--;
+                                            continue;
+                                        }}
+                            """);
+                }
+                default ->
+                    throw new RuntimeException("Unsupported shader type: " + t.getShaderType());
             }
         }
 

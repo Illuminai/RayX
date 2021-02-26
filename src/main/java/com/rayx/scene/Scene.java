@@ -154,24 +154,22 @@ public class Scene {
         }
 
         private void exhibition(CLContext context) {
-            //System.out.println(Arrays.toString(context.getRegisteredShapes().stream().map(ShapeType::getShapeName).toArray()));
-            //[sphere, torus, plane, box, octahedron, subtraction, union, intersection, mandelbulb]
-
             if(t != 0) {
                 return;
+            } else {
+                String[] n = context.getRegisteredShapes().stream().map(ShapeType::getShapeName).toArray(String[]::new);
+                for (int i = 0; i < n.length; i++) {
+                    n[i] = i + ": " + n[i];
+                }
+                System.out.println(Arrays.toString(n));
+                //[sphere, torus, plane, box, octahedron, subtraction, union, smoothUnion, intersection, mandelbulb]
             }
-
-            getVisibleObjects().clear();
             t += 0.01;
 
-            Shape sphere = new Shape(context.getShapeType(0), new Vector3d(0,0,1), new Vector3d(0,0,0));
-            Shape box = new Shape(context.getShapeType(3), new Vector3d(0,0,0), new Vector3d(0,0,0)).setProperty("dimensions", new Vector3d(.5,.5,.5));
+            getVisibleObjects().clear();
 
-            Shape union = new Shape(context.getShapeType(6),1, new Vector3d(0,0,0),
-                    new Vector3d(0,0,0), Material.reflectionMaterial(new Vector3d(1,1,1), 1));
-            union.getProperties().put("shape1", box);
-            union.getProperties().put("shape2", sphere);
-            add(union);
+            Shape sphere = new Shape(context.getShapeType(0), new Vector3d(0,0,0), new Vector3d(0,0,0));
+            add(sphere);
         }
     }
 }

@@ -8,7 +8,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Shape implements CLTransferable {
     public static final long FLAG_SHOULD_RENDER = 1 << 0;
@@ -117,13 +116,10 @@ public class Shape implements CLTransferable {
         }
         return switch (type.getShaderType()) {
             case SHAPE -> true;
-            case BOOLEAN_OPERATOR -> type.getFields().stream().anyMatch(u -> u.getName().equals("shape1"))
+            case SHAPE_COMBINATION_OF_2 -> type.getFields().stream().anyMatch(u -> u.getName().equals("shape1"))
                     && type.getFields().stream().anyMatch(u -> u.getName().equals("shape2"));
+            case POINT_OPERATOR -> type.getFields().stream().anyMatch(u -> u.getName().equals("shape1"));
         };
-    }
-
-    public HashMap<String, Object> getProperties() {
-        return properties;
     }
 
     public int bytesToInBuffer() {

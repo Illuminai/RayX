@@ -183,18 +183,16 @@ bool firstIntersectionWithSDF(struct ray_t* pRay, __global struct shape_t* shape
     ray.origin = matrixTimesVector(shape->rotationMatrix, ray.origin);
     ray.direction = matrixTimesVector(shape->rotationMatrix, ray.direction);
 
-    if(distToOrig(&ray) > shape->maxRadius && shape->maxRadius != -1) {
-        return false;
-    }
-
     float d = 0;
     for(int i = 0; i < 100; i++) {
-        float dist = fabs(oneStepSDF(ray.origin + ray.direction * d, shape));
-        if(dist < EPSILON) {
+        float3 tmp = (ray.origin + ray.direction * d)/shape->size;
+        float dist = fabs(oneStepSDF(tmp, shape)) * shape->size;
+        if(dist < EPSILON_INTERSECTION) {
             inter->point = pRay->origin + pRay->direction * d;
             inter->d = d;
 
-            inter->normal = sdfNormal(ray.origin + ray.direction * d, oneStepSDF, shape);
+            //Do not multiply by shape->size, as it is already normalized
+            inter->normal = sdfNormal(tmp, oneStepSDF, shape);
             inter->normal = matrixTimesVector(shape->inverseRotationMatrix, inter->normal);
             return true;
         } else if (dist > maxD) {//TODO max distance
@@ -212,7 +210,7 @@ struct ray_t nextRayOnIntersection(struct ray_t* oldRay, struct rayIntersection_
         default:
         case MATERIAL_REFLECTION: {
             struct ray_t ray = (struct ray_t) {inter->point, perfectReflectionRayDirection(oldRay->direction, inter->normal)};
-            ray.origin += 1.1f * EPSILON * inter->normal;
+            ray.origin += EPSILON_NEW_RAY * inter->normal;
             return ray;
         }
         case MATERIAL_REFRACTION: {
@@ -240,7 +238,7 @@ struct ray_t nextRayOnIntersection(struct ray_t* oldRay, struct rayIntersection_
             float3 r2 = n2 + k2;
 
             struct ray_t ray = (struct ray_t) {inter->point, r2};
-            ray.origin += 10.0f * EPSILON * n2;
+            ray.origin += EPSILON_NEW_RAY * n2;
             return ray;
         }
     }

@@ -86,14 +86,14 @@ public class CLManager {
     }
 
     /***/
-    public static void putProgramFromFile(CLContext context, String[] dependenciesId, String sourceFile, String compileOptions) {
+    public static CLContext.CLProgram createProgramFromFile(CLContext context, String[] dependenciesId, String sourceFile, String compileOptions) {
         assert !sourceFile.startsWith("/") : "Files have to start without slash";
         String programSourceCode = readFromFile("/" + sourceFile);
-        putProgramFromString(context, dependenciesId, sourceFile, programSourceCode, compileOptions);
+        return createProgramFromString(context, dependenciesId, sourceFile, programSourceCode, compileOptions);
     }
 
     /***/
-    public static void putProgramFromString(CLContext context, String[] dependenciesId, String fileName, String programSourceCode, String compileOptions) {
+    public static CLContext.CLProgram createProgramFromString(CLContext context, String[] dependenciesId, String fileName, String programSourceCode, String compileOptions) {
         try (MemoryStack stack = CLManager.nextStackFrame()) {
             IntBuffer errorBuffer = stack.mallocInt(1);
             assert !fileName.startsWith("/") : "Files have to start without slash";
@@ -135,7 +135,7 @@ public class CLManager {
                 System.out.println(buildInfo);
             }
             checkForError(ErrorType.COMPILE, error);
-            context.addProgramObject(context.new CLProgram(fileName, programPointer, false));
+            return context.new CLProgram(fileName, programPointer, false);
         }
     }
 
@@ -535,17 +535,6 @@ public class CLManager {
                     error);
             checkForError(ErrorType.BUFFER_CREATION, error);
             context.addMemoryObject(id, context.new CLMemoryObject(memory, src.remaining()));
-        }
-    }
-
-    /**
-     * This function prints the shapes which are allocated on the GPU
-     * Only for debugging purposes
-     */
-    public static void testPrintGPUMemory(CLContext context, String shapesIdentifier,
-                                          String shapeDataPrefix, List<Shape> testReferences) {
-        try (MemoryStack stack = CLManager.nextStackFrame()) {
-            //TODO
         }
     }
 

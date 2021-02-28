@@ -85,13 +85,13 @@ public class RayX {
         long t = System.currentTimeMillis();
         CLContext context = CLManager.createContext(device, window.getWindow());
 
-        System.out.println("Context: " + (System.currentTimeMillis() - t));
+        System.out.println("Context allocation: " + (System.currentTimeMillis() - t));
         t = System.currentTimeMillis();
         context.initialize();
 
         test(context);
 
-        System.out.println("Kernel: " + (System.currentTimeMillis() - t));
+        System.out.println("Context creation: " + (System.currentTimeMillis() - t));
         return context;
     }
 

@@ -10,6 +10,7 @@ import org.lwjgl.system.MemoryStack;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.lwjgl.opencl.CL10.CL_MEM_READ_WRITE;
@@ -27,7 +28,7 @@ public class Scene {
         shapesIdentifier = "shapes" + hashCode();
         shapesDataPrefix = "shapesData" + hashCode();
         camera = new Camera(
-                new Vector3d(-.2, 0, 0),
+                new Vector3d(-2, 0, 0),
                 new Vector3d(0, 0, 0),
                 1
         );
@@ -175,31 +176,42 @@ public class Scene {
             bulb.getProperties().put("size", (float)Math.sin(t) * 3);
             add(bulb);*/
 
-                Shape backPlane = new Shape(context.getRegisteredShapes().get(2),
-                        100,
+                /*Shape backPlane = new Shape(context.getShapeType(2),
                         new Vector3d(0, 0, -0.1), new Vector3d(0, 0, 0)
                 );
                 backPlane.getProperties().put("normal", new Vector3d(0, 0, 1));
                 add(backPlane);
 
-                Shape box = new Shape(context.getRegisteredShapes().get(3),
-                        100,
+                Shape box = new Shape(context.getShapeType(3),
                         new Vector3d(0, 0, 0), new Vector3d(0, 0, 0));
                 box.getProperties().put("dimensions", new Vector3d(0.8f,0.8f,0.8f));
                 //add(cylinder);
 
-                Shape sphere = new Shape(context.getRegisteredShapes().get(0),
-                        100,
+                Shape sphere = new Shape(context.getShapeType(0),
                         new Vector3d(0, 0, 0), new Vector3d(0, 0, 0));
                 sphere.getProperties().put("radius", 1.0f);
                 //add(octa);
 
-                Shape subtract = new Shape(context.getRegisteredShapes().get(5),
-                        100,
+                Shape subtract = new Shape(context.getShapeType(5),
                         new Vector3d(0, 0, 0), new Vector3d(0, 0, 0));
                 subtract.getProperties().put("shape1", sphere);
                 subtract.getProperties().put("shape2", box);
-                add(subtract);
+                add(subtract);*/
+
+                Shape sphere2 = new Shape(context.getShapeType(4),
+                        new Vector3d(0, 0, 0), new Vector3d(0, 0, 0));
+                sphere2.setSize(1.23f);
+
+                Shape sphere3 = new Shape(context.getShapeType(0),
+                        new Vector3d(0, 0, 0), new Vector3d(0, 0, 0));
+
+
+                Shape smooth = new Shape(context.getShapeType(9),
+                        new Vector3d(0, 0, 0), new Vector3d(0, 0, 0));
+                smooth.getProperties().put("shape1", sphere2);
+                smooth.getProperties().put("shape2", sphere3);
+                smooth.getProperties().put("k", 0.05f);
+                add(smooth);
             }
         }
     }

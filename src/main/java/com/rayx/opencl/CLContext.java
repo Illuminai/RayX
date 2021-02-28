@@ -8,6 +8,8 @@ import org.lwjgl.PointerBuffer;
 
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import static org.lwjgl.opencl.CL10.CL_MEM_READ_ONLY;
 import static org.lwjgl.opencl.CL10.CL_MEM_WRITE_ONLY;
@@ -26,6 +28,8 @@ public class CLContext {
     private HashMap<String, CLKernel> kernels;
     private HashMap<String, CLProgram> programs;
     private HashMap<String, CLMemoryObject> memoryObjects;
+
+    private final List<Compilable> compilables;
 
     private String fileShapesH, fileShapesCL,
             fileJavaToClH, fileJavaToClCL, fileRenderCL;
@@ -46,6 +50,7 @@ public class CLContext {
         kernels = new HashMap<>();
         programs = new HashMap<>();
         memoryObjects = new HashMap<>();
+        compilables = new ArrayList<>();
         this.registeredShapes = new ArrayList<>();
         shapeTypeCount = 0;
 
@@ -166,8 +171,8 @@ public class CLContext {
     private void addDefaultShapes() {
         registerShape("sphere", ShapeType.ShaderType.SHAPE,
                 """
-                return length(point) - shape->radius;
-                """, new ShapeType.CLField("radius", ShapeType.CLFieldType.FLOAT));
+                return length(point) - 1;
+                """);
         registerShape("torus",ShapeType.ShaderType.SHAPE, """
                 float2 q =
                     (float2){length(point.yz) - shape->radiusBig, point.x};
@@ -186,7 +191,7 @@ public class CLContext {
                 """, new ShapeType.CLField("dimensions", ShapeType.CLFieldType.FLOAT3));
         registerShape("octahedron", ShapeType.ShaderType.SHAPE,"""
                 float3 p = fabs(point);
-                float m = p.x + p.y + p.z - shape->size;
+                float m = p.x + p.y + p.z - 1;
                 float3 q;
                             
                 if ( 3.0*p.x < m ) {
@@ -199,25 +204,25 @@ public class CLContext {
                     return m * 0.57735027;
                 }
                             
-                float k = clamp(0.5f*(q.z-q.y+shape->size),0.0f,shape->size);
-                return length((float3){q.x,q.y-shape->size+k,q.z-k});
-                """, new ShapeType.CLField("size", ShapeType.CLFieldType.FLOAT));
+                float k = clamp(0.5f*(q.z-q.y+1.f),0.0f,1.f);
+                return length((float3){q.x,q.y-1.f+k,q.z-k});
+                """);
 
-        registerShape("subtraction", ShapeType.ShaderType.BOOLEAN_OPERATOR,"""
+        registerShape("subtraction", ShapeType.ShaderType.SHAPE_COMBINATION_OF_2,"""
                     return max(-d1, d2);
                 """, new ShapeType.CLField("shape1", ShapeType.CLFieldType.POINTER_SHAPE),
                 new ShapeType.CLField("shape2", ShapeType.CLFieldType.POINTER_SHAPE));
-        registerShape("union", ShapeType.ShaderType.BOOLEAN_OPERATOR,"""
+        registerShape("union", ShapeType.ShaderType.SHAPE_COMBINATION_OF_2,"""
                     return min(d1, d2);
                 """, new ShapeType.CLField("shape1", ShapeType.CLFieldType.POINTER_SHAPE),
                 new ShapeType.CLField("shape2", ShapeType.CLFieldType.POINTER_SHAPE));
-        registerShape("intersection", ShapeType.ShaderType.BOOLEAN_OPERATOR,"""
+        registerShape("intersection", ShapeType.ShaderType.SHAPE_COMBINATION_OF_2,"""
                     return max(d1, d2);
                 """, new ShapeType.CLField("shape1", ShapeType.CLFieldType.POINTER_SHAPE),
                 new ShapeType.CLField("shape2", ShapeType.CLFieldType.POINTER_SHAPE));
 
         registerShape("mandelbulb", ShapeType.ShaderType.SHAPE,"""
-                            float3 c = (float3) {shape->size+1,shape->size+1,shape->size+1};
+                            float3 c = (float3) {shape->phi+1,shape->phi+1,shape->phi+1};
                                            float3 orbit = point;
                                                float dz = 1;
                                     
@@ -241,7 +246,42 @@ public class CLContext {
                                                }
                                                float z = length(orbit);
                                                return 0.5*z*log(z)/dz;
-                        """, new ShapeType.CLField("size", ShapeType.CLFieldType.FLOAT));
+                        """, new ShapeType.CLField("phi", ShapeType.CLFieldType.FLOAT));
+
+        registerShape("smoothUnion", ShapeType.ShaderType.SHAPE_COMBINATION_OF_2,"""
+                            float h = clamp( 0.5 + 0.5*(d2-d1)/shape->k, 0.0, 1.0 );
+                            return mix( d2, d1, h ) - shape->k*h*(1.0-h);
+                        """, new ShapeType.CLField("shape1", ShapeType.CLFieldType.POINTER_SHAPE),
+                new ShapeType.CLField("shape2", ShapeType.CLFieldType.POINTER_SHAPE),
+                new ShapeType.CLField("k", ShapeType.CLFieldType.FLOAT));
+        registerShape("smoothSubtraction", ShapeType.ShaderType.SHAPE_COMBINATION_OF_2,"""
+                            float h = clamp( 0.5 - 0.5*(d2+d1)/shape->k, 0.0, 1.0 );
+                            return mix( d2, -d1, h ) + shape->k*h*(1.0-h);
+                        """, new ShapeType.CLField("shape1", ShapeType.CLFieldType.POINTER_SHAPE),
+                new ShapeType.CLField("shape2", ShapeType.CLFieldType.POINTER_SHAPE),
+                new ShapeType.CLField("k", ShapeType.CLFieldType.FLOAT));
+        registerShape("smoothIntersection", ShapeType.ShaderType.SHAPE_COMBINATION_OF_2,"""
+                            float h = clamp( 0.5 - 0.5*(d2-d1)/shape->k, 0.0, 1.0 );
+                            return mix( d2, d1, h ) + shape->k*h*(1.0-h);
+                        """, new ShapeType.CLField("shape1", ShapeType.CLFieldType.POINTER_SHAPE),
+                new ShapeType.CLField("shape2", ShapeType.CLFieldType.POINTER_SHAPE),
+                new ShapeType.CLField("k", ShapeType.CLFieldType.FLOAT));
+
+        registerShape("infiniteRepetition", ShapeType.ShaderType.POINT_OPERATOR, """
+                    float3 q = fmod(point + 0.5f * shape->c, shape->c) - 0.5f * shape->c;
+                    return q;
+                """,
+                new ShapeType.CLField("shape1", ShapeType.CLFieldType.POINTER_SHAPE),
+                new ShapeType.CLField("c", ShapeType.CLFieldType.FLOAT3));
+        registerShape("finiteRepetition", ShapeType.ShaderType.POINT_OPERATOR, """
+                    float3 q = point-shape->c * clamp(round(point/shape->c),-shape->l,shape->l);
+                    return q;
+                """,
+                new ShapeType.CLField("shape1", ShapeType.CLFieldType.POINTER_SHAPE),
+                new ShapeType.CLField("c", ShapeType.CLFieldType.FLOAT3),
+                new ShapeType.CLField("l", ShapeType.CLFieldType.FLOAT3)
+                );
+
 
         registerShape("cylinder", ShapeType.ShaderType.SHAPE, """
                     
@@ -250,16 +290,15 @@ public class CLContext {
                     
                 """,  new ShapeType.CLField("height", ShapeType.CLFieldType.FLOAT),
                 new ShapeType.CLField("radius", ShapeType.CLFieldType.FLOAT));
-
-
-
     }
 
     public void initialize() {
         StringBuilder compileOptions = new StringBuilder("-cl-fast-relaxed-math " +
                 " -cl-kernel-arg-info" +
                 " -Werror" +
-                " -D EPSILON=((float)0.00001)" +
+                " -D EPSILON_INTERSECTION=((float)0.00001)" +
+                " -D EPSILON_NEW_RAY=((float)0.001)" +
+                " -D EPSILON_NORMAL=((float)0.001)" +
                 " -D FLAG_SHOULD_RENDER=" + Shape.FLAG_SHOULD_RENDER +
                 " -D SHAPE=-1" +
                 " -D MATERIAL_REFLECTION=" + Material.MATERIAL_REFLECTION +
@@ -269,73 +308,47 @@ public class CLContext {
         }
         System.out.println("Compile Options: " + compileOptions);
         generateCLFiles();
-        compileFiles(compileOptions.toString());
+        createBenchmarks(compileOptions.toString());
+        createCompilables();
+        long t = System.currentTimeMillis();
+        compile(compileOptions.toString());
+        System.out.println("Compiled: " + (System.currentTimeMillis() - t));
+        t = System.currentTimeMillis();
+        putExecutablesAndKernels();
+        System.out.println("Linking and Kernels: " + (System.currentTimeMillis() - t));
     }
 
-    private void compileFiles(String compileOptions) {
-        createBenchmarks(compileOptions);
-
+    private void createCompilables() {
         //From least dependent to most dependent
         //----------- H E A D E R S -----------
         //math.h
-        CLManager.putProgramFromFile(this, null,
-                "clcode/default/headers/math.h",
-                compileOptions);
+        this.addCompilableF("clcode/default/headers/math.h");
         //shapes.h
-        CLManager.putProgramFromString(this,
-                new String[]{
-                        "clcode/default/headers/math.h"
-                },
-                "clcode/default/headers/shapes.h",
-                fileShapesH,
-                compileOptions);
+        this.addCompilableS("clcode/default/headers/shapes.h", fileShapesH,"clcode/default/headers/math.h");
         //java_to_cl.h
-        CLManager.putProgramFromString(this,
-                new String[]{"clcode/default/headers/shapes.h",
-                        "clcode/default/headers/math.h"},
-                "clcode/default/headers/java_to_cl.h",
-                    fileJavaToClH,
-                compileOptions);
+        this.addCompilableS("clcode/default/headers/java_to_cl.h", fileJavaToClH, "clcode/default/headers/shapes.h",
+                "clcode/default/headers/math.h");
         //render.h
-        CLManager.putProgramFromFile(this,
-                new String[]{"clcode/default/headers/shapes.h",
-                        "clcode/default/headers/math.h"},
-                "clcode/default/headers/render.h",
-                compileOptions);
-
+        this.addCompilableF("clcode/default/headers/render.h", "clcode/default/headers/shapes.h",
+                "clcode/default/headers/math.h");
         //----------- C O D E -----------
         //math.cl
-        CLManager.putProgramFromFile(this, new String[]{
-                        "clcode/default/headers/math.h"
-                },
-                "clcode/default/implementation/math.cl",
-                compileOptions);
+        this.addCompilableF("clcode/default/implementation/math.cl", "clcode/default/headers/math.h");
         //shapes.cl
-        CLManager.putProgramFromString(this,
-                new String[]{"clcode/default/headers/shapes.h",
-                        "clcode/default/headers/math.h"},
-                "clcode/default/implementation/shapes.cl",
-                fileShapesCL,
-                compileOptions);
-
+        this.addCompilableS("clcode/default/implementation/shapes.cl", fileShapesCL,"clcode/default/headers/shapes.h",
+                "clcode/default/headers/math.h");
         //java_to_cl.cl
-        CLManager.putProgramFromString(this,
-                new String[]{
-                        "clcode/default/headers/math.h",
-                        "clcode/default/headers/java_to_cl.h",
-                        "clcode/default/headers/shapes.h"},
-                "clcode/default/implementation/java_to_cl.cl",
-                fileJavaToClCL,
-                compileOptions);
+        this.addCompilableS("clcode/default/implementation/java_to_cl.cl", fileJavaToClCL,"clcode/default/headers/math.h",
+                "clcode/default/headers/java_to_cl.h",
+                "clcode/default/headers/shapes.h");
         //render.cl
-        CLManager.putProgramFromString(this,
-                new String[]{"clcode/default/headers/render.h",
-                        "clcode/default/headers/shapes.h",
-                        "clcode/default/headers/math.h"},
-                "clcode/default/implementation/render.cl",
-                fileRenderCL,
-                compileOptions);
+        this.addCompilableS("clcode/default/implementation/render.cl", fileRenderCL,"clcode/default/headers/render.h",
+                "clcode/default/headers/shapes.h",
+                "clcode/default/headers/math.h");
 
+    }
+
+    private void putExecutablesAndKernels() {
         //----------- E X E C U T A B L E - P R O G R A M S -----------
         CLManager.putExecutableProgram(this,
                 new String[]{
@@ -368,6 +381,61 @@ public class CLContext {
                 KERNEL_RENDER_DEBUG, "renderProgram");
         //----------- I N I T I A L I Z E -----------
         getStructSizes();
+    }
+
+    private void compile(String compileOptions) {
+        compilables.sort(Comparator.comparingInt(Compilable::getRank));
+
+        final AtomicInteger rank = new AtomicInteger(1);
+        Compilable[] comp;
+        while((comp = compilables.stream().filter(u -> u.getRank() == rank.get()).toArray(Compilable[]::new)).length > 0) {
+            System.out.println("Rank: "+rank + ", " + Arrays.toString(Arrays.stream(comp).map(Compilable::getName).toArray(String[]::new)));
+            int expected = programs.size() + comp.length;
+            Thread[] t = Stream.of(comp).map(u -> new Thread(
+                    () -> {
+                        CLProgram program = CLManager.createProgramFromString(this, u.getDependenciesId(),
+                                u.getName(), u.getContent(), compileOptions);
+                        synchronized (programs) {
+                            programs.put(u.getName(), program);
+                        }
+                    }
+            )).toArray(Thread[]::new);
+            for (Thread thread : t) {
+                thread.start();
+            }
+            for (Thread thread : t) {
+                try {
+                    thread.join();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException();
+                }
+            }
+            if(programs.size() != expected) {
+                throw new RuntimeException("One or more programs failed to compile. Expected: " + expected + " Compiled: " + programs.size());
+            }
+            rank.incrementAndGet();
+        }
+    }
+
+    private Compilable[] compFromString(String... dependencies) {
+        Compilable[] dep = new Compilable[dependencies.length];
+        for (int i = 0; i < dependencies.length; i++) {
+            for (Compilable c : compilables) {
+                if(c.getName().equals(dependencies[i])) {
+                    dep[i] = c;
+                    break;
+                }
+            }
+        }
+        return dep;
+    }
+
+    private void addCompilableF(String file, String... dependencies) {
+        compilables.add(new Compilable(file, compFromString(dependencies)));
+    }
+
+    private void addCompilableS(String name, String source, String... dependencies) {
+        compilables.add(new Compilable(name, source, compFromString(dependencies)));
     }
 
     private void generateFileShapesH() {
@@ -458,9 +526,9 @@ public class CLContext {
                         long shape = getNextLong(inputData); inputData += sizeof(long);
                         long id = getNextLong(inputData); inputData += sizeof(long);
                         long flags = getNextLong(inputData); inputData += sizeof(long);
-                        float maxRad = getNextFloat(inputData); inputData += sizeof(float);
                         float3 position = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
                         float3 rotation = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
+                        float size = getNextFloat(inputData); inputData += sizeof(float);
                         //Get Material
                         long materialType = getNextLong(inputData); inputData += sizeof(long);
                         float3 materialColor = getNextFloat3 (inputData); inputData += sizeof(float) * 3;
@@ -477,8 +545,8 @@ public class CLContext {
                                             //Initialize just one union
                                             {.refraction = {materialRefractionIndex}}
                                         },
-                                        maxRad,
                                         position, rotation,
+                                        size,
                                         rotMatrix,
                                         inverse(rotMatrix),
                                     0};
@@ -504,12 +572,11 @@ public class CLContext {
     private void generateFileRenderCL() {
         StringBuilder code = new StringBuilder();
         code.append(CLManager.readFromFile("/clcode/default/implementation/render.cl"));
-
+        // TODO define max stack size
         code.append("""
                 
                 float oneStepSDF(float3 point, __global struct shape_t* shape) {
                     int index = 0;
-                    // TODO define max stack size
                     struct oneStepSDFArgs_t stack[10];
                     stack[0] = (struct oneStepSDFArgs_t){point, shape, 0, 0, 0};
                     do {
@@ -528,37 +595,34 @@ public class CLContext {
                                                 continue;
                                 """);
                 }
-                case BOOLEAN_OPERATOR -> {
-                    code.append("""
-                                        {
-                                        __global struct shape_t* shape1 =
-                                            ((__global struct intersection_t*)shape->shape)->shape1;
-                                        __global struct shape_t* shape2 =
-                                            ((__global struct intersection_t*)shape->shape)->shape2;
+                case SHAPE_COMBINATION_OF_2 -> {
+                        code.append("{\n__global struct shape_t* shape1 = ((__global struct ").append(t.getStructName()).append("*)shape->shape)->shape1;\n");
+                        code.append("__global struct shape_t* shape2 = ((__global struct ").append(t.getStructName()).append("*)shape->shape)->shape2;");
+                        code.append("""
                                         switch(stack[index].status) {
                                             case 0:
                                                 stack[index].status = 1;
                                                 index++;
                                                 stack[index] = (struct oneStepSDFArgs_t) {
                                                     matrixTimesVector(shape1->rotationMatrix,
-                                                        point - shape1->position),
+                                                        point - shape1->position) / shape1->size,
                                                     shape1,
                                                     0, 0, 0
                                                 };
                                                 continue;
                                             case 1:
                                                 stack[index].status = 2;
-                                                stack[index].d1 = stack[index + 1].d1;
+                                                stack[index].d1 = stack[index + 1].d1 * shape1->size;
                                                 index++;
                                                 stack[index] = (struct oneStepSDFArgs_t) {
                                                     matrixTimesVector(shape2->rotationMatrix,
-                                                        point - shape2->position),
+                                                        point - shape2->position) / shape2->size,
                                                     shape2,
                                                     0, 0, 0
                                                 };
                                                 continue;
                                             case 2:
-                                                stack[index].d2 = stack[index + 1].d1;
+                                                stack[index].d2 = stack[index + 1].d1 * shape2->size;
                                                 stack[index].d1 = """);
                     code.append(t.getFunctionName()).append("(stack[index].d1, stack[index].d2, shape->shape);\n");
                     code.append("""
@@ -567,6 +631,33 @@ public class CLContext {
                                         }}
                             """);
                 }
+                case POINT_OPERATOR -> {
+                    code.append("{\n__global struct shape_t* shape1 = ((__global struct ").append(t.getStructName()).append("*)shape->shape)->shape1;\n");
+                    code.append("""
+                                    switch(stack[index].status) {
+                                        case 0:
+                                            stack[index].status = 1;
+                                            index++;
+                                            stack[index] = (struct oneStepSDFArgs_t) {
+                                                matrixTimesVector(shape1->rotationMatrix,
+                                                    point - shape1->position) / shape1->size,
+                                                shape1,
+                                                0, 0, 0
+                                            };
+                                            stack[index].point = 
+                            """);
+                    code.append(t.getFunctionName()).append("(stack[index].point, shape->shape);\n");
+                    code.append("""
+                                            continue;
+                                        case 1:
+                                            stack[index].d1 = stack[index + 1].d1 * shape1->size;
+                                            index--;
+                                            continue;
+                                        }}
+                            """);
+                }
+                default ->
+                    throw new RuntimeException("Unsupported shader type: " + t.getShaderType());
             }
         }
 
@@ -583,42 +674,25 @@ public class CLContext {
 
     private void generateCLFiles() {
         generateFileShapesH();
-        System.out.println("----------------------------------------------------------");
-        //System.out.println(fileShapesH);
-        System.out.println("----------------------------------------------------------");
-
         generateFileShapesCL();
-        //System.out.println(fileShapesCL);
-        System.out.println("----------------------------------------------------------");
-
         generatePutShapesToMemoryFunctionHeader();
-        System.out.println(putShapesToMemoryFunctionHeader);
-        System.out.println("----------------------------------------------------------");
-
         generateFileJavaToClH();
-        System.out.println(fileJavaToClH);
-        System.out.println("----------------------------------------------------------");
-
         generateFileJavaToClCL();
-        System.out.println(fileJavaToClCL);
-        System.out.println("----------------------------------------------------------");
-
         generateFileRenderCL();
-        //System.out.println(fileRenderCL);
-        System.out.println("----------------------------------------------------------");
-
-
-        //System.exit(0);
     }
 
     public void createBenchmarks(String compileOptions) {
-        CLManager.putProgramFromFile(this, null,
+        CLProgram benH = CLManager.createProgramFromFile(this, null,
                 "clcode/default/headers/benchmark.h",
                 compileOptions);
-        CLManager.putProgramFromFile(this,
+        programs.put("clcode/default/headers/benchmark.h", benH);
+
+        CLProgram benCL = CLManager.createProgramFromFile(this,
                 new String[]{"clcode/default/headers/benchmark.h"},
                 "clcode/default/implementation/benchmark.cl",
                 compileOptions);
+        programs.put("clcode/default/implementation/benchmark.cl", benCL);
+
 
         CLManager.putExecutableProgram(this,
                 new String[]{

@@ -8,14 +8,12 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Shape implements CLTransferable {
     public static final long FLAG_SHOULD_RENDER = 1 << 0;
 
     private Vector3d position, rotation;
-    //TODO this may be determined when transferring in java_to_cl.cl
-    private float maxRadius;
+    private float size;
     private long id;
     private long flags;
     private final Material material;
@@ -23,13 +21,13 @@ public class Shape implements CLTransferable {
     private final ShapeType type;
     private final HashMap<String, Object> properties;
 
-    public Shape(ShapeType type, float maxRadius, Vector3d position, Vector3d rotation) {
-        this(type, maxRadius, position, rotation, Material.DEFAULT_MATERIAL);
+    public Shape(ShapeType type, Vector3d position, Vector3d rotation) {
+        this(type, 1, position, rotation, Material.DEFAULT_MATERIAL);
     }
 
-    public Shape(ShapeType type, float maxRadius, Vector3d position, Vector3d rotation, Material material) {
+    public Shape(ShapeType type, float size, Vector3d position, Vector3d rotation, Material material) {
         this.type = type;
-        this.maxRadius = maxRadius;
+        this.size = size;
         this.position = position;
         this.rotation = rotation;
         this.material = material;
@@ -56,10 +54,6 @@ public class Shape implements CLTransferable {
 
     public ShapeType getType() {
         return type;
-    }
-
-    public float getMaxRadius() {
-        return maxRadius;
     }
 
     public long getId() {
@@ -95,10 +89,10 @@ public class Shape implements CLTransferable {
         buffer.
                 putLong(getType().getType()).
                 putLong(getId()).
-                putLong(flags).
-                putFloat(getMaxRadius());
+                putLong(flags);
         position.putInByteBuffer(buffer);
         rotation.putInByteBuffer(buffer);
+        buffer.putFloat(size);
         material.writeToByteBuffer(buffer);
         for(ShapeType.CLField field: type.getFields()) {
             Object val = properties.get(field.getName());
@@ -120,24 +114,43 @@ public class Shape implements CLTransferable {
                 return false;
             }
         }
-        AtomicBoolean b1 = new AtomicBoolean(false);
-        AtomicBoolean b2 = new AtomicBoolean(false);
-        type.getFields().stream().map(ShapeType.CLField::getName).forEach((u) -> {
-            if(u.equals("shape1")) {
-                b1.set(true);
-            }
-            if(u.equals("shape2")) {
-                b2.set(true);
-            }
-        });
-        return type.getShaderType() == ShapeType.ShaderType.SHAPE || (b1.get() && b2.get());
+        return switch (type.getShaderType()) {
+            case SHAPE -> true;
+            case SHAPE_COMBINATION_OF_2 -> type.getFields().stream().anyMatch(u -> u.getName().equals("shape1"))
+                    && type.getFields().stream().anyMatch(u -> u.getName().equals("shape2"));
+            case POINT_OPERATOR -> type.getFields().stream().anyMatch(u -> u.getName().equals("shape1"));
+        };
+    }
+
+    public int bytesToInBuffer() {
+        return Float.BYTES + 2 * Vector3d.BYTES + 3 * Long.BYTES + material.bytesToInBuffer() + type.getTransferSize();
+    }
+
+    public Shape setProperty(String name, float val) {
+        properties.put(name, val);
+        return this;
+    }
+
+    public Shape setProperty(String name, double val) {
+        setProperty(name, (float)val);
+        return this;
+    }
+
+    public Shape setProperty(String name, Vector3d val) {
+        properties.put(name, val);
+        return this;
+    }
+
+    public Shape setProperty(String name, Shape val) {
+        properties.put(name, val);
+        return this;
     }
 
     public HashMap<String, Object> getProperties() {
         return properties;
     }
 
-    public int bytesToInBuffer() {
-        return Float.BYTES + 2 * Vector3d.BYTES + 3 * Long.BYTES + material.bytesToInBuffer() + type.getTransferSize();
+    public void setSize(float size) {
+        this.size = size;
     }
 }

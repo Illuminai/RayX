@@ -336,14 +336,14 @@ public class TestOGLWindow extends OpenGLWindow {
             if (ImGui.beginMenu("Add")) {
                 for (ShapeType shapeType : RayX.context.getRegisteredShapes()) {
                     if (ImGui.menuItem(shapeType.getShapeName())) {
-                        Shape shape = new Shape(shapeType, 100, new Vector3d(0, 0, 0), new Vector3d(0, 0, 0));
+                        Shape shape = new Shape(shapeType, new Vector3d(0, 0, 0), new Vector3d(0, 0, 0));
                         for (ShapeType.CLField key : shapeType.getFields()) {
                             if (key.getType() == ShapeType.CLFieldType.FLOAT3) {
 
-                                shape.getProperties().put(key.getName(), new Vector3d(0.1, 0.1, 0.1));
+                                shape.setProperty(key.getName(), new Vector3d(0.1, 0.1, 0.1));
                             } else if (key.getType() == ShapeType.CLFieldType.FLOAT) {
 
-                                shape.getProperties().put(key.getName(), 0.1f);
+                                shape.setProperty(key.getName(), 0.1f);
                             }
                         }
                         scene.add(shape);

@@ -21,9 +21,9 @@ struct shape_t {
     long id;
     long flags;
     struct material_t material;
-    float maxRadius;
     float3 position;
     float3 rotation;
+    float size;
     struct matrix3x3 rotationMatrix;
     struct matrix3x3 inverseRotationMatrix;
     __global void* shape;
@@ -56,9 +56,9 @@ float distToOrig(struct ray_t* ray);
 
 #define sdfNormal(POINT,SDFFUN,OBJ)\
     (normalize((float3){\
-            SDFFUN(POINT + (float3){EPSILON,0,0}, OBJ) - SDFFUN(POINT - (float3){EPSILON,0,0}, OBJ),\
-            SDFFUN(POINT + (float3){0,EPSILON,0}, OBJ) - SDFFUN(POINT - (float3){0,EPSILON,0}, OBJ),\
-            SDFFUN(POINT + (float3){0,0,EPSILON}, OBJ) - SDFFUN(POINT - (float3){0,0,EPSILON}, OBJ),\
+            SDFFUN(POINT + (float3){EPSILON_NORMAL,0,0}, OBJ) - SDFFUN(POINT - (float3){EPSILON_NORMAL,0,0}, OBJ),\
+            SDFFUN(POINT + (float3){0,EPSILON_NORMAL,0}, OBJ) - SDFFUN(POINT - (float3){0,EPSILON_NORMAL,0}, OBJ),\
+            SDFFUN(POINT + (float3){0,0,EPSILON_NORMAL}, OBJ) - SDFFUN(POINT - (float3){0,0,EPSILON_NORMAL}, OBJ),\
         }))
 
 //#endif append when creating file!

@@ -550,7 +550,7 @@ public class CLManager {
     }
 
     public static void runRenderKernel(CLContext context, int glTex, Camera camera,
-                                       int numShapes, String shapesMemObj, String shapeDataPrefix, int width, int height, boolean debug) {
+                                       int numShapes, String shapesMemObj, String shapeDataPrefix, int width, int height, boolean debug, int samples) {
         glFinish();
 
         CLContext.CLKernel kernel;
@@ -573,6 +573,8 @@ public class CLManager {
 
         kernel.setParameter1i(6, numShapes);
         kernel.setParameterPointer(7, shapesMemObj);
+
+        kernel.setParameter1i(8, samples);
 
         kernel.run(new long[]{width, height}, null);
 
@@ -581,7 +583,7 @@ public class CLManager {
     }
 
     public static long enqueueRenderKernel(CLContext context, int glTex, Camera camera,
-                                           int numShapes, String shapesMemObj, String shapeDataPrefix, int width, int height, boolean debug) {
+                                           int numShapes, String shapesMemObj, String shapeDataPrefix, int width, int height, boolean debug, int samples) {
         glFinish();
 
         CLContext.CLKernel kernel;
@@ -604,6 +606,8 @@ public class CLManager {
 
         kernel.setParameter1i(6, numShapes);
         kernel.setParameterPointer(7, shapesMemObj);
+
+        kernel.setParameter1i(8, samples);
 
         kernel.enqueue(new long[]{width, height}, null, null);
 

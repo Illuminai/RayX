@@ -1,4 +1,4 @@
-package com.rayx.glfw;
+package com.rayx.core.ui;
 
 import org.lwjgl.glfw.GLFWErrorCallback;
 

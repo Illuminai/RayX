@@ -14,15 +14,11 @@
         <maven.compiler.source>15</maven.compiler.source>
         <maven.compiler.target>15</maven.compiler.target>
         <lwjgl.version>3.2.4-SNAPSHOT</lwjgl.version>
-        <imgui.java.version>1.80-1.5.0</imgui.java.version>
+        <imgui.java.version>1.81.0</imgui.java.version>
     </properties>
 
 
     <repositories>
-        <repository>
-            <id>jcenter</id>
-            <url>https://jcenter.bintray.com/</url>
-        </repository>
 
         <!-- Needed for LWJGL snapshot-->
         <repository>
@@ -84,25 +80,27 @@
             <artifactId>lwjgl-opengl</artifactId>
             <classifier>${lwjgl.natives}</classifier>
         </dependency>
+
         <dependency>
-            <groupId>io.imgui.java</groupId>
+            <groupId>io.github.spair</groupId>
             <artifactId>imgui-java-binding</artifactId>
             <version>${imgui.java.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.imgui.java</groupId>
+            <groupId>io.github.spair</groupId>
             <artifactId>imgui-java-lwjgl3</artifactId>
             <version>${imgui.java.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.imgui.java</groupId>
+            <groupId>io.github.spair</groupId>
             <artifactId>${imguiNatives}</artifactId>
             <version>${imgui.java.version}</version>
         </dependency>
+
         <dependency>
-            <groupId>com.googlecode.json-simple</groupId>
-            <artifactId>json-simple</artifactId>
-            <version>1.1.1</version>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>1.26</version>
         </dependency>
     </dependencies>
 

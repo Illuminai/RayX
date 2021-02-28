@@ -1,0 +1,8 @@
+name: Shape Plugin
+description: Basic Shapes
+author: Thomas Herzog and Mikail Gedik
+version: 1.0
+
+includes:
+  - sdf/cylinder.yml
+  - sdf/sphere.yml

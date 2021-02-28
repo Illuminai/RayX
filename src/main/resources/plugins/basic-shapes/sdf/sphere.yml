@@ -1,0 +1,10 @@
+name: Sphere
+type: sdf
+
+fields:
+  - name: radius
+    type: float
+
+code: |-
+  return length(point) - shape->radius;
+

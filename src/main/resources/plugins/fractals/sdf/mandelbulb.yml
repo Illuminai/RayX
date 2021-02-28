@@ -1,0 +1,33 @@
+name: Mandelbulb
+type: sdf
+
+fields:
+  - name: shape1
+    type: pointer
+
+  - name: shape2
+    type: pointer
+
+code: |-
+  float3 c = (float3) {shape->size+1,shape->size+1,shape->size+1};
+  float3 orbit = point;
+  float dz = 1;
+
+  for (int i = 0; i < 20; i++) {
+    float r = length(orbit);
+    float o = acos(orbit.z/r);
+    float p = atan(orbit.y/orbit.x);
+
+    dz = 8*r*r*r*r*r*r*r*dz;
+
+    r = r*r*r*r*r*r*r*r;
+    o = 8*o;
+    p = 8*p;
+
+    orbit = (float3){r*sin(o) * cos(p), r*sin(o) * sin(p), r*cos(o)} + c;
+
+    if (dot(orbit, orbit) > 4.0) break;
+
+  }
+  float z = length(orbit);
+  return 0.5*z*log(z)/dz;

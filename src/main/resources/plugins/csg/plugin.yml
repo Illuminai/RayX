@@ -1,0 +1,7 @@
+name: Constructive Solid Geometry
+description: Create complex surfaces with constructive solid geometry modeling
+author: Thomas Herzog and Mikail Gedik
+version: 1.0
+
+includes:
+  - shapes/subtraction.yml

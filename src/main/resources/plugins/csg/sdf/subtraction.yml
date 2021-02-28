@@ -1,0 +1,14 @@
+name: Subtraction
+type: sdf
+
+fields:
+  - name: shape1
+    type: pointer
+
+  - name: shape2
+    type: pointer
+
+code: |-
+  return max(-shape1->distance, shape2->distance);
+#  return max(-d1, d2);
+

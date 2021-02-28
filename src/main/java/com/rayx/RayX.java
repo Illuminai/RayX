@@ -1,12 +1,19 @@
 package com.rayx;
 
+import com.rayx.core.ui.OpenGLWindow;
+import com.rayx.core.ui.WindowManager;
 import com.rayx.examples.TestOGLWindow;
-import com.rayx.glfw.OpenGLWindow;
-import com.rayx.glfw.WindowManager;
+import com.rayx.modular.plugin.Plugin;
+import com.rayx.modular.plugin.PluginLoader;
+import com.rayx.modular.plugin.PluginManager;
 import com.rayx.opencl.CLContext;
 import com.rayx.opencl.CLManager;
-import com.rayx.scene.shape.Shape;
 import com.rayx.scene.shape.ShapeType;
+import com.rayx.ui.MainWindow;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.net.URL;
 
 import static org.lwjgl.opencl.CL22.*;
 
@@ -31,11 +38,12 @@ public class RayX {
         System.out.println(type.generateDistanceShaderFunction());
         System.out.println("--------------------------");
 
-        System.exit(0);
-        */
+        System.exit(0);*/
+
         WindowManager manager = WindowManager.getInstance();
 
-        TestOGLWindow window = new TestOGLWindow(800, 600, "Test");
+        TestOGLWindow window = new TestOGLWindow(1400, 600, "RayX Engine");
+        //MainWindow window = new MainWindow(1600, 900, "RayX Engine");
         manager.addWindow(window);
 
         manager.setSwapInterval(0);
@@ -59,6 +67,18 @@ public class RayX {
         manager.startManager();
 
         freeAll();
+
+        /*try {
+            URL url = RayX.class.getResource("/plugins/basic-shapes/plugin.yml");
+            File file = new File(url.getFile());
+            PluginManager pm = new PluginManager();
+
+            PluginLoader pl = new PluginLoader();
+            Plugin plug = pl.loadPlugin(file);
+        } catch ( FileNotFoundException e) {
+            e.printStackTrace();
+        }*/
+
     }
 
     public static CLContext treatDevice(OpenGLWindow window, long device) {

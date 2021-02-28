@@ -242,6 +242,17 @@ public class CLContext {
                                                float z = length(orbit);
                                                return 0.5*z*log(z)/dz;
                         """, new ShapeType.CLField("size", ShapeType.CLFieldType.FLOAT));
+
+        registerShape("cylinder", ShapeType.ShaderType.SHAPE, """
+                    
+                    float2 d = fabs((float2){length(point.xz), point.y}) - (float2){shape->radius,shape->height};
+                    return min(max(d.x,d.y),0.0f) + length(max(d,0.0f));
+                    
+                """,  new ShapeType.CLField("height", ShapeType.CLFieldType.FLOAT),
+                new ShapeType.CLField("radius", ShapeType.CLFieldType.FLOAT));
+
+
+
     }
 
     public void initialize() {

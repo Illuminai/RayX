@@ -5,19 +5,24 @@
 
 #define MAX_RAY_BOUNCES 5
 
-__kernel void renderDebug(__write_only image2d_t resultImage, float height,
-                          float width, float4 cameraPosition,
+__kernel void renderDebug(__write_only image2d_t resultImage, float width,
+                          float height, float4 cameraPosition,
                           float4 cameraRotation, float cameraFOV,
                           int globalNumShapes,
-                          __global struct shape_t* globalShapes);
+                          __global struct shape_t* globalShapes,
+                          int samples);
 
 struct ray_t getRay(float u, float v, float3 camPos, float3 camRot, float camFOV);
-float4 getDebugColor(struct rayIntersection_t inter);
 
-__kernel void render(__write_only image2d_t resultImage, float height,
-                     float width, float4 cameraPosition, float4 cameraRotation,
+float3 getNormalColor(struct rayIntersection_t inter);
+
+float getSampledHalton(int index, int base);
+
+__kernel void render(__write_only image2d_t resultImage, float width,
+                     float height, float4 cameraPosition, float4 cameraRotation,
                      float cameraFOV, int globalNumShapes,
-                     __global struct shape_t* globalShapes);
+                     __global struct shape_t* globalShapes,
+                     int samples);
 
 float4 getTypeColor(int type);
 

@@ -1,4 +1,4 @@
-package com.rayx.opengl;
+package com.rayx.core.gl;
 
 import static org.lwjgl.opengl.GL11.GL_FALSE;
 import static org.lwjgl.opengl.GL20.*;

@@ -3,76 +3,86 @@
 /**
  * Debug viewport
  */
-__kernel void renderDebug(__write_only image2d_t resultImage, float height,
-                          float width, float4 cameraPosition,
+__kernel void renderDebug(__write_only image2d_t resultImage, float width,
+                          float height, float4 cameraPosition,
                           float4 cameraRotation, float cameraFOV,
                           int globalNumShapes,
-                          __global struct shape_t *globalShapes) {
+                          __global struct shape_t *globalShapes,
+                          int samples) {
     int2 pixCo = (int2){get_global_id(0), get_global_id(1)};
-    int w = get_image_width(resultImage);
-    int h = get_image_height(resultImage);
 
-    if (pixCo.x >= w | pixCo.y >= h) {
+    if (pixCo.x >= width | pixCo.y >= height) {
         return;
     }
-
-    // float u = 2.0 * (((pixCo.x + .5) / width) - .5);
-    // float v = -2.0 * (((pixCo.y + .5) / height) - .5);
-
-    float u = 2.0 * ((pixCo.x + 0.5) / w) - 1;
-    float v = 1 - 2.0 * ((pixCo.y + 0.5) / h);
-
-    float aspectRatio = width / height;
-    v = ((v - 0.5) * aspectRatio) + 0.5;
-
 
     struct ray_t ray;
     struct rayIntersection_t intersection;
 
-    intersection = (struct rayIntersection_t){
-        (__global struct shape_t *)0, (float3){0, 0, 0}, (float3){0, 0, 0}, 0};
+    float3 sampledColor = (float3) {0.0f,0.0f,0.0f};
 
-    ray = getRay(u, v, cameraPosition.xyz, cameraRotation.xyz, cameraFOV);
-    traceRay(&ray, globalNumShapes, globalShapes, &intersection);
+    for(int s = 1; s <= samples; s++) {
 
-    if (intersection.obj == 0) {
-        write_imagef(resultImage, pixCo, (float4){0, 0, 1, 1});
-        return;
+        float u = 2.0 * ((pixCo.x + getSampledHalton(s,2) + 0.5) / width) - 1;
+        float v = 1.0 - 2.0 * ((pixCo.y + getSampledHalton(s,3) + 0.5) / height);
+
+        float aspectRatio = height / width;
+        v = v * aspectRatio;
+
+        intersection = (struct rayIntersection_t){
+            (__global struct shape_t *)0, (float3){0, 0, 0}, (float3){0, 0, 0}, 0};
+
+        ray = getRay(u, v, cameraPosition.xyz, cameraRotation.xyz, cameraFOV);
+        traceRay(&ray, globalNumShapes, globalShapes, &intersection);
+
+        float3 color = (float3){0.0f,0.0f,0.0f};
+        float factor = 0.0f;
+        if (intersection.obj != 0) {
+            factor = max(0.0f, dot(intersection.normal, -ray.direction) );
+            color = getNormalColor(intersection);
+        }
+
+        sampledColor = (sampledColor * (s - 1) + (factor * color)) * (1.0f / (float) s);
     }
 
-    float4 color = getDebugColor(intersection);
-    write_imagef(resultImage, pixCo, color);
+    write_imagef(resultImage, pixCo, (float4) {sampledColor, 1.0f});
     return;
 }
 
-float4 getDebugColor(struct rayIntersection_t inter) {
-    return (float4){(inter.normal.x + 1.0) * 0.5, (inter.normal.y + 1.0) * 0.5,
-                    (inter.normal.z + 1.0) * 0.5, 1.0};
+float3 getNormalColor(struct rayIntersection_t inter) {
+    return (float3){(inter.normal.x + 1.0f) * 0.5f, (inter.normal.y + 1.0f) * 0.5f,
+                    (inter.normal.z + 1.0f) * 0.5f};
+}
+
+float getSampledHalton(int index, int base) {
+    float f = 1.0f;
+    float r = 0.0f;
+    float i = index;
+
+    while (i > 0) {
+        f = f / (float)base;
+        r = r + f * fmod(i , (float) base);
+        i = floor(i / (float)base);
+    }
+    return r;
 }
 
 /** Although cameraPosition/cameraRotation are 3dim, the parameter passed is
 4dim so it can be passed using clSetKernelArg4d */
-__kernel void render(__write_only image2d_t resultImage, float height,
-                     float width, float4 cameraPosition, float4 cameraRotation,
+__kernel void render(__write_only image2d_t resultImage, float width,
+                     float height, float4 cameraPosition, float4 cameraRotation,
                      float cameraFOV, int globalNumShapes,
-                     __global struct shape_t *globalShapes) {
+                     __global struct shape_t *globalShapes, int samples) {
     int2 pixCo = (int2){get_global_id(0), get_global_id(1)};
-    int w = get_image_width(resultImage);
-    int h = get_image_height(resultImage);
 
-    // float u = 2.0 * (((pixCo.x + .5) / width) - .5);
-    // float v = -2.0 * (((pixCo.y + .5) / height) - .5);
-    if (pixCo.x >= w | pixCo.y >= h) {
+    if (pixCo.x >= width | pixCo.y >= height) {
         return;
     }
 
-    float u = 2.0 * ((pixCo.x + 0.5) / w) - 1;
-    float v = 1 - 2.0 * ((pixCo.y + 0.5) / h);
+    float u = 2.0 * ((pixCo.x + 0.5) / width) - 1;
+    float v = 1.0 - 2.0 * ((pixCo.y + 0.5) / height);
 
-    float aspectRatio = width / height;
-    v = ((v - 0.5) * aspectRatio) + 0.5;
-
-
+    float aspectRatio = height / width;
+    v = v * aspectRatio;
 
     struct ray_t rays[MAX_RAY_BOUNCES];
     struct rayIntersection_t inters[MAX_RAY_BOUNCES];
@@ -103,7 +113,9 @@ __kernel void render(__write_only image2d_t resultImage, float height,
     i--;
 
     if (i == -1) {
-        write_imagef(resultImage, pixCo, (float4){1, 0, 1, 1});
+        float t = 0.5f * (rays[0].direction.z + 1.0f );
+        float3 color = (float3) { 1.0f,1.0f,1.0f } * (1.0f - t) + t * (float3) { 0.5f, 0.7f, 1.0f };
+        write_imagef(resultImage, pixCo, (float4){color, 1});
         return;
     }
     lumen = 0;

@@ -1,33 +1,32 @@
 package com.rayx.examples;
 
 import com.rayx.RayX;
+import com.rayx.core.gl.Shader;
+import com.rayx.core.gl.ShaderProgram;
+import com.rayx.core.gl.ShaderType;
 import com.rayx.core.math.Matrix3x3;
 import com.rayx.core.math.Vector3d;
-import com.rayx.glfw.OpenGLWindow;
-import com.rayx.opencl.CLManager;
-import com.rayx.opengl.Shader;
-import com.rayx.opengl.ShaderProgram;
-import com.rayx.opengl.ShaderType;
+import com.rayx.core.ui.OpenGLWindow;
 import com.rayx.scene.Camera;
 import com.rayx.scene.Scene;
 import com.rayx.scene.shape.Shape;
+import com.rayx.scene.shape.ShapeType;
 import imgui.*;
 import imgui.extension.imnodes.ImNodes;
 import imgui.flag.*;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
+import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opencl.CL10;
-import org.lwjgl.opencl.CL11;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -84,6 +83,8 @@ public class TestOGLWindow extends OpenGLWindow {
     private long event;
     private boolean rendering;
 
+    private int maxSamples = 5;
+
     public TestOGLWindow(int width, int height, String title) {
         super(width, height, title);
 
@@ -95,7 +96,7 @@ public class TestOGLWindow extends OpenGLWindow {
 
             //scene.render(RayX.context, (int) objs[0], (boolean) objs[5], (Camera) objs[4], (int) objs[1], (int) objs[2]);
             rendering = true;
-            event = scene.enqueueRender(RayX.context, (int) objs[0], (boolean) objs[5], (Camera) objs[4], (int) objs[1], (int) objs[2]);
+            event = scene.enqueueRender(RayX.context, (int) objs[0], (boolean) objs[5], (Camera) objs[4], (int) objs[1], (int) objs[2], (int) objs[6]);
 
             t += Math.PI / 50;
         };
@@ -177,12 +178,8 @@ public class TestOGLWindow extends OpenGLWindow {
         } else {
             fontAtlas.addFontDefault();
         }
-        ImGuiFreeType.buildFontAtlas(fontAtlas);
 
-        ImGuiStyle style = ImGui.getStyle();
-        style.setColor(ImGuiCol.TabActive, 0, 119, 200, 255);
-        style.setColor(ImGuiCol.ModalWindowDimBg, 0, 0, 0, 127);
-        style.setWindowRounding(0);
+        setupTheme();
 
         imGuiImplGlfw.init(getWindow(), true);
         imGuiImplGl3.init("#version 450");
@@ -201,6 +198,68 @@ public class TestOGLWindow extends OpenGLWindow {
     private boolean first = true;
     private ImInt selectedSceneItem = new ImInt();
 
+    private boolean toggleFullscreen;
+
+    private void setupTheme() {
+        ImGuiStyle style = ImGui.getStyle();
+        style.setTabRounding(0.0f);
+        style.setFrameBorderSize(1.0f);
+        style.setScrollbarRounding(0.0f);
+        style.setScrollbarSize(10.0f);
+
+        style.setColor(ImGuiCol.Text, 0.95f, 0.95f, 0.95f, 1.00f);
+        style.setColor(ImGuiCol.TextDisabled, 0.50f, 0.50f, 0.50f, 1.00f);
+        style.setColor(ImGuiCol.WindowBg, 0.12f, 0.12f, 0.12f, 1.00f);
+        style.setColor(ImGuiCol.ChildBg, 0.04f, 0.04f, 0.04f, 0.50f);
+        style.setColor(ImGuiCol.PopupBg, 0.12f, 0.12f, 0.12f, 0.94f);
+        style.setColor(ImGuiCol.Border, 0.25f, 0.25f, 0.27f, 0.50f);
+        style.setColor(ImGuiCol.BorderShadow, 0.00f, 0.00f, 0.00f, 0.00f);
+        style.setColor(ImGuiCol.FrameBg, 0.20f, 0.20f, 0.22f, 0.50f);
+        style.setColor(ImGuiCol.FrameBgHovered, 0.25f, 0.25f, 0.27f, 0.75f);
+        style.setColor(ImGuiCol.FrameBgActive, 0.30f, 0.30f, 0.33f, 1.00f);
+        style.setColor(ImGuiCol.TitleBg, 0.04f, 0.04f, 0.04f, 1.00f);
+        style.setColor(ImGuiCol.TitleBgActive, 0.04f, 0.04f, 0.04f, 1.00f);
+        style.setColor(ImGuiCol.TitleBgCollapsed, 0.04f, 0.04f, 0.04f, 0.75f);
+        style.setColor(ImGuiCol.MenuBarBg, 0.18f, 0.18f, 0.19f, 1.00f);
+        style.setColor(ImGuiCol.ScrollbarBg, 0.24f, 0.24f, 0.26f, 0.75f);
+        style.setColor(ImGuiCol.ScrollbarGrab, 0.41f, 0.41f, 0.41f, 0.75f);
+        style.setColor(ImGuiCol.ScrollbarGrabHovered, 0.62f, 0.62f, 0.62f, 0.75f);
+        style.setColor(ImGuiCol.ScrollbarGrabActive, 0.94f, 0.92f, 0.94f, 0.75f);
+        style.setColor(ImGuiCol.CheckMark, 0.60f, 0.60f, 0.60f, 1.00f);
+        style.setColor(ImGuiCol.SliderGrab, 0.41f, 0.41f, 0.41f, 0.75f);
+        style.setColor(ImGuiCol.SliderGrabActive, 0.62f, 0.62f, 0.62f, 0.75f);
+        style.setColor(ImGuiCol.Button, 0.20f, 0.20f, 0.22f, 1.00f);
+        style.setColor(ImGuiCol.ButtonHovered, 0.25f, 0.25f, 0.27f, 1.00f);
+        style.setColor(ImGuiCol.ButtonActive, 0.41f, 0.41f, 0.41f, 1.00f);
+        style.setColor(ImGuiCol.Header, 0.18f, 0.18f, 0.19f, 1.00f);
+        style.setColor(ImGuiCol.HeaderHovered, 0.25f, 0.25f, 0.27f, 1.00f);
+        style.setColor(ImGuiCol.HeaderActive, 0.41f, 0.41f, 0.41f, 1.00f);
+        style.setColor(ImGuiCol.Separator, 0.25f, 0.25f, 0.27f, 1.00f);
+        style.setColor(ImGuiCol.SeparatorHovered, 0.41f, 0.41f, 0.41f, 1.00f);
+        style.setColor(ImGuiCol.SeparatorActive, 0.62f, 0.62f, 0.62f, 1.00f);
+        style.setColor(ImGuiCol.ResizeGrip, 0.30f, 0.30f, 0.33f, 0.75f);
+        style.setColor(ImGuiCol.ResizeGripHovered, 0.41f, 0.41f, 0.41f, 0.75f);
+        style.setColor(ImGuiCol.ResizeGripActive, 0.62f, 0.62f, 0.62f, 0.75f);
+        style.setColor(ImGuiCol.Tab, 0.21f, 0.21f, 0.22f, 1.00f);
+        style.setColor(ImGuiCol.TabHovered, 0.37f, 0.37f, 0.39f, 1.00f);
+        style.setColor(ImGuiCol.TabActive, 0.30f, 0.30f, 0.33f, 1.00f);
+        style.setColor(ImGuiCol.TabUnfocused, 0.12f, 0.12f, 0.12f, 0.97f);
+        style.setColor(ImGuiCol.TabUnfocusedActive, 0.18f, 0.18f, 0.19f, 1.00f);
+        style.setColor(ImGuiCol.DockingPreview, 0.26f, 0.59f, 0.98f, 0.50f);
+        style.setColor(ImGuiCol.DockingEmptyBg, 0.20f, 0.20f, 0.20f, 1.00f);
+        style.setColor(ImGuiCol.PlotLines, 0.61f, 0.61f, 0.61f, 1.00f);
+        style.setColor(ImGuiCol.PlotLinesHovered, 1.00f, 0.43f, 0.35f, 1.00f);
+        style.setColor(ImGuiCol.PlotHistogram, 0.90f, 0.70f, 0.00f, 1.00f);
+        style.setColor(ImGuiCol.PlotHistogramHovered, 1.00f, 0.60f, 0.00f, 1.00f);
+        style.setColor(ImGuiCol.TextSelectedBg, 0.26f, 0.59f, 0.98f, 0.50f);
+        style.setColor(ImGuiCol.DragDropTarget, 1.00f, 1.00f, 0.00f, 0.90f);
+        style.setColor(ImGuiCol.NavHighlight, 0.26f, 0.59f, 0.98f, 1.00f);
+        style.setColor(ImGuiCol.NavWindowingHighlight, 1.00f, 1.00f, 1.00f, 0.70f);
+        style.setColor(ImGuiCol.NavWindowingDimBg, 0.80f, 0.80f, 0.80f, 0.20f);
+        style.setColor(ImGuiCol.ModalWindowDimBg, 0, 0, 0, 127);
+
+    }
+
     @Override
     public void onRender() {
 
@@ -208,7 +267,7 @@ public class TestOGLWindow extends OpenGLWindow {
             show();
         }
 
-        glClearColor(0, 1, 1, 1);
+        glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT);
 
         imGuiImplGlfw.newFrame();
@@ -245,10 +304,10 @@ public class TestOGLWindow extends OpenGLWindow {
             imgui.internal.ImGui.dockBuilderAddNode(dockspace);
 
             ImInt dockspaceId = new ImInt(dockspace);
+            int bottomBar = imgui.internal.ImGui.dockBuilderSplitNode(dockspaceId.get(), ImGuiDir.Down, 0.40f, null, dockspaceId);
             ImInt sidebar = new ImInt(imgui.internal.ImGui.dockBuilderSplitNode(dockspaceId.get(), ImGuiDir.Right, 0.15f, null, dockspaceId));
-            int bottomBar = imgui.internal.ImGui.dockBuilderSplitNode(dockspaceId.get(), ImGuiDir.Down, 0.50f, null, dockspaceId);
 
-            int properties = imgui.internal.ImGui.dockBuilderSplitNode(sidebar.get(), ImGuiDir.Down, 0.20f, null, sidebar);
+            int properties = imgui.internal.ImGui.dockBuilderSplitNode(sidebar.get(), ImGuiDir.Down, 0.40f, null, sidebar);
 
             imgui.internal.ImGui.dockBuilderDockWindow("Scene", sidebar.get());
             imgui.internal.ImGui.dockBuilderDockWindow("Node Editor", bottomBar);
@@ -265,28 +324,52 @@ public class TestOGLWindow extends OpenGLWindow {
 
         if (ImGui.beginMainMenuBar()) {
             if (ImGui.beginMenu("File")) {
+                if (ImGui.menuItem("Settings")) {
+                    //TODO: Settings
+                }
+                ImGui.separator();
                 if (ImGui.menuItem("Exit")) {
                     System.exit(0);
                 }
                 ImGui.endMenu();
             }
-            if (ImGui.beginMenu("Edit")) {
-                if (ImGui.menuItem("Sphere")) {
-                    //scene.add(new Sphere(new Vector3d(0, 0, 0), 0.03f));
+            if (ImGui.beginMenu("Add")) {
+                for (ShapeType shapeType : RayX.context.getRegisteredShapes()) {
+                    if (ImGui.menuItem(shapeType.getShapeName())) {
+                        Shape shape = new Shape(shapeType, 100, new Vector3d(0, 0, 0), new Vector3d(0, 0, 0));
+                        for (ShapeType.CLField key : shapeType.getFields()) {
+                            if (key.getType() == ShapeType.CLFieldType.FLOAT3) {
+
+                                shape.getProperties().put(key.getName(), new Vector3d(0.1, 0.1, 0.1));
+                            } else if (key.getType() == ShapeType.CLFieldType.FLOAT) {
+
+                                shape.getProperties().put(key.getName(), 0.1f);
+                            }
+                        }
+                        scene.add(shape);
+                    }
                 }
-                if (ImGui.menuItem("Box")) {
-                    //scene.add(new BoxSDF(new Vector3d(0, 0, 0), new Vector3d(0, 0, 0), new Vector3d(0.03, 0.03, 0.03)));
+
+                ImGui.endMenu();
+            }
+            if (ImGui.beginMenu("View")) {
+                if (ImGui.beginMenu("Appearance Mode")) {
+                    if (ImGui.menuItem("Fullscreen", "", isFullscreen())) {
+                        toggleFullscreen = true;
+                    }
+
+                    ImGui.endMenu();
                 }
+
+                if (ImGui.menuItem("Demo Window", "", demoOpen)) {
+                    demoOpen = !demoOpen;
+                }
+
                 ImGui.endMenu();
             }
             ImGui.endMainMenuBar();
         }
 
-        /*{
-            ImGui.begin("Log Output");
-            ImGui.text("Test test");
-            ImGui.end();
-        }*/
 
         {
             ImGui.pushStyleVar(ImGuiStyleVar.WindowPadding, 0, 0);
@@ -306,13 +389,12 @@ public class TestOGLWindow extends OpenGLWindow {
             frameHeight = (int) ImGui.getContentRegionAvailY();
 
 
-
-            if(!rendering){
-                renderCallback.accept(new Object[]{texture, frameWidth, frameHeight, scene, scene.getCamera(), debugViewport});
-            }else{
+            if (!rendering) {
+                renderCallback.accept(new Object[]{texture, frameWidth, frameHeight, scene, scene.getCamera(), debugViewport, maxSamples});
+            } else {
                 int[] execStatus = new int[1];
-                CL11.clGetEventInfo(event, CL10.CL_EVENT_COMMAND_EXECUTION_STATUS, execStatus, null );
-                if(execStatus[0] == CL11.CL_COMPLETE) {
+                CL10.clGetEventInfo(event, CL10.CL_EVENT_COMMAND_EXECUTION_STATUS, execStatus, null);
+                if (execStatus[0] == CL10.CL_COMPLETE) {
                     //System.out.println("Nice");
 
                     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
@@ -327,7 +409,7 @@ public class TestOGLWindow extends OpenGLWindow {
                     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
                     glBindFramebuffer(GL_FRAMEBUFFER, 0);
                     rendering = false;
-                }else{
+                } else {
                     //System.out.println("Wait");
                 }
             }
@@ -364,7 +446,68 @@ public class TestOGLWindow extends OpenGLWindow {
             ImGui.begin("Scene");
             ImGui.text("FPS: " + fps);
 
-            ImGui.listBox("List", selectedSceneItem, scene.getVisibleObjects().stream().map(shape -> "" + shape.getClass().getSimpleName()).toArray(String[]::new), scene.getVisibleObjects().size());
+            int flags = ImGuiTableFlags.BordersV
+                    | ImGuiTableFlags.BordersOuterH
+                    | ImGuiTableFlags.Resizable
+                    | ImGuiTableFlags.RowBg
+                    | ImGuiTableFlags.NoBordersInBody
+                    | ImGuiTableFlags.ScrollY;
+            if (ImGui.beginTable("Test Title", 1, flags)) {
+                ImGui.tableSetupColumn("Name", ImGuiTableColumnFlags.NoHide);
+                ImGui.tableHeadersRow();
+
+                for (Shape shape : scene.getVisibleObjects()) {
+                    displayShapeTable(shape);
+                }
+
+                ImGui.endTable();
+            }
+
+            //ImGui.listBox("List", selectedSceneItem, scene.getVisibleObjects().stream().map(shape -> "" + shape.getClass().getSimpleName()).toArray(String[]::new), scene.getVisibleObjects().size());
+
+            /*
+
+            if (ImGui.checkbox("Debug Preview", debugViewport)) {
+                debugViewport = !debugViewport;
+            }
+
+            if (ImGui.button("Open Popup")) {
+                ImGui.openPopup("Settings");
+            }
+
+            if (ImGui.beginPopupModal("Settings")) {
+                ImGui.text("OOF");
+
+                Object[] devices = CLManager.queryPlatforms().stream().map(aLong -> CLManager.queryDevicesForPlatform(aLong, getWindow(), false).toArray()).flatMap(Arrays::stream).toArray(Object[]::new);
+                String[] printDevices = Arrays.stream(devices).map(o -> CLManager.queryDeviceInfo((Long) o, CL10.CL_DEVICE_NAME)).map(String::valueOf).toArray(String[]::new);
+                ImGui.listBox("Devices", selectedDevice, printDevices, devices.length);
+
+                ImGui.separator();
+                if (ImGui.button("Close")) {
+                    ImGui.closeCurrentPopup();
+                }
+                ImGui.endPopup();
+
+            }*/
+
+            //ImGui.listBox("OOF", selectedSceneItem, CLManager.queryPlatforms().stream().map(aLong -> CLManager.queryPlatformInfo(aLong, CL10.CL_DEVICE_NAME).toString()).toArray(String[]::new), CLManager.queryPlatforms().size());
+
+            ImGui.end();
+        }
+
+        {
+            ImGui.begin("Properties");
+
+            if (ImGui.checkbox("Debug Preview", debugViewport)) {
+                debugViewport = !debugViewport;
+            }
+
+            int[] samples = new int[]{
+                    maxSamples
+            };
+            if (ImGui.sliderInt("Samples", samples, 1, 10)) {
+                maxSamples = samples[0];
+            }
 
             float[] positions = new float[]{
                     scene.getCamera().getPosition().getX(),
@@ -393,62 +536,6 @@ public class TestOGLWindow extends OpenGLWindow {
                 scene.getCamera().setFov(fov[0]);
             }
 
-            if (ImGui.checkbox("Debug Preview", debugViewport)) {
-                debugViewport = !debugViewport;
-            }
-
-            if (ImGui.button("Open Popup")) {
-                ImGui.openPopup("Settings");
-            }
-
-            if (ImGui.beginPopupModal("Settings")) {
-                ImGui.text("OOF");
-
-                Object[] devices = CLManager.queryPlatforms().stream().map(aLong -> CLManager.queryDevicesForPlatform(aLong, getWindow(), false).toArray()).flatMap(Arrays::stream).toArray(Object[]::new);
-                String[] printDevices = Arrays.stream(devices).map(o -> CLManager.queryDeviceInfo((Long) o, CL10.CL_DEVICE_NAME)).map(String::valueOf).toArray(String[]::new);
-                ImGui.listBox("Devices", selectedDevice, printDevices, devices.length);
-
-                ImGui.separator();
-                if (ImGui.button("Close")) {
-                    ImGui.closeCurrentPopup();
-                }
-                ImGui.endPopup();
-
-            }
-
-            //ImGui.listBox("OOF", selectedSceneItem, CLManager.queryPlatforms().stream().map(aLong -> CLManager.queryPlatformInfo(aLong, CL10.CL_DEVICE_NAME).toString()).toArray(String[]::new), CLManager.queryPlatforms().size());
-
-            ImGui.end();
-        }
-
-        {
-            ImGui.begin("Properties");
-
-            Shape shape = scene.getVisibleObjects().get(selectedSceneItem.get());
-            ImGui.text("Item " + shape.getClass().getSimpleName());
-
-            float[] positions = new float[]{
-                    shape.getPosition().getX(),
-                    shape.getPosition().getY(),
-                    shape.getPosition().getZ()
-            };
-
-            if (ImGui.dragFloat3("Position", positions, 0.01f)) {
-                shape.setPosition(new Vector3d(positions[0], positions[1], positions[2]));
-            }
-
-            float[] rotations = new float[]{
-                    shape.getRotation().getX(),
-                    shape.getRotation().getY(),
-                    shape.getRotation().getZ()
-            };
-
-            if (ImGui.dragFloat3("Rotation", rotations, 0.01f)) {
-                shape.setRotation(new Vector3d(rotations[0], rotations[1], rotations[2]));
-            }
-
-            renderShapeInformation(shape);
-
             ImGui.end();
         }
 
@@ -466,8 +553,14 @@ public class TestOGLWindow extends OpenGLWindow {
             ImGui.end();
         }
 
-        ImGui.showDemoWindow();
-        //ImGui.showMetricsWindow();
+        if (demoOpen) {
+            ImGui.showDemoWindow();
+        }
+
+        /*if (beginStatusBar()) {
+            ImGui.button("Test");
+            endStatusBar();
+        }*/
 
         ImGui.render();
 
@@ -488,7 +581,58 @@ public class TestOGLWindow extends OpenGLWindow {
             lastPrint = System.currentTimeMillis();
         }
         first = false;
+
+        if (toggleFullscreen) {
+            toggleFullscreen = false;
+            if (isFullscreen()) {
+                //ImGui.getIO().addConfigFlags(ImGuiConfigFlags.ViewportsEnable);
+            } else {
+                ImGui.getIO().removeConfigFlags(ImGuiConfigFlags.ViewportsEnable);
+            }
+            setFullscreen(!isFullscreen());
+        }
     }
+
+    private boolean demoOpen;
+
+    /*private boolean beginStatusBar() {
+        ImGuiViewport viewport = ImGui.getMainViewport();
+
+        int flags = ImGuiWindowFlags.NoTitleBar
+                | ImGuiWindowFlags.NoResize
+                | ImGuiWindowFlags.NoMove
+                | ImGuiWindowFlags.NoScrollbar
+                | ImGuiWindowFlags.NoSavedSettings
+                | ImGuiWindowFlags.MenuBar;
+
+
+        ImGui.setNextWindowSize(viewport.getSizeX(), 1.0f);
+
+        ImGui.pushStyleVar(ImGuiStyleVar.WindowRounding, 0.0f);
+        ImGui.pushStyleVar(ImGuiStyleVar.WindowMinSize, 0, 0);
+        boolean open = ImGui.begin("##StatusBar", flags) && ImGui.beginMenuBar();
+        ImGui.popStyleVar(2);
+
+        if (!open) {
+            ImGui.end();
+            return false;
+        }
+
+        return true;
+    }
+
+    private void endStatusBar() {
+        ImGuiViewport viewport = ImGui.getMainViewport();
+
+        ImGui.setWindowPos(viewport.getPosX() ,viewport.getPosY() + viewport.getSizeY() - ImGui.getWindowHeight());
+
+
+        //viewport.seWorkOffsetMin(viewport.getWorkOffsetMinX(), viewport.getWorkOffsetMinY() - ImGui.getWindowHeight());
+        viewport.setWorkSize(viewport.getWorkSizeX(), viewport.getWorkSizeY() - ImGui.getWindowSizeY());
+
+        ImGui.endMenuBar();
+        ImGui.end();
+    }*/
 
     private void createNodeTree(Shape shape) {
         createSingleNode(shape);
@@ -499,14 +643,11 @@ public class TestOGLWindow extends OpenGLWindow {
         }
     }
 
-    private int counter;
-
-
     private void createSingleNode(Shape shape) {
         ImNodes.beginNode((int) shape.getId());
 
         ImNodes.beginNodeTitleBar();
-        ImGui.text(shape.getClass().getSimpleName());
+        ImGui.text(shape.getType().getShapeName());
 
         ImGui.sameLine();
 
@@ -547,79 +688,52 @@ public class TestOGLWindow extends OpenGLWindow {
 
         ImGui.button("", 120, 1);
 
-        try {
-            for (Field field : shape.getClass().getDeclaredFields()) {
-                if (field.getGenericType() == Float.TYPE) {
-                    field.setAccessible(true);
-                    float[] value = new float[]{field.getFloat(shape)};
-                    ImGui.pushItemWidth(120.f);
-                    if (ImGui.dragFloat(field.getName() + "##" + shape.hashCode(), value, 0.01f)) {
-                        field.setFloat(shape, value[0]);
-                    }
-                    ImGui.popItemWidth();
+        for (Map.Entry<String, Object> entry : shape.getProperties().entrySet()) {
+            if (entry.getValue() instanceof Float) {
+                float[] value = new float[]{(float) entry.getValue()};
+                ImGui.pushItemWidth(120.f);
+                if (ImGui.dragFloat(entry.getKey() + "##" + shape.hashCode(), value, 0.01f)) {
+                    entry.setValue(value[0]);
                 }
-                if (field.getType() == Vector3d.class) {
-                    field.setAccessible(true);
-                    Vector3d vector = (Vector3d) field.get(shape);
-                    float[] values = new float[]{
-                            vector.getX(),
-                            vector.getY(),
-                            vector.getZ()
-                    };
-                    ImGui.pushItemWidth(120.f);
-                    if (ImGui.dragFloat3(field.getName() + "##" + shape.hashCode(), values, 0.01f)) {
-                        field.set(shape, new Vector3d(values[0], values[1], values[2]));
-                    }
-                    ImGui.popItemWidth();
+                ImGui.popItemWidth();
+            } else if (entry.getValue() instanceof Vector3d) {
+                Vector3d vector = (Vector3d) entry.getValue();
+                float[] values = new float[]{
+                        vector.getX(),
+                        vector.getY(),
+                        vector.getZ()
+                };
+                ImGui.pushItemWidth(120.f);
+                if (ImGui.dragFloat3(entry.getKey() + "##" + shape.hashCode(), values, 0.01f)) {
+                    entry.setValue(new Vector3d(values[0], values[1], values[2]));
                 }
+                ImGui.popItemWidth();
             }
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
         }
-
 
         ImNodes.endNode();
     }
 
+    private int counter;
 
-    private Shape renderShapeInformation(Shape shape) {
-        try {
-            ImGui.text(shape.getClass().getSimpleName());
-            for (Field field : shape.getClass().getDeclaredFields()) {
-                if (field.getGenericType() == Float.TYPE) {
-                    field.setAccessible(true);
-                    float[] value = new float[]{field.getFloat(shape)};
-                    if (ImGui.dragFloat(field.getName() + "##" + shape.hashCode(), value, 0.01f)) {
-                        field.setFloat(shape, value[0]);
-                    }
-                }
-                if (field.getType() == Vector3d.class) {
-                    field.setAccessible(true);
-                    Vector3d vector = (Vector3d) field.get(shape);
-                    float[] values = new float[]{
-                            vector.getX(),
-                            vector.getY(),
-                            vector.getZ()
-                    };
+    private void displayShapeTable(Shape shape) {
+        ImGui.tableNextRow();
+        ImGui.tableNextColumn();
 
-                    if (ImGui.dragFloat3(field.getName() + "##" + shape.hashCode(), values, 0.01f)) {
-                        field.set(shape, new Vector3d(values[0], values[1], values[2]));
-                    }
+        if (!shape.getSubShapes().isEmpty()) {
+            boolean open = ImGui.treeNodeEx(shape.getType().getShapeName(),
+                    ImGuiTreeNodeFlags.OpenOnDoubleClick
+                            | ImGuiTreeNodeFlags.OpenOnArrow);
+            if (open) {
+                for (Shape subShape : shape.getSubShapes()) {
+                    displayShapeTable(subShape);
                 }
+                ImGui.treePop();
             }
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
+        } else {
+            ImGui.treeNodeEx(shape.getType().getShapeName(), ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen | ImGuiTreeNodeFlags.SpanFullWidth);
         }
 
-        shape.getSubShapes().replaceAll(subShape -> {
-            ImGui.beginChild("##" + subShape.hashCode());
-            Shape ret = renderShapeInformation(subShape);
-
-            ImGui.endChild();
-            return ret;
-        });
-
-        return shape;
 
     }
 

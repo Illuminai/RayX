@@ -1,0 +1,7 @@
+name: Fractals
+description: Fractals for RayX
+author: Thomas Herzog and Mikail Gedik
+version: 1.0
+
+includes:
+  - sdf/mandelbulb.yml
